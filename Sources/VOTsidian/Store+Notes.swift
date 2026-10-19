@@ -20,7 +20,7 @@ extension Store {
             try text.write(to: u, atomically: true, encoding: .utf8)
             fileCache[rel] = nil
             message = nil
-            record(rel, previous: previous, quiet: quiet)
+            record(rel, previous: previous, written: text, quiet: quiet)
         } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)"; return false }
         reload()
         return true

@@ -14,14 +14,46 @@ extension Store {
 
     /// Copia de seguridad del vault antes del primer cambio de cada día, en la carpeta de copias.
     /// Después borra las automáticas más viejas y deja solo las últimas `keepAutoBackups`.
+    /// Normalmente ya la hizo `startDailyBackup` al abrir; aquí solo espera a esa o la hace si falta.
     func ensureBackup() {
-        guard !backedUp else { return }
-        backedUp = true
-        let fm = FileManager.default
-        try? fm.createDirectory(at: backupsFolder, withIntermediateDirectories: true)
-        let dest = backupsFolder.appendingPathComponent("\(vaultName)-auto-\(Store.stamp("yyyy-MM-dd"))")
-        if !fm.fileExists(atPath: dest.path) { try? fm.copyItem(at: root, to: dest) }
+        let day = Store.stamp("yyyy-MM-dd")
+        guard lastBackupDay != day else { return }
+        lastBackupDay = day
+        backupJob.wait()
+        let dest = autoBackupURL(day)
+        if !FileManager.default.fileExists(atPath: dest.path) { Store.copyVault(from: root, to: dest) }
         pruneAutoBackups()
+    }
+
+    /// Hace la copia de hoy en segundo plano nada más abrir, para que el primer cambio no espere a copiar toda la carpeta.
+    func startDailyBackup() {
+        let day = Store.stamp("yyyy-MM-dd")
+        let dest = autoBackupURL(day)
+        guard !FileManager.default.fileExists(atPath: dest.path) else { lastBackupDay = day; return }
+        let src = root
+        let job = backupJob
+        job.enter()
+        DispatchQueue.global(qos: .utility).async {
+            Store.copyVault(from: src, to: dest)
+            job.leave()
+        }
+    }
+
+    func autoBackupURL(_ day: String) -> URL {
+        backupsFolder.appendingPathComponent("\(vaultName)-auto-\(day)")
+    }
+
+    /// Copia a una carpeta temporal y la renombra al final, para que una copia a medias no pase por completa.
+    nonisolated static func copyVault(from src: URL, to dest: URL) {
+        let fm = FileManager.default
+        try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+        guard !fm.fileExists(atPath: dest.path) else { return }
+        let partial = dest.deletingLastPathComponent().appendingPathComponent(".\(dest.lastPathComponent).partial")
+        try? fm.removeItem(at: partial)
+        do {
+            try fm.copyItem(at: src, to: partial)
+            try fm.moveItem(at: partial, to: dest)
+        } catch { try? fm.removeItem(at: partial) }
     }
 
     /// Las copias automáticas se llaman `<vault>-auto-AAAA-MM-DD`; las manuales y cualquier otra carpeta no se tocan.
@@ -59,18 +91,19 @@ extension Store {
             try new.write(to: u, atomically: true, encoding: .utf8)
             fileCache[rel] = nil
             message = nil
-            record(rel, previous: text, quiet: quiet)
+            record(rel, previous: text, written: new, quiet: quiet)
         } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)" }
         reload()
     }
 
     /// `quiet` es el autoguardado: no muestra aviso y junta varios guardados seguidos del mismo archivo en un solo paso de deshacer.
-    func record(_ rel: String, previous: String?, quiet: Bool = false) {
-        if quiet, let q = lastQuietWrite, q.rel == rel, Date().timeIntervalSince(q.at) < 120, case .write(let last, _)? = undoStack.last, last == rel {
+    func record(_ rel: String, previous: String?, written: String? = nil, quiet: Bool = false) {
+        if quiet, let q = lastQuietWrite, q.rel == rel, Date().timeIntervalSince(q.at) < 120, case .write(let last, let first, _)? = undoStack.last, last == rel {
             lastQuietWrite = (rel, Date())
+            undoStack[undoStack.count - 1] = .write(rel: rel, previous: first, written: written)
             return
         }
-        push(.write(rel: rel, previous: previous))
+        push(.write(rel: rel, previous: previous, written: written))
         lastQuietWrite = quiet ? (rel, Date()) : nil
         if !quiet { lastChange = Change(file: rel, undoable: true) }
     }
@@ -93,8 +126,14 @@ extension Store {
         }
         let label: String
         switch last {
-        case let .write(rel, previous):
+        case let .write(rel, previous, written):
             label = rel
+            // Si el archivo ya no es lo que escribió la app, otro programa (o iCloud) lo cambió después: no se pisa.
+            if let written, let current = readOptional(rel), current != written {
+                message = "«\(rel)» cambió fuera de la app después de ese cambio. No se deshizo para no perder lo nuevo."
+                reload()
+                return
+            }
             if let previous { restore(rel, previous) }
             else { do { try fm.trashItem(at: url(rel), resultingItemURL: nil) } catch { failed.append(rel) } }
         case let .trash(rel, trashed, links):

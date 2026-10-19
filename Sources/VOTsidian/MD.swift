@@ -1,5 +1,14 @@
 import Foundation
 
+extension MD {
+    /// Índice de la línea `raw`: el `hint` si sigue ahí; si no, la coincidencia más cercana a él.
+    /// Con líneas idénticas (dos «- [ ] Comprar pan») evita tocar la que no era.
+    static func index(of raw: String, in lines: [String], near hint: Int) -> Int? {
+        if hint >= 0, hint < lines.count, lines[hint] == raw { return hint }
+        return lines.indices.filter { lines[$0] == raw }.min { abs($0 - hint) < abs($1 - hint) }
+    }
+}
+
 enum DayKey {
     static func calendar() -> Calendar {
         var cal = Calendar(identifier: .gregorian)

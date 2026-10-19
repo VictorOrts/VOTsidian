@@ -2,6 +2,9 @@
 # Crea build/VOTsidian.app (versión release, firmada ad hoc) para abrir la app sin terminal.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Versión: VERSION=1.2 ./scripts/build-app.sh. Por defecto 1.0; el número de compilación es el nº de commits.
+VERSION="${VERSION:-1.0}"
+BUILD="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/VOTsidian"
 APP="build/VOTsidian.app"
@@ -32,13 +35,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key><string>VOTsidian</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
 
-codesign --force --sign - "$APP" >/dev/null 2>&1 || true
+# Firma: SIGN_ID="Developer ID Application: ..." para firmar de verdad (y luego notarizar con notarytool); sin él, firma ad hoc.
+codesign --force --sign "${SIGN_ID:--}" "$APP" >/dev/null 2>&1 || true
 echo "Listo: $PWD/$APP"

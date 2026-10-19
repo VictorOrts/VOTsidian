@@ -56,6 +56,7 @@ extension Store {
             }
         }
         if !pendingDownloads.isEmpty { out.append(Alert(level: .soon, icon: "icloud.and.arrow.down", text: "\(pendingDownloads.count) archivos de iCloud sin descargar en este Mac", screen: .ajustes)) }
+        if !unreadableFiles.isEmpty { out.append(Alert(level: .soon, icon: "exclamationmark.triangle", text: "\(unreadableFiles.count) \(unreadableFiles.count == 1 ? "nota no se puede leer" : "notas no se pueden leer"): \(unreadableFiles.prefix(2).joined(separator: ", "))", screen: .ajustes)) }
         let outLabs = labsOutOfRange
         for r in outLabs.prefix(3) {
             out.append(Alert(level: .info, icon: "testtube.2", text: "Analítica: \(r.name) \(r.status == .low ? "bajo" : "alto") (\(r.valueText))", screen: .analiticas))

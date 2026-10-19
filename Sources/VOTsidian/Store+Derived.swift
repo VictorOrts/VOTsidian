@@ -103,7 +103,7 @@ extension Store {
 
     func allBackups() -> [URL] {
         ((try? FileManager.default.contentsOfDirectory(at: backupsFolder, includingPropertiesForKeys: nil)) ?? [])
-            .filter { $0.hasDirectoryPath }.sorted { $0.lastPathComponent > $1.lastPathComponent }
+            .filter { $0.hasDirectoryPath && !$0.lastPathComponent.hasPrefix(".") }.sorted { $0.lastPathComponent > $1.lastPathComponent }
     }
 
     func addCasaRow(section: String, cells: [String]) {

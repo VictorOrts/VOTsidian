@@ -85,8 +85,7 @@ enum Edit {
 
     static func setTask(_ text: String, task: TaskItem, done: Bool, on day: Date = Date()) -> String? {
         var lines = MD.lines(text)
-        let idx = (task.line < lines.count && lines[task.line] == task.raw) ? task.line : lines.firstIndex(of: task.raw)
-        guard let i = idx else { return nil }
+        guard let i = MD.index(of: task.raw, in: lines, near: task.line) else { return nil }
         var l = lines[i]
         if done {
             l = l.replacingOccurrences(of: "- [ ]", with: "- [x]")
@@ -142,9 +141,8 @@ extension Edit {
     static func completeRecurring(_ text: String, task: TaskItem, today: Date = DayKey.today()) -> String? {
         guard let rule = task.recurrence, let done = setTask(text, task: task, done: true, on: today) else { return nil }
         var lines = MD.lines(done)
-        let marked: (String) -> Bool = { $0.contains(task.text) && $0.contains("[completion::") }
-        let idx = (task.line < lines.count && marked(lines[task.line])) ? task.line : lines.firstIndex(where: marked)
-        guard let i = idx, let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
+        // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
+        guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
         let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
         lines.insert(prefix + task.text + " 📅 \(DayKey.string(next)) 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
@@ -227,7 +225,7 @@ extension Edit {
         // Si el archivo cambió desde que se pintó la pantalla, busca la línea exacta en vez de tocar otra.
         var line = lineHint
         if let expect, !(line >= 0 && line < lines.count && lines[line] == expect) {
-            guard let found = lines.firstIndex(of: expect) else { return nil }
+            guard let found = MD.index(of: expect, in: lines, near: line) else { return nil }
             line = found
         }
         guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[)([ xX])(\].*)$/) else { return nil }
@@ -244,8 +242,7 @@ extension Edit {
     /// `priority`: -1 la deja como está, 0 la quita, 1 a 3 la cambia.
     static func updateTask(_ text: String, task: TaskItem, newText: String, due: Date?, priority: Int = -1) -> String? {
         var lines = MD.lines(text)
-        let idx = (task.line < lines.count && lines[task.line] == task.raw) ? task.line : lines.firstIndex(of: task.raw)
-        guard let i = idx, let m = lines[i].firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
+        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
         let body = String(m.2)
         var tail = ""
         if let r = body.range(of: #"⏳\s*\d{4}-\d{2}-\d{2}"#, options: .regularExpression) { tail += " " + body[r] }
@@ -258,8 +255,7 @@ extension Edit {
 
     static func deleteLine(_ text: String, raw: String, hint: Int) -> String? {
         var lines = MD.lines(text)
-        let idx = (hint >= 0 && hint < lines.count && lines[hint] == raw) ? hint : lines.firstIndex(of: raw)
-        guard let i = idx else { return nil }
+        guard let i = MD.index(of: raw, in: lines, near: hint) else { return nil }
         lines.remove(at: i)
         return lines.joined(separator: "\n")
     }
