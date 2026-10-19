@@ -1,0 +1,418 @@
+import Charts
+import SwiftUI
+
+/// Orden y visibilidad de las tarjetas de Inicio. Se guarda como «id:1,id:0,…» (1 visible, 0 oculta).
+enum HomeCard: String, CaseIterable, Identifiable {
+    case atencion, hoy, peso, mounjaro, tareas, habitos, nala, nutricion
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .atencion: "Atención"
+        case .hoy: "Hoy"
+        case .peso: "Peso"
+        case .mounjaro: "Mounjaro"
+        case .tareas: "Tareas de la semana"
+        case .habitos: "Hábitos"
+        case .nala: "Nala"
+        case .nutricion: "Plan nutricional"
+        }
+    }
+    var full: Bool { self == .atencion || self == .hoy }
+}
+
+struct HomeLayout: Equatable {
+    var items: [(card: HomeCard, visible: Bool)]
+
+    static let standard = HomeLayout(items: HomeCard.allCases.map { ($0, true) })
+
+    static func == (a: HomeLayout, b: HomeLayout) -> Bool { a.items.map(\.card) == b.items.map(\.card) && a.items.map(\.visible) == b.items.map(\.visible) }
+
+    init(items: [(card: HomeCard, visible: Bool)]) { self.items = items }
+
+    /// Lee lo guardado; ignora ids desconocidos y añade al final las tarjetas nuevas.
+    init(raw: String) {
+        var out: [(HomeCard, Bool)] = []
+        for part in raw.split(separator: ",") {
+            let kv = part.split(separator: ":")
+            guard kv.count == 2, let c = HomeCard(rawValue: String(kv[0])), !out.contains(where: { $0.0 == c }) else { continue }
+            out.append((c, kv[1] != "0"))
+        }
+        for c in HomeCard.allCases where !out.contains(where: { $0.0 == c }) { out.append((c, true)) }
+        self.items = out
+    }
+
+    var raw: String { items.map { "\($0.card.rawValue):\($0.visible ? 1 : 0)" }.joined(separator: ",") }
+
+    mutating func move(_ card: HomeCard, by delta: Int) {
+        guard let i = items.firstIndex(where: { $0.card == card }) else { return }
+        let j = min(max(i + delta, 0), items.count - 1)
+        guard i != j else { return }
+        items.swapAt(i, j)
+    }
+
+    mutating func setVisible(_ card: HomeCard, _ v: Bool) {
+        if let i = items.firstIndex(where: { $0.card == card }) { items[i].visible = v }
+    }
+
+    /// Filas para pintar: las tarjetas anchas van solas y las medianas de dos en dos.
+    var rows: [[HomeCard]] {
+        var rows: [[HomeCard]] = []
+        var pending: HomeCard?
+        for (c, v) in items where v {
+            if c.full {
+                if let p = pending { rows.append([p]); pending = nil }
+                rows.append([c])
+            } else if let p = pending { rows.append([p, c]); pending = nil }
+            else { pending = c }
+        }
+        if let p = pending { rows.append([p]) }
+        return rows
+    }
+}
+
+struct InicioView: View {
+    @Environment(Store.self) private var store
+    let go: (Screen) -> Void
+    @State private var quick = ""
+    @State private var quickMsg = ""
+    @AppStorage("inicioLayout") private var layoutRaw = ""
+    @State private var customizing = ProcessInfo.processInfo.environment["VOT_CUSTOMIZE"] != nil
+
+    private var upcomingTasks: [TaskItem] {
+        let limit = DayKey.adding(days: 7, to: DayKey.today())
+        return store.tasks.filter { t in
+            !t.done && ((t.due.map { $0 <= limit } ?? false) || (t.scheduled.map { $0 <= limit } ?? false))
+        }.sorted { ($0.due ?? $0.scheduled ?? .distantFuture) < ($1.due ?? $1.scheduled ?? .distantFuture) }
+    }
+
+    private var greeting: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        return h < 6 ? "Buenas noches" : h < 14 ? "Buenos días" : h < 21 ? "Buenas tardes" : "Buenas noches"
+    }
+
+    private var summary: String {
+        var parts: [String] = []
+        if let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
+        if let d = store.mounjaro.daysUntilNext { parts.append("pinchazo \(relativeDays(d))") }
+        let n = upcomingTasks.count
+        if n > 0 { parts.append("\(n) \(n == 1 ? "tarea" : "tareas") esta semana") }
+        return parts.joined(separator: " · ")
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(greeting).font(.system(size: 30, weight: .bold, design: .rounded))
+                        Text(capitalizedFirst(longDate(Date()))).font(.title3).foregroundStyle(.secondary)
+                        if !summary.isEmpty { Text(summary).foregroundStyle(.secondary) }
+                    }
+                    Spacer()
+                    Button { customizing.toggle() } label: { Label(customizing ? "Listo" : "Personalizar", systemImage: customizing ? "checkmark" : "slider.horizontal.3") }
+                        .controlSize(.small)
+                }
+                let layout = HomeLayout(raw: layoutRaw)
+                Grid(horizontalSpacing: 16, verticalSpacing: 16) {
+                    ForEach(Array(layout.rows.enumerated()), id: \.offset) { _, row in
+                        GridRow {
+                            if row.count == 2 {
+                                homeCard(row[0], layout); homeCard(row[1], layout)
+                            } else if row[0].full {
+                                homeCard(row[0], layout).gridCellColumns(2)
+                            } else {
+                                homeCard(row[0], layout); Color.clear
+                            }
+                        }
+                    }
+                }
+                if customizing { hiddenCards(layout) }
+            }
+            .padding(28)
+        }
+        .navigationTitle("Inicio")
+        .onAppear {
+            let key = DayKey.weekKey(Date())
+            if store.reviews[key] == nil { store.createReview(key: key, monday: DayKey.weekStart(Date())) }
+        }
+    }
+
+    // MARK: Hoy
+
+    private var todayCard: some View {
+        let today = DayKey.today()
+        let items = (store.agenda(from: today, to: today)[DayKey.string(today)] ?? []).filter { $0.kind != .done && $0.kind != .diary }
+        let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < today } ?? false) }
+        return Card(title: "Hoy", icon: "sun.max", actionTitle: "Calendario", action: { go(.calendario) }) {
+            HStack {
+                TextField("Añadir tarea… (ej: llamar al dentista el viernes)", text: $quick).onSubmit(addQuick)
+                Button("Añadir", action: addQuick).buttonStyle(.borderedProminent).disabled(quick.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            if !quickMsg.isEmpty { Label(quickMsg, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
+            HStack(spacing: 12) {
+                Text("¿Cómo vas hoy?").foregroundStyle(.secondary)
+                MoodPicker(value: store.diaryValue(today, "animo")) { store.setDiaryValue(today, "animo", $0) }
+                Spacer()
+                Button { store.openToday() } label: { Label("Nota de hoy", systemImage: "note.text") }.controlSize(.small)
+                Button { store.showCierre = true } label: { Label("Cerrar el día", systemImage: "moon.stars") }.controlSize(.small)
+            }
+            ForEach(overdue.prefix(4)) { TaskRow(task: $0) }
+            ForEach(items.prefix(8)) { it in
+                if let t = it.task { TaskRow(task: t) }
+                else {
+                    HStack(spacing: 9) {
+                        Image(systemName: it.kind.icon).foregroundStyle(it.kind.color).frame(width: 18)
+                        Text(MDParser.inline(it.title))
+                        if !it.detail.isEmpty { Text(it.detail).font(.caption).foregroundStyle(.secondary) }
+                        Spacer()
+                        if let s = it.screen { Button { go(s) } label: { Image(systemName: "chevron.right").accessibilityLabel("Siguiente / abrir") }.buttonStyle(.borderless).foregroundStyle(.tertiary) }
+                    }
+                }
+            }
+            if items.isEmpty && overdue.isEmpty { Text("Nada programado para hoy.").foregroundStyle(.secondary) }
+        }
+    }
+
+    private func addQuick() {
+        let raw = quick.trimmingCharacters(in: .whitespaces)
+        guard !raw.isEmpty else { return }
+        let p = NaturalDate.extractTask(raw)
+        store.addTask(p.text, due: p.date, recurrence: p.recurrence, priority: p.priority)
+        quickMsg = (p.date.map { "Añadida para \(longDate($0))" } ?? "Añadida al Inbox") + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "")
+        quick = ""
+    }
+
+    @ViewBuilder private func homeCard(_ c: HomeCard, _ layout: HomeLayout) -> some View {
+        Group {
+            switch c {
+            case .atencion: attention
+            case .hoy: todayCard
+            case .peso: pesoCard
+            case .mounjaro: mounjaroCard
+            case .tareas: tasksCard
+            case .habitos: weekCard
+            case .nala: nalaCard
+            case .nutricion: nutritionCard
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if customizing {
+                HStack(spacing: 2) {
+                    Button { var l = layout; l.move(c, by: -1); layoutRaw = l.raw } label: { Image(systemName: "arrow.up").accessibilityLabel("Subir") }.help("Subir")
+                    Button { var l = layout; l.move(c, by: 1); layoutRaw = l.raw } label: { Image(systemName: "arrow.down").accessibilityLabel("Bajar") }.help("Bajar")
+                    Button { var l = layout; l.setVisible(c, false); layoutRaw = l.raw } label: { Image(systemName: "eye.slash").accessibilityLabel("Ocultar") }.help("Ocultar")
+                }
+                .buttonStyle(.bordered).controlSize(.small).padding(10)
+            }
+        }
+        .overlay { if customizing { RoundedRectangle(cornerRadius: 12).stroke(Brand.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])) } }
+    }
+
+    @ViewBuilder private func hiddenCards(_ layout: HomeLayout) -> some View {
+        let hidden = layout.items.filter { !$0.visible }.map(\.card)
+        HStack(spacing: 10) {
+            Text("Ocultas:").foregroundStyle(.secondary)
+            if hidden.isEmpty { Text("ninguna").foregroundStyle(.secondary) }
+            ForEach(hidden) { c in
+                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c.title, systemImage: "eye") }.controlSize(.small)
+            }
+            Spacer()
+            Button("Restablecer orden") { layoutRaw = "" }.controlSize(.small)
+        }
+    }
+
+    @ViewBuilder private var attention: some View {
+        let list = store.alerts()
+        Card(title: list.isEmpty ? "Todo al día" : "Atención", icon: list.isEmpty ? "checkmark.seal" : "bell.badge") {
+            if list.isEmpty { Text("No hay nada urgente ni próximo.").foregroundStyle(.secondary) }
+            ForEach(list.prefix(8)) { a in
+                Button { go(a.screen) } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: a.icon).frame(width: 20)
+                            .foregroundStyle(a.level == .urgent ? Brand.bad : a.level == .soon ? Brand.warn : Brand.accent)
+                        Text(a.text)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    }.contentShape(Rectangle())
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    // MARK: Peso
+
+    private var pesoCard: some View {
+        let w = store.weight
+        return Card(title: "Peso", icon: "scalemass", actionTitle: "Abrir", action: { go(.peso) }) {
+            if let l = w.last {
+                HStack(spacing: 20) {
+                    Ring(progress: w.progress, color: Brand.accent) {
+                        VStack(spacing: 0) {
+                            Text("\(Int(w.progress * 100))%").font(.system(size: 26, weight: .bold, design: .rounded))
+                            Text("del camino").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(fmt(l.kg, unit: " kg")).font(.system(size: 38, weight: .bold, design: .rounded)).monospacedDigit()
+                        Text(DayKey.dmy(l.date) + (w.previous.map { " · \(fmtDelta(l.kg - $0.kg)) vs el anterior" } ?? ""))
+                            .font(.callout).foregroundStyle(.secondary)
+                        HStack(spacing: 14) {
+                            Label("\(fmt(w.lostKg)) kg perdidos", systemImage: "arrow.down.right").foregroundStyle(Brand.accent)
+                            Text("faltan \(fmt(w.remainingKg)) kg")
+                        }.font(.callout)
+                    }
+                }
+                Sparkline(records: w.records, goal: w.goalKg).frame(height: 70)
+                let days = DayKey.days(from: l.date, to: DayKey.today())
+                if days > 31 {
+                    Label("Hace \(days) días que no registras el peso.", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Brand.warn).font(.callout)
+                }
+            } else {
+                Text("Sin registros de peso.").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: Mounjaro
+
+    private var mounjaroCard: some View {
+        let m = store.mounjaro
+        return Card(title: "Mounjaro", icon: "syringe", actionTitle: "Registrar", action: { go(.mounjaro) }) {
+            if let last = m.last, let next = m.next, let d = m.daysUntilNext {
+                let color: Color = d < 0 ? Brand.bad : d == 0 ? Brand.warn : Brand.accent
+                HStack(spacing: 20) {
+                    Ring(progress: d <= 0 ? 1 : 1 - Double(d) / Double(m.everyDays), color: color) {
+                        VStack(spacing: 0) {
+                            Text(d == 0 ? "hoy" : "\(abs(d))").font(.system(size: 30, weight: .bold, design: .rounded))
+                            if d != 0 { Text(d < 0 ? "de retraso" : d == 1 ? "día" : "días").font(.caption2).foregroundStyle(.secondary) }
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Próximo").font(.caption).foregroundStyle(.secondary)
+                        Text(capitalizedFirst(longDate(next))).font(.title3.weight(.semibold))
+                        Text("Último: \(DayKey.dmy(last.date)) · \(last.dose) · \(last.site)").font(.callout).foregroundStyle(.secondary)
+                        Text("\(m.doses.count) pinchazos · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)
+                    }
+                }
+                if d <= 1, m.last?.date != DayKey.today() {
+                    Button { store.injectToday() } label: { Label("Me pinché hoy", systemImage: "checkmark.circle") }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                        .help("Registra \(MD.formatNumber(m.last?.mg ?? 7.5, comma: true)) mg, \(m.suggestedSite). Se puede deshacer.")
+                }
+                if d < 0 {
+                    Label("Atrasado \(-d) \(-d == 1 ? "día" : "días"). Regístralo cuando te lo pongas.", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Brand.warn).font(.callout)
+                }
+            } else {
+                Text("Sin pinchazos registrados.").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: Tareas, hábitos
+
+    private var tasksCard: some View {
+        Card(title: "Tareas de hoy y próximos 7 días", icon: "checklist", actionTitle: "Todas", action: { go(.tareas) }) {
+            if upcomingTasks.isEmpty {
+                Text("Nada pendiente en los próximos 7 días.").foregroundStyle(.secondary)
+            } else {
+                ForEach(upcomingTasks.prefix(7)) { TaskRow(task: $0) }
+            }
+        }
+    }
+
+    private var weekCard: some View {
+        let key = DayKey.weekKey(Date())
+        let r = store.reviews[key]
+        let todayIdx = (Calendar(identifier: .iso8601).component(.weekday, from: Date()) + 5) % 7
+        return Card(title: "Hábitos · semana \(key.suffix(3))", icon: "checkmark.circle", actionTitle: r == nil ? "Crear revisión" : "Abrir", action: { go(.semana) }) {
+            if let r {
+                ForEach(r.habits, id: \.name) { h in
+                    HStack(spacing: 10) {
+                        Text(h.name).frame(width: 90, alignment: .leading)
+                        HStack(spacing: 6) {
+                            ForEach(0..<7, id: \.self) { d in
+                                Button { store.toggleHabit(key: key, habit: h.name, day: d) } label: {
+                                    Circle().fill(h.days[d] ? Brand.accent : Color.secondary.opacity(0.2))
+                                        .frame(width: 16, height: 16)
+                                        .overlay(Circle().stroke(d == todayIdx ? Color.primary.opacity(0.6) : .clear, lineWidth: 1.5))
+                                }.buttonStyle(.plain).help("Marcar o desmarcar")
+                            }
+                        }
+                        Spacer()
+                        Text("\(h.count)/7").monospacedDigit().foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 6) {
+                    Spacer().frame(width: 100)
+                    ForEach(["L", "M", "X", "J", "V", "S", "D"], id: \.self) { Text($0).font(.caption2).foregroundStyle(.secondary).frame(width: 16) }
+                }
+            } else {
+                Text("Todavía no hay revisión para esta semana.").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: Nala, nutrición
+
+    private var nalaCard: some View {
+        let n = store.nala
+        return Card(title: n.name, icon: "cat", actionTitle: "Abrir", action: { go(.nala) }) {
+            ForEach(Array(n.overdue.enumerated()), id: \.offset) { _, o in
+                Label("\(o.title) vencida el \(DayKey.dmy(o.date))", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.warn)
+            }
+            ForEach(Array(n.upcoming.prefix(3).enumerated()), id: \.offset) { _, u in
+                Label("\(u.title): \(DayKey.dmy(u.date)) (\(relativeDays(DayKey.days(from: DayKey.today(), to: u.date))))", systemImage: "calendar")
+            }
+            if n.overdue.isEmpty && n.upcoming.isEmpty { Label("Sin citas ni vacunas programadas", systemImage: "checkmark.seal").foregroundStyle(.secondary) }
+            if let last = n.visits.last { Text("Último registro: \(DayKey.dmy(last.date)) · \(last.tipo)").font(.callout).foregroundStyle(.secondary) }
+        }
+    }
+
+    private var nutritionCard: some View {
+        let p = store.plan
+        return Card(title: "Plan nutricional", icon: "fork.knife", actionTitle: "Abrir", action: { go(.nutricion) }) {
+            if p.kcal > 0 {
+                HStack(spacing: 22) {
+                    macro("kcal", fmt(p.kcal, 0), Brand.accent)
+                    macro("proteína", fmt(p.protein, 0, unit: " g"), .blue)
+                    macro("hidratos", fmt(p.carbs, 0, unit: " g"), .orange)
+                    macro("grasas", fmt(p.fat, 0, unit: " g"), .purple)
+                }
+                if let l = store.weight.last { Text("\(fmt(p.protein / l.kg)) g de proteína por kg con tu peso actual").font(.callout).foregroundStyle(.secondary) }
+            } else {
+                Text("Sin plan cargado.").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func macro(_ label: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(.system(size: 24, weight: .bold, design: .rounded)).monospacedDigit()
+            HStack(spacing: 5) { Circle().fill(color).frame(width: 8, height: 8); Text(label).font(.caption).foregroundStyle(.secondary) }
+        }
+    }
+}
+
+struct Sparkline: View {
+    let records: [WeightRecord]
+    let goal: Double
+
+    var body: some View {
+        let lo = min(goal, records.map(\.kg).min() ?? goal) - 1
+        Chart {
+            ForEach(records) { r in
+                AreaMark(x: .value("Día", r.date), yStart: .value("Base", lo), yEnd: .value("kg", r.kg))
+                    .foregroundStyle(LinearGradient(colors: [Brand.accent.opacity(0.35), Brand.accent.opacity(0.02)], startPoint: .top, endPoint: .bottom))
+                    .interpolationMethod(.monotone)
+                LineMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent).interpolationMethod(.monotone)
+            }
+            if let l = records.last { PointMark(x: .value("Día", l.date), y: .value("kg", l.kg)).foregroundStyle(Brand.accent).symbolSize(60) }
+            RuleMark(y: .value("Objetivo", goal)).foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+        }
+        .chartXAxis(.hidden).chartYAxis(.hidden)
+        .chartYScale(domain: lo...((records.map(\.kg).max() ?? goal) + 1))
+        .chartXScale(range: .plotDimension(padding: 6))
+    }
+}

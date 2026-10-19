@@ -1,0 +1,186 @@
+import SwiftUI
+import UniformTypeIdentifiers
+
+struct SaludView: View {
+    @Environment(Store.self) private var store
+    @State private var reason = ""
+    @State private var date = Date().addingTimeInterval(7 * 86400)
+    @State private var medication = ""
+    @State private var showNewVisit = false
+    @State private var showSummary = false
+    @State private var spec: RowSpec?
+    private let file = VaultPath.medico
+
+    private var visits: [(path: String, date: Date?, especialidad: String)] {
+        store.noteMeta.compactMap { path, m in
+            guard m["tipo"] == "cita_medica" else { return nil }
+            return (path, m["fecha"].flatMap(DayKey.date), m["especialidad"] ?? "")
+        }.sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
+    }
+
+    private var appointments: [TaskItem] {
+        store.tasks.filter { $0.file == file && !$0.done }.sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
+    }
+
+    var body: some View {
+        let today = DayKey.today()
+        let text = store.read(file)
+        let meds = Parse.listItems(text, section: "Tratamientos")
+        let analyses = Parse.tables(text).first { $0.title.localizedCaseInsensitiveContains("nálisis") || $0.title.localizedCaseInsensitiveContains("analisis") }
+        let lastAnalysis = analyses?.rows.compactMap { r -> (Date, String)? in
+            guard let d = DayKey.dmyDate(r.cells.first ?? "") ?? DayKey.date(r.cells.first ?? "") else { return nil }
+            return (d, analyses!.value(r, "prueba"))
+        }.max { $0.0 < $1.0 }
+        let next = appointments.first { $0.due != nil }
+
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 12) {
+                    Tile(title: "Próxima cita", value: next?.due.map { shortDate($0) } ?? "–",
+                         note: next.map { "\($0.text) · \(relativeDays(DayKey.days(from: today, to: $0.due!)))" }, tint: (next?.due.map { DayKey.days(from: today, to: $0) <= 7 } ?? false) ? Brand.warn : nil)
+                    Tile(title: "Citas pendientes", value: "\(appointments.count)")
+                    Tile(title: "Último análisis", value: lastAnalysis.map { DayKey.dmy($0.0) } ?? "–", note: lastAnalysis?.1)
+                    Tile(title: "Tratamientos", value: "\(meds.count + (store.mounjaro.last != nil ? 1 : 0))")
+                }
+
+                Button { showSummary = true } label: { Label("Resumen para la consulta (copiar)", systemImage: "doc.on.clipboard") }
+                Card(title: "Analíticas", icon: "testtube.2", actionTitle: "Abrir", action: { store.screen = .analiticas }) {
+                    let out = store.labsOutOfRange
+                    if !store.labsExist { Text("Aún no sigues tus analíticas. Actívalas para ver cada valor en el tiempo.").foregroundStyle(.secondary) }
+                    else if out.isEmpty { Label("Todos los últimos valores están dentro de rango.", systemImage: "checkmark.seal").foregroundStyle(Brand.accent) }
+                    else { ForEach(out.prefix(4)) { r in HStack { Text(r.name).fontWeight(.medium); Text(r.valueText).monospacedDigit(); Text(r.status.label).font(.caption).foregroundStyle(Brand.warn); Spacer() } } }
+                }
+                Card(title: "Próximas citas", icon: "calendar.badge.clock") {
+                    if appointments.isEmpty { Text("Sin citas pendientes.").foregroundStyle(.secondary) }
+                    ForEach(appointments) { TaskRow(task: $0) }
+                    Divider()
+                    HStack {
+                        TextField("Nueva cita (médico, motivo)", text: $reason).onSubmit(addAppointment)
+                        DatePicker("", selection: $date, displayedComponents: .date).labelsHidden()
+                        Button("Añadir cita", action: addAppointment).buttonStyle(.borderedProminent).disabled(reason.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    Text("Se guarda con fecha en Médico y aparece en Tareas y en los avisos de Calendar.").font(.caption).foregroundStyle(.secondary)
+                }
+
+                Card(title: "Tratamientos y medicación", icon: "pills") {
+                    if let m = store.mounjaro.last {
+                        Button { store.screen = .mounjaro } label: {
+                            HStack {
+                                Image(systemName: "syringe").foregroundStyle(Brand.accent)
+                                Text("Mounjaro \(m.dose)").fontWeight(.medium)
+                                Text("cada \(store.mounjaro.everyDays) días").foregroundStyle(.secondary)
+                                Spacer()
+                                if let n = store.mounjaro.next, let d = store.mounjaro.daysUntilNext { Text("próximo \(shortDate(n)) · \(relativeDays(d))").foregroundStyle(d < 0 ? Brand.bad : .secondary) }
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                            }.contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                    }
+                    ForEach(meds) { m in
+                        HStack {
+                            Image(systemName: "pills").foregroundStyle(Brand.accent)
+                            Text(MDParser.inline(m.text))
+                            Spacer()
+                            Button { store.edit(file) { Edit.deleteLine($0, raw: m.raw, hint: m.line) } } label: { Image(systemName: "minus.circle").accessibilityLabel("Quitar") }
+                                .buttonStyle(.borderless).foregroundStyle(.secondary).help("Quitar")
+                        }
+                    }
+                    HStack {
+                        TextField("Añadir tratamiento o suplemento (nombre, dosis, pauta)", text: $medication).onSubmit(addMedication)
+                        Button("Añadir", action: addMedication).disabled(medication.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    Text("La medicación la decide tu médico. Aquí solo queda anotada.").font(.caption).foregroundStyle(.secondary)
+                }
+
+                Card(title: "Citas y visitas anotadas", icon: "stethoscope") {
+                    if visits.isEmpty { Text("Todavía no hay notas de visita. Crea una con el botón.").foregroundStyle(.secondary) }
+                    ForEach(visits, id: \.path) { v in
+                        Button { store.pendingNote = v.path } label: {
+                            HStack {
+                                Text(((v.path as NSString).lastPathComponent as NSString).deletingPathExtension).fontWeight(.medium)
+                                Text(v.especialidad).foregroundStyle(.secondary)
+                                Spacer()
+                                Text(v.date.map { DayKey.dmy($0) } ?? "sin fecha").foregroundStyle(.secondary).monospacedDigit()
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                            }.contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                    }
+                    Button { showNewVisit = true } label: { Label("Nueva nota de visita", systemImage: "plus") }.buttonStyle(.borderless).font(.callout)
+                }
+
+                if analyses != nil {
+                    NoteTables(file: file, icon: "doc.text.magnifyingglass", include: { $0.title.localizedCaseInsensitiveContains("nálisis") })
+                    Button { addAnalysis(analyses!) } label: { Label("Añadir análisis (PDF)…", systemImage: "doc.badge.plus") }
+                }
+
+                Text("Los PDF se copian a Organización/Médico/Análisis y se abren desde el enlace de la tabla.").font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(24)
+        }
+        .navigationTitle("Salud y médicos")
+        .sheet(item: $spec) { RowSheet(spec: $0) }
+        .sheet(isPresented: $showSummary) { SummarySheet(text: store.doctorSummary()) }
+        .sheet(isPresented: $showNewVisit) {
+            NewNoteSheet(folders: ["Organización/Médico"], template0: "Cita médica", folder0: "Organización/Médico") { store.pendingNote = $0 }
+        }
+    }
+
+    private func addAppointment() {
+        let t = reason.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        let d = DayKey.calendar().startOfDay(for: date)
+        store.edit(file) { Edit.appendToSection($0, section: "Próximas citas", line: "- [ ] \(t) 📅 \(DayKey.string(d))") }
+        reason = ""
+    }
+
+    private func addMedication() {
+        let t = medication.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        store.edit(file) { Edit.appendToSection($0, section: "Tratamientos", line: "- \(t)") }
+        medication = ""
+    }
+
+    private func addAnalysis(_ table: NamedTable) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.pdf, .image]
+        panel.message = "Elige el PDF o la imagen del análisis"
+        guard panel.runModal() == .OK, let src = panel.url else { return }
+        let dir = store.url("Organización/Médico/Análisis")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dest = dir.appendingPathComponent(src.lastPathComponent)
+        if !FileManager.default.fileExists(atPath: dest.path) { try? FileManager.default.copyItem(at: src, to: dest) }
+        store.reload()
+        var cells = [String](repeating: "", count: table.header.count)
+        if cells.count > 0 { cells[0] = DayKey.dmy(Date()) }
+        if cells.count > 1 { cells[1] = "Análisis" }
+        if cells.count > 2 { cells[2] = "[[\(src.lastPathComponent)]]" }
+        spec = RowSpec(file: file, mode: .add(afterLine: table.lastLine, headerLine: table.headerLine), title: "análisis", prefill: cells)
+    }
+}
+
+
+struct SummarySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let text: String
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Resumen para la consulta").font(.title3.weight(.semibold))
+            ScrollView {
+                Text(text).font(.system(size: 12, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(10).background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+            HStack {
+                Text("Se genera con tus datos actuales. Revísalo antes de compartirlo.").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Cerrar") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(copied ? "Copiado ✓" : "Copiar") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                    copied = true
+                }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(22).frame(width: 620, height: 520)
+    }
+}

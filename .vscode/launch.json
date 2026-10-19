@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:VOTsidian}",
+            "name": "Debug VOTsidian",
+            "target": "VOTsidian",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug VOTsidian"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:VOTsidian}",
+            "name": "Release VOTsidian",
+            "target": "VOTsidian",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release VOTsidian"
+        }
+    ]
+}
