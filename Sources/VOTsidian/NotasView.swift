@@ -140,8 +140,9 @@ struct NotasView: View {
                 listPanel.frame(width: 290)
                 Divider()
             }
-            content
+            content.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)   // la lista pegada a la barra lateral, no centrada
         .navigationTitle("Notas")
         .onAppear { restoreTabs(); consumePending() }
         .onChange(of: tabs) { tabsRaw = tabs.joined(separator: "\n") }
