@@ -47,7 +47,7 @@ struct ContentView: View {
             ContentUnavailableView {
                 Label("No encuentro tu vault", systemImage: "folder.badge.questionmark")
             } description: {
-                Text("Busqué \(store.root.path). Elige la carpeta de tus notas, la que contiene Cambio físico/Peso.md.")
+                Text("Busqué \(store.root.path). Elige la carpeta de tus notas, la que tiene tus notas (por ejemplo Cambio físico/Peso.md).")
             } actions: {
                 Button("Elegir carpeta…") { store.chooseFolder() }
             }

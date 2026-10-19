@@ -72,3 +72,17 @@ Escribe una orden y pulsa intro: `peso 105,5` · `peso 105,5 ayer` · `ánimo 4`
 
 - **Avisos → «Avisos del sistema»**: programa notificaciones de macOS para los próximos 30 días (máx. 60) con el mismo plan que el calendario. Solo funcionan en la app (`./scripts/build-app.sh`), no con `swift run`. Se reprograman al abrir la app.
 - **Conflictos de iCloud**: si aparece `Nota 2.md` junto a `Nota.md` (o una «copia en conflicto»), sale un aviso en Inicio/Avisos para que compares y borres una.
+
+## Otra estructura de carpetas
+
+Las rutas de los archivos que usa cada pantalla (peso, Mounjaro, Inbox…) están en `VaultPath`. Para cambiar una sin tocar código:
+
+```bash
+defaults write com.victor.votsidian vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"
+```
+
+Claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, revisiones. Una carpeta es válida si tiene el archivo de peso o cualquier nota; las pantallas sin su archivo salen vacías.
+
+## Estructura del código
+
+`Store` (estado de la app) se reparte en extensiones: `Store+Scan` (leer la carpeta, también en segundo plano), `Store+Writing` (escritura y copias), `Store+Undo`, `Store+Links`, `Store+Notes`, etc. Los modelos y parsers están en `Models`, `Parsers`, `CasaEnlaces`, `Tablas` y `Medidas`; las ediciones puras de texto en `Edits` y `Templates`.

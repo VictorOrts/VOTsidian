@@ -69,3 +69,16 @@ import Testing
     store.edit("A.md") { $0 + "línea de la app\n" }
     #expect(store.read("A.md") == "# A\nver [[B]]\nlínea de fuera\nlínea de la app\n")
 }
+
+@MainActor @Test func pathOverridesAndLooseVaultValidity() throws {
+    // clave inventada: así no afecta a otros tests que corren a la vez
+    #expect(VaultPath.path("clave-de-prueba") == "clave-de-prueba" && VaultPath.peso == "Cambio físico/Peso.md")
+    UserDefaults.standard.set(["clave-de-prueba": "Salud/Otro.md"], forKey: "vaultPathOverrides")
+    defer { UserDefaults.standard.removeObject(forKey: "vaultPathOverrides") }
+    #expect(VaultPath.path("clave-de-prueba") == "Salud/Otro.md" && VaultPath.inbox == "Organización/Inbox.md")
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/Otra")
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    #expect(!Store(root: dir).isValid)   // vacía
+    try "# Hola\n".write(to: dir.appendingPathComponent("Hola.md"), atomically: true, encoding: .utf8)
+    #expect(Store(root: dir).isValid)    // sin Peso.md pero con notas
+}

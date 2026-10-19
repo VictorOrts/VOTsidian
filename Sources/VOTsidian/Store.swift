@@ -3,21 +3,44 @@ import Foundation
 import Observation
 import SwiftUI
 
+/// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta sin tocar el código:
+/// `defaults write <id de la app> vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"`
+/// (claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, revisiones).
 enum VaultPath {
-    static let peso = "Cambio físico/Peso.md"
-    static let mounjaro = "Cambio físico/Mounjaro.md"
-    static let plan = "Cambio físico/Plan Nutricional.md"
-    static let proyecto = "Proyectos/Cambio físico 2026.md"
-    static let nala = "Nala/Nala.md"
-    static let casa = "Casa/Casa.md"
-    static let moda = "Moda/Armario.md"
-    static let medico = "Organización/Médico/Médico.md"
-    static let inbox = "Organización/Inbox.md"
-    static let documentos = "Organización/Documentos.md"
-    static let personas = "Organización/Personas.md"
-    static let objetivos = "Organización/Objetivos.md"
-    static let finanzas = "Finanzas/Finanzas.md"
-    static let revisiones = "Revisiones"
+    static let defaults: [String: String] = [
+        "peso": "Cambio físico/Peso.md",
+        "mounjaro": "Cambio físico/Mounjaro.md",
+        "plan": "Cambio físico/Plan Nutricional.md",
+        "proyecto": "Proyectos/Cambio físico 2026.md",
+        "nala": "Nala/Nala.md",
+        "casa": "Casa/Casa.md",
+        "moda": "Moda/Armario.md",
+        "medico": "Organización/Médico/Médico.md",
+        "inbox": "Organización/Inbox.md",
+        "documentos": "Organización/Documentos.md",
+        "personas": "Organización/Personas.md",
+        "objetivos": "Organización/Objetivos.md",
+        "finanzas": "Finanzas/Finanzas.md",
+        "revisiones": "Revisiones",
+    ]
+    static func path(_ key: String) -> String {
+        let custom = UserDefaults.standard.dictionary(forKey: "vaultPathOverrides")?[key] as? String
+        return custom.flatMap { $0.isEmpty ? nil : $0 } ?? defaults[key] ?? key
+    }
+    static var peso: String { path("peso") }
+    static var mounjaro: String { path("mounjaro") }
+    static var plan: String { path("plan") }
+    static var proyecto: String { path("proyecto") }
+    static var nala: String { path("nala") }
+    static var casa: String { path("casa") }
+    static var moda: String { path("moda") }
+    static var medico: String { path("medico") }
+    static var inbox: String { path("inbox") }
+    static var documentos: String { path("documentos") }
+    static var personas: String { path("personas") }
+    static var objetivos: String { path("objetivos") }
+    static var finanzas: String { path("finanzas") }
+    static var revisiones: String { path("revisiones") }
 }
 
 struct NoteFile: Identifiable, Hashable {
@@ -134,7 +157,11 @@ final class Store {
     }
 
     var vaultName: String { root.lastPathComponent }
-    var isValid: Bool { FileManager.default.fileExists(atPath: root.appendingPathComponent(VaultPath.peso).path) }
+    /// Una carpeta sirve si tiene el archivo de peso o, al menos, alguna nota: el resto de pantallas funcionan vacías.
+    var isValid: Bool {
+        let fm = FileManager.default
+        return fm.fileExists(atPath: root.appendingPathComponent(VaultPath.peso).path) || !notes.isEmpty
+    }
 
     func url(_ rel: String) -> URL { root.appendingPathComponent(rel) }
     /// Texto del archivo, o `nil` si no se puede leer (no existe, iCloud sin descargar, no es UTF-8).
@@ -143,25 +170,6 @@ final class Store {
     func read(_ rel: String) -> String { readOptional(rel) ?? "" }
 
     // MARK: Carga
-
-    /// Resultado de leer la carpeta: se calcula sin tocar el estado de la app, así puede hacerse en segundo plano.
-    struct Scan: Sendable {
-        var files: [NoteFile] = []
-        var texts: [String: String] = [:]
-        var metas: [String: [String: String]] = [:]
-        var attachments: [String: String] = [:]
-        var tags: [String: [String]] = [:]
-        var snippets: [String: String] = [:]
-        var modified: [String: Date] = [:]
-        var aliases: [String: String] = [:]
-        var cache: [String: CachedFile] = [:]
-        var links: [String: [String]] = [:]
-        var pending: [String] = []
-        var unreadable: [String] = []
-        var tasks: [TaskItem] = []
-        /// `false` si no hay ningún archivo nuevo, borrado ni modificado respecto a la caché con que se empezó.
-        var changed = true
-    }
 
     /// Recarga completa y síncrona. Los archivos sin cambios salen de la caché (solo se consulta su fecha y tamaño).
     func reload() {
@@ -190,55 +198,6 @@ final class Store {
             apply(scan)
         }
         if rescanRequested { rescanRequested = false; reloadInBackground() }
-    }
-
-    nonisolated static func scan(root: URL, cache: [String: CachedFile]) -> Scan {
-        var out = Scan()
-        let skip = ["Plantillas", ".obsidian"]
-        let base = root.standardizedFileURL.path
-        let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey]
-        var reused = 0
-        if let en = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys, options: []) {
-            for case let u as URL in en {
-                let rel = String(u.standardizedFileURL.path.dropFirst(base.count + 1))
-                let comps = rel.split(separator: "/").map(String.init)
-                let last = u.lastPathComponent
-                if last.hasPrefix(".") {
-                    if last.hasSuffix(".icloud") { out.pending.append((comps.dropLast().joined(separator: "/") + "/" + String(last.dropFirst().dropLast(7))).trimmingCharacters(in: CharacterSet(charactersIn: "/"))) }
-                    if u.hasDirectoryPath { en.skipDescendants() }
-                    continue
-                }
-                if comps.contains(where: { skip.contains($0) }) || rel.hasSuffix(".excalidraw.md") { continue }
-                guard u.pathExtension == "md" else {
-                    if !u.hasDirectoryPath, !u.lastPathComponent.hasPrefix(".") { out.attachments[MD.fold(u.lastPathComponent)] = rel }
-                    continue
-                }
-                let v = try? u.resourceValues(forKeys: Set(keys))
-                let mtime = v?.contentModificationDate ?? .distantPast
-                let size = v?.fileSize ?? 0
-                let entry: CachedFile
-                if let c = cache[rel], c.mtime == mtime, c.size == size {
-                    entry = c   // sin cambios: no se vuelve a leer ni a analizar
-                    reused += 1
-                } else if let text = try? String(contentsOf: u, encoding: .utf8) {
-                    entry = CachedFile(mtime: mtime, size: size, text: text, parsed: ParsedNote(
-                        tasks: Parse.tasks(text, file: rel), meta: MD.frontmatter(text), tags: NoteInfo.tags(text),
-                        snippet: NoteInfo.snippet(text), aliases: NoteInfo.aliases(text), links: Links.extract(text)))
-                } else { out.unreadable.append(rel); continue }   // existe pero no es UTF-8 o no se puede leer
-                out.cache[rel] = entry
-                out.files.append(NoteFile(path: rel))
-                out.texts[rel] = entry.text
-                out.links[rel] = entry.parsed.links
-                if entry.parsed.meta["tipo"] != "compra" { out.tasks += entry.parsed.tasks }   // la lista de la compra no son tareas
-                out.metas[rel] = entry.parsed.meta
-                out.tags[rel] = entry.parsed.tags
-                out.snippets[rel] = entry.parsed.snippet
-                out.modified[rel] = mtime
-                for a in entry.parsed.aliases { out.aliases[MD.fold(a)] = rel }
-            }
-        }
-        out.changed = reused != out.cache.count || out.cache.count != cache.count
-        return out
     }
 
     private func apply(_ scan: Scan) {
@@ -341,39 +300,6 @@ final class Store {
     func resolve(_ name: String) -> String? {
         let key = MD.fold((name as NSString).lastPathComponent)
         return notes.first { MD.fold($0.name) == key }?.path ?? aliasIndex[key]
-    }
-
-    /// Etiquetas de todo el vault con el número de notas que las usan.
-    var allTags: [(tag: String, count: Int)] {
-        var counts: [String: (String, Int)] = [:]
-        for tags in noteTags.values { for t in tags { counts[MD.fold(t), default: (t, 0)].1 += 1 } }
-        return counts.values.map { (tag: $0.0, count: $0.1) }.sorted { ($1.count, $0.tag) < ($0.count, $1.tag) }
-    }
-
-    func notes(withTag tag: String) -> Set<String> {
-        Set(noteTags.filter { $0.value.contains { MD.fold($0) == MD.fold(tag) } }.map(\.key))
-    }
-
-    func togglePin(_ path: String) {
-        if let i = pinned.firstIndex(of: path) { pinned.remove(at: i) } else { pinned.insert(path, at: 0) }
-    }
-
-    /// Notas que nombran a esta en texto plano pero no la enlazan.
-    func unlinkedMentions(of path: String) -> [NoteFile] {
-        guard let me = notes.first(where: { $0.path == path }), me.name.count >= 4 else { return [] }
-        let key = MD.fold(me.name)
-        let linked = Set(backLinks[path] ?? [])
-        return notes.filter { n in
-            guard n.path != path, !linked.contains(n.path) else { return false }
-            let t = noteTexts[n.path] ?? read(n.path)
-            let folded: String
-            if let f = foldedTexts[n.path] { folded = f } else { folded = MD.fold(t); foldedTexts[n.path] = folded }   // se pliega una vez por recarga, no por consulta
-            return folded.contains(key) && Edit.linkMention(t, name: me.name) != nil
-        }
-    }
-
-    func linkMention(in path: String, to name: String) {
-        edit(path) { Edit.linkMention($0, name: name) }
     }
 
     func chooseFolder() {
