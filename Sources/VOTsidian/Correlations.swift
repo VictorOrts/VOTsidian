@@ -14,7 +14,29 @@ struct CorrelationPair: Identifiable, Equatable {
     var title: String
     var r: Double?
     var n: Int
+    var xs: [Double] = []
+    var ys: [Double] = []
+    var xLabel = ""
+    var yLabel = ""
     var id: String { title }
+
+    /// Color según la fuerza: verde si es clara, naranja si es débil, neutro si no hay relación.
+    var tint: Color? {
+        guard let r else { return nil }
+        let a = abs(r)
+        return a >= 0.4 ? Brand.accent : a >= 0.2 ? Brand.warn : nil
+    }
+
+    /// Recta de mínimos cuadrados para pintarla sobre los puntos.
+    var fit: (slope: Double, intercept: Double)? {
+        let n = Double(xs.count)
+        guard n >= 2 else { return nil }
+        let mx = xs.reduce(0, +) / n, my = ys.reduce(0, +) / n
+        let sxx = xs.reduce(0) { $0 + ($1 - mx) * ($1 - mx) }
+        guard sxx > 0 else { return nil }
+        let sxy = zip(xs, ys).reduce(0) { $0 + ($1.0 - mx) * ($1.1 - my) }
+        return (sxy / sxx, my - sxy / sxx * mx)
+    }
 
     /// Frase corta y prudente: la correlación no prueba que una cosa cause la otra.
     var reading: String {
@@ -58,19 +80,20 @@ enum Correlations {
         return out
     }
 
-    private static func pair(_ title: String, _ points: [WeekPoint], _ a: (WeekPoint) -> Double?, _ b: (WeekPoint) -> Double?) -> CorrelationPair {
+    private static func pair(_ title: String, _ xLabel: String, _ yLabel: String, _ points: [WeekPoint], _ a: (WeekPoint) -> Double?, _ b: (WeekPoint) -> Double?) -> CorrelationPair {
         let both = points.compactMap { p -> (Double, Double)? in
             guard let x = a(p), let y = b(p) else { return nil }
             return (x, y)
         }
-        return CorrelationPair(title: title, r: pearson(both.map(\.0), both.map(\.1)), n: both.count)
+        return CorrelationPair(title: title, r: pearson(both.map(\.0), both.map(\.1)), n: both.count,
+                               xs: both.map(\.0), ys: both.map(\.1), xLabel: xLabel, yLabel: yLabel)
     }
 
     static func pairs(_ points: [WeekPoint]) -> [CorrelationPair] {
-        [pair("Sueño ↔ ánimo", points, \.sleep, \.mood),
-         pair("Dosis ↔ cambio de peso semanal", points, \.mg, \.kgChange),
-         pair("Sueño ↔ cambio de peso semanal", points, \.sleep, \.kgChange),
-         pair("Ánimo ↔ cambio de peso semanal", points, \.mood, \.kgChange)]
+        [pair("Sueño ↔ ánimo", "Sueño (h)", "Ánimo (1-5)", points, \.sleep, \.mood),
+         pair("Dosis ↔ cambio de peso semanal", "Dosis (mg)", "Cambio (kg/sem)", points, \.mg, \.kgChange),
+         pair("Sueño ↔ cambio de peso semanal", "Sueño (h)", "Cambio (kg/sem)", points, \.sleep, \.kgChange),
+         pair("Ánimo ↔ cambio de peso semanal", "Ánimo (1-5)", "Cambio (kg/sem)", points, \.mood, \.kgChange)]
     }
 }
 
@@ -98,11 +121,8 @@ struct CorrelacionesView: View {
                 Text("Aquí se cruzan peso, dosis, ánimo y sueño por semanas. Una relación no prueba que una cosa cause la otra: sirve para sospechar y comentarlo con tu médico.")
                     .font(.callout).foregroundStyle(.secondary)
 
-                HStack(spacing: 12) {
-                    ForEach(pairs) { p in
-                        Tile(title: p.title, value: p.r.map { String(format: "%+.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "–",
-                             note: p.reading + (p.r != nil ? " (\(p.n) semanas)" : ""))
-                    }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 12)], spacing: 12) {
+                    ForEach(pairs) { pairCard($0) }
                 }
 
                 Card(title: "Peso y dosis", icon: "scalemass") {
@@ -126,23 +146,68 @@ struct CorrelacionesView: View {
                     }
                 }
 
-                Card(title: "Ánimo y sueño por semana", icon: "moon.zzz") {
-                    let withData = points.filter { $0.mood != nil || $0.sleep != nil }
-                    if withData.isEmpty { Text("Aún no hay ánimo ni sueño en las notas del día.").foregroundStyle(.secondary) }
-                    else {
-                        Chart {
-                            ForEach(withData, id: \.start) { p in
-                                if let m = p.mood { LineMark(x: .value("Semana", p.start), y: .value("Ánimo (1-5)", m), series: .value("Serie", "Ánimo")).foregroundStyle(by: .value("Serie", "Ánimo")) }
-                                if let s = p.sleep { LineMark(x: .value("Semana", p.start), y: .value("Sueño (h)", s), series: .value("Serie", "Sueño (h)")).foregroundStyle(by: .value("Serie", "Sueño (h)")) }
-                            }
-                        }
-                        .frame(height: 200)
-                        .accessibilityLabel("Gráfica semanal de ánimo y horas de sueño")
+                let withData = points.filter { $0.mood != nil || $0.sleep != nil }
+                if withData.isEmpty {
+                    Card(title: "Ánimo y sueño por semana", icon: "moon.zzz") { Text("Aún no hay ánimo ni sueño en las notas del día.").foregroundStyle(.secondary) }
+                } else {
+                    // Cada serie con su escala: ánimo (1-5) y horas de sueño no caben en el mismo eje.
+                    HStack(alignment: .top, spacing: 12) {
+                        weeklyCard("Ánimo por semana", icon: "face.smiling", unit: "Ánimo (1-5)", color: Brand.accent, domain: 1...5, data: withData.compactMap { p in p.mood.map { (p.start, $0) } })
+                        weeklyCard("Sueño por semana", icon: "moon.zzz", unit: "Sueño (h)", color: .indigo, domain: nil, data: withData.compactMap { p in p.sleep.map { (p.start, $0) } })
                     }
                 }
             }
             .padding(24)
         }
         .navigationTitle("Correlaciones")
+    }
+
+    private func pairCard(_ p: CorrelationPair) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Tile(title: p.title, value: p.r.map { String(format: "%+.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "–",
+                 note: p.reading + (p.r != nil ? " (\(p.n) semanas)" : ""), tint: p.tint)
+            if p.r != nil {
+                Chart {
+                    ForEach(Array(zip(p.xs, p.ys).enumerated()), id: \.offset) { _, v in
+                        PointMark(x: .value(p.xLabel, v.0), y: .value(p.yLabel, v.1))
+                            .foregroundStyle((p.tint ?? Color.secondary).opacity(0.65)).symbolSize(45)
+                    }
+                    if let f = p.fit, let lo = p.xs.min(), let hi = p.xs.max() {
+                        LineMark(x: .value(p.xLabel, lo), y: .value(p.yLabel, f.slope * lo + f.intercept), series: .value("s", "recta"))
+                            .foregroundStyle(p.tint ?? Color.secondary).lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
+                        LineMark(x: .value(p.xLabel, hi), y: .value(p.yLabel, f.slope * hi + f.intercept), series: .value("s", "recta"))
+                            .foregroundStyle(p.tint ?? Color.secondary).lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
+                    }
+                }
+                .chartXScale(domain: .automatic(includesZero: false))
+                .chartYScale(domain: .automatic(includesZero: false))
+                .chartXAxisLabel(p.xLabel, alignment: .center)
+                .chartYAxisLabel(p.yLabel, position: .leading)
+                .frame(height: 170)
+                .accessibilityLabel("Dispersión de \(p.title) con su recta de tendencia")
+            }
+        }
+    }
+
+    private func weeklyCard(_ title: String, icon: String, unit: String, color: Color, domain: ClosedRange<Double>?, data: [(Date, Double)]) -> some View {
+        Card(title: title, icon: icon) {
+            if data.isEmpty { Text("Sin datos.").foregroundStyle(.secondary) }
+            else {
+                Chart {
+                    ForEach(Array(data.enumerated()), id: \.offset) { _, d in
+                        LineMark(x: .value("Semana", d.0), y: .value(unit, d.1)).foregroundStyle(color).interpolationMethod(.monotone)
+                        PointMark(x: .value("Semana", d.0), y: .value(unit, d.1)).foregroundStyle(color).symbolSize(30)
+                    }
+                    if let avg = data.isEmpty ? nil : data.reduce(0) { $0 + $1.1 } / Double(data.count) {
+                        RuleMark(y: .value("Media", avg)).foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                            .annotation(position: .top, alignment: .trailing) { Text("media \(fmt(avg, 1))").font(.caption2).foregroundStyle(.secondary) }
+                    }
+                }
+                .chartYScale(domain: (domain?.lowerBound ?? (data.map(\.1).min()! - 0.5))...(domain?.upperBound ?? (data.map(\.1).max()! + 0.5)))
+                .chartYAxisLabel(unit, position: .leading)
+                .frame(height: 180)
+                .accessibilityLabel("Gráfica semanal: \(unit)")
+            }
+        }
     }
 }

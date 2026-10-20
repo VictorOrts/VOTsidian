@@ -6,6 +6,7 @@ struct GraphNode: Identifiable {
     var name: String
     var folder: String
     var degree: Int
+    var folded: String
 }
 
 struct GrafoView: View {
@@ -35,8 +36,8 @@ struct GrafoView: View {
                     .contentShape(Rectangle())
                     .onContinuousHover { phase in
                         switch phase {
-                        case .active(let p): hover = node(at: p, in: geo.size)
-                        case .ended: hover = nil
+                        case .active(let p): let h = node(at: p, in: geo.size); if h != hover { hover = h }
+                        case .ended: if hover != nil { hover = nil }
                         }
                     }
                     .gesture(DragGesture(minimumDistance: 0)
@@ -116,7 +117,7 @@ struct GrafoView: View {
         for (new, old) in keep.enumerated() { remap[old] = new }
         nodes = keep.map { i in
             let top = all[i].folder.split(separator: "/").first.map(String.init) ?? "Raíz"
-            return GraphNode(id: remap[i]!, path: all[i].path, name: all[i].name, folder: top, degree: deg[i])
+            return GraphNode(id: remap[i]!, path: all[i].path, name: all[i].name, folder: top, degree: deg[i], folded: MD.fold(all[i].name))
         }
         edges = e.compactMap { a, b in remap[a].flatMap { na in remap[b].map { (na, $0) } } }
         let folders = Array(Set(nodes.map(\.folder))).sorted()
@@ -164,16 +165,21 @@ struct GrafoView: View {
         guard pos.count == nodes.count else { return }
         let focus = hover ?? dragging
         let q = MD.fold(search)
-        func matches(_ i: Int) -> Bool { q.isEmpty || MD.fold(nodes[i].name).contains(q) }
+        func matches(_ i: Int) -> Bool { q.isEmpty || nodes[i].folded.contains(q) }
         var neighbors = Set<Int>()
         if let f = focus { for (a, b) in edges { if a == f { neighbors.insert(b) } else if b == f { neighbors.insert(a) } } }
 
+        // Aristas normales en un solo trazo; solo las del nodo enfocado se pintan aparte.
+        var normal = Path(), hotPath = Path()
         for (a, b) in edges {
-            let hot = focus != nil && (a == focus || b == focus)
-            var path = Path()
-            path.move(to: project(pos[a], in: sz)); path.addLine(to: project(pos[b], in: sz))
-            ctx.stroke(path, with: .color(hot ? Brand.accent : Color.secondary.opacity(focus == nil ? 0.35 : 0.12)), lineWidth: hot ? 2 : 1)
+            if focus != nil && (a == focus || b == focus) {
+                hotPath.move(to: project(pos[a], in: sz)); hotPath.addLine(to: project(pos[b], in: sz))
+            } else {
+                normal.move(to: project(pos[a], in: sz)); normal.addLine(to: project(pos[b], in: sz))
+            }
         }
+        ctx.stroke(normal, with: .color(Color.secondary.opacity(focus == nil ? 0.35 : 0.12)), lineWidth: 1)
+        ctx.stroke(hotPath, with: .color(Brand.accent), lineWidth: 2)
         for (i, n) in nodes.enumerated() {
             let p = project(pos[i], in: sz)
             let r = radius(n)
@@ -181,7 +187,7 @@ struct GrafoView: View {
             let color = (colors[n.folder] ?? .gray).opacity(dim ? 0.22 : 1)
             ctx.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)), with: .color(color))
             if i == focus { ctx.stroke(Path(ellipseIn: CGRect(x: p.x - r - 3, y: p.y - r - 3, width: r * 2 + 6, height: r * 2 + 6)), with: .color(.primary), lineWidth: 1.5) }
-            if scale > 0.7 || i == focus || neighbors.contains(i) {
+            if !dim && (scale > 0.7 || i == focus || neighbors.contains(i)) {
                 let label = Text(n.name).font(.system(size: 11, weight: i == focus ? .bold : .regular))
                     .foregroundColor(dim ? .secondary.opacity(0.5) : .primary)
                 ctx.draw(label, at: CGPoint(x: p.x, y: p.y + r + 9), anchor: .center)

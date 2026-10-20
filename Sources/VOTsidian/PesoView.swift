@@ -161,7 +161,8 @@ struct PesoView: View {
     }
 
     private func changeChart(_ w: WeightData) -> some View {
-        let deltas = w.records.enumerated().dropFirst().map { i, r in (r.date, r.kg - w.records[i - 1].kg) }
+        // Solo los últimos 40 pesajes: más barras no se leen y cada una lleva su etiqueta.
+        let deltas = Array(w.records.enumerated().dropFirst().map { i, r in (r.date, r.kg - w.records[i - 1].kg) }.suffix(40))
         return Card(title: "Cambio entre pesajes", icon: "chart.bar") {
             Chart {
                 ForEach(Array(deltas.enumerated()), id: \.offset) { _, d in

@@ -85,6 +85,14 @@ struct InicioView: View {
         }.sorted { ($0.due ?? $0.scheduled ?? .distantFuture) < ($1.due ?? $1.scheduled ?? .distantFuture) }
     }
 
+    /// Cuenta sin ordenar: el resumen solo necesita el número.
+    private var upcomingCount: Int {
+        let limit = DayKey.adding(days: 7, to: DayKey.today())
+        return store.tasks.reduce(0) { n, t in
+            n + (!t.done && ((t.due.map { $0 <= limit } ?? false) || (t.scheduled.map { $0 <= limit } ?? false)) ? 1 : 0)
+        }
+    }
+
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
         return h < 6 ? "Buenas noches" : h < 14 ? "Buenos días" : h < 21 ? "Buenas tardes" : "Buenas noches"
@@ -94,7 +102,7 @@ struct InicioView: View {
         var parts: [String] = []
         if let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
         if let d = store.mounjaro.daysUntilNext { parts.append("pinchazo \(relativeDays(d))") }
-        let n = upcomingTasks.count
+        let n = upcomingCount
         if n > 0 { parts.append("\(n) \(n == 1 ? "tarea" : "tareas") esta semana") }
         return parts.joined(separator: " · ")
     }
@@ -314,10 +322,11 @@ struct InicioView: View {
 
     private var tasksCard: some View {
         Card(title: "Tareas de hoy y próximos 7 días", icon: "checklist", actionTitle: "Todas", action: { go(.tareas) }) {
-            if upcomingTasks.isEmpty {
+            let upcoming = upcomingTasks
+            if upcoming.isEmpty {
                 Text("Nada pendiente en los próximos 7 días.").foregroundStyle(.secondary)
             } else {
-                ForEach(upcomingTasks.prefix(7)) { TaskRow(task: $0) }
+                ForEach(upcoming.prefix(7)) { TaskRow(task: $0) }
             }
         }
     }
