@@ -109,6 +109,9 @@ final class Store {
     struct ParsedNote { var tasks: [TaskItem]; var meta: [String: String]; var tags: [String]; var snippet: String; var aliases: [String]; var links: [String] }
     struct CachedFile { var mtime: Date; var size: Int; var text: String; var parsed: ParsedNote }
     @ObservationIgnored var fileCache: [String: CachedFile] = [:]
+    /// Último texto con que se calculó cada dato derivado (peso, plan, casa…); si no cambió, no se vuelve a analizar ni a publicar.
+    @ObservationIgnored var derivedInputs: [String: String] = [:]
+    @ObservationIgnored var reviewCache: [String: (text: String, week: WeekReview)] = [:]
     @ObservationIgnored var agendaCache: [String: [String: [AgendaItem]]] = [:]
     @ObservationIgnored var watcher: VaultWatcher?
     @ObservationIgnored var generation = 0
@@ -177,6 +180,60 @@ final class Store {
         apply(Store.scan(root: root, cache: fileCache))
     }
 
+    /// Recarga tras escribir archivos que ya existían: solo se vuelven a leer esos, sin recorrer la carpeta.
+    /// Si algo no cuadra (archivo nuevo, ilegible, fuera de las notas) cae en la recarga completa.
+    func reload(changed rels: [String]) {
+        let skip = ["Plantillas", ".obsidian"]
+        guard !rels.isEmpty, rels.allSatisfy({ rel in
+            fileCache[rel] != nil && rel.hasSuffix(".md") && !rel.hasSuffix(".excalidraw.md")
+                && !rel.split(separator: "/").contains(where: { skip.contains(String($0)) })
+        }) else { for r in rels { fileCache[r] = nil }; return reload() }
+        var cache = fileCache
+        var replaced: [String: [TaskItem]] = [:]
+        let keys: Set<URLResourceKey> = [.contentModificationDateKey, .fileSizeKey]
+        for rel in rels {
+            let u = url(rel)
+            guard let text = try? String(contentsOf: u, encoding: .utf8) else { for r in rels { fileCache[r] = nil }; return reload() }
+            let v = try? u.resourceValues(forKeys: keys)
+            let e = Store.makeEntry(text: text, rel: rel, mtime: v?.contentModificationDate ?? .distantPast, size: v?.fileSize ?? 0)
+            cache[rel] = e
+            replaced[rel] = e.parsed.meta["tipo"] == "compra" ? [] : e.parsed.tasks
+        }
+        var scan = Scan()
+        scan.files = notes
+        scan.texts = noteTexts
+        scan.metas = noteMeta
+        scan.tags = noteTags
+        scan.snippets = snippets
+        scan.modified = modified
+        scan.attachments = attachments
+        scan.pending = pendingDownloads
+        scan.unreadable = unreadableFiles
+        scan.cache = cache
+        scan.links = cache.mapValues { $0.parsed.links }
+        scan.aliases = aliasIndex.filter { !replaced.keys.contains($0.value) }
+        // Las tareas conservan su orden: las de cada archivo cambiado se sustituyen donde estaban.
+        var tasks: [TaskItem] = []
+        var placed = Set<String>()
+        for t in self.tasks {
+            if let new = replaced[t.file] {
+                if placed.insert(t.file).inserted { tasks += new }
+            } else { tasks.append(t) }
+        }
+        for (rel, new) in replaced where !placed.contains(rel) { tasks += new }
+        scan.tasks = tasks
+        for (rel, e) in replaced.keys.compactMap({ r in cache[r].map { (r, $0) } }) {
+            scan.texts[rel] = e.text
+            scan.metas[rel] = e.parsed.meta
+            scan.tags[rel] = e.parsed.tags
+            scan.snippets[rel] = e.parsed.snippet
+            scan.modified[rel] = e.mtime
+            for a in e.parsed.aliases { scan.aliases[MD.fold(a)] = rel }
+        }
+        generation += 1
+        apply(scan)
+    }
+
     /// Recarga en segundo plano, para los cambios que llegan de fuera (otro programa, iCloud): leer y analizar
     /// los archivos nuevos no bloquea la ventana, y si no hay nada distinto no se toca la pantalla.
     func reloadInBackground() {
@@ -218,11 +275,16 @@ final class Store {
         noteTexts = texts
         func text(_ rel: String) -> String { texts[rel] ?? read(rel) }
 
-        weight = Parse.weight(text(VaultPath.peso))
-        mounjaro = Parse.mounjaro(text(VaultPath.mounjaro))
-        nala = Parse.nala(text(VaultPath.nala))
-        plan = Parse.plan(text(VaultPath.plan))
-        milestones = Parse.milestones(text(VaultPath.proyecto))
+        /// Analiza `rel` solo si su texto cambió desde la última vez; si no, deja el valor publicado como está.
+        func derive(_ rel: String, _ body: (String) -> Void) {
+            let t = text(rel)
+            if derivedInputs[rel] != t { derivedInputs[rel] = t; body(t) }
+        }
+        derive(VaultPath.peso) { weight = Parse.weight($0) }
+        derive(VaultPath.mounjaro) { mounjaro = Parse.mounjaro($0) }
+        derive(VaultPath.nala) { nala = Parse.nala($0) }
+        derive(VaultPath.plan) { plan = Parse.plan($0) }
+        derive(VaultPath.proyecto) { milestones = Parse.milestones($0) }
         tasks = allTasks
         noteMeta = metas
         noteTags = tagMap
@@ -231,16 +293,17 @@ final class Store {
         aliasIndex = aliases
         attachments = attach
         notes = files.sorted { ($0.folder, $0.name) < ($1.folder, $1.name) }
-        casa = Parse.casa(text(VaultPath.casa))
-        people = Parse.people(text(VaultPath.personas)).people
-        labs = Labs.parse(texts[Labs.file] ?? "")
-        documents = Parse.tables(text(VaultPath.documentos)).flatMap { t -> [(name: String, date: Date, section: String)] in
+        derive(VaultPath.casa) { casa = Parse.casa($0) }
+        derive(VaultPath.personas) { people = Parse.people($0).people }
+        let labsText = texts[Labs.file] ?? ""
+        if derivedInputs["#labs"] != labsText { derivedInputs["#labs"] = labsText; labs = Labs.parse(labsText) }
+        derive(VaultPath.documentos) { docsText in documents = Parse.tables(docsText).flatMap { t -> [(name: String, date: Date, section: String)] in
             guard let c = t.col("caduca") else { return [] }
             return t.rows.compactMap { r in
                 guard let d = r.cells.first, !d.isEmpty, c < r.cells.count, let date = DayKey.date(r.cells[c]) ?? DayKey.dmyDate(r.cells[c]) else { return nil }
                 return (d, date, t.title)
             }
-        }
+        } }
         events = metas.compactMap { path, m in
             guard m["tipo"] == "evento", let d = m["fecha_evento"].flatMap(DayKey.date) else { return nil }
             return (((path as NSString).lastPathComponent as NSString).deletingPathExtension, d, path)
@@ -248,10 +311,15 @@ final class Store {
         buildLinks(links: linkMap)
 
         var found: [String: WeekReview] = [:]
+        var weekCache: [String: (text: String, week: WeekReview)] = [:]
         for (rel, t) in texts where rel.hasPrefix(VaultPath.revisiones + "/") {
             guard let m = (rel as NSString).lastPathComponent.firstMatch(of: /(\d{4}-W\d{2})/) else { continue }
-            found[String(m.1)] = Parse.week(t, key: String(m.1))
+            let week: WeekReview
+            if let c = reviewCache[rel], c.text == t { week = c.week } else { week = Parse.week(t, key: String(m.1)) }
+            weekCache[rel] = (t, week)
+            found[String(m.1)] = week
         }
+        reviewCache = weekCache
         reviews = found
         pendingDownloads = pending.sorted()
         unreadableFiles = scan.unreadable.sorted()
@@ -312,6 +380,8 @@ final class Store {
         UserDefaults.standard.set(u.path, forKey: "vaultPath")
         lastBackupDay = nil
         fileCache.removeAll()
+        derivedInputs.removeAll()
+        reviewCache.removeAll()
         reload()
         startWatching()
         startDailyBackup()

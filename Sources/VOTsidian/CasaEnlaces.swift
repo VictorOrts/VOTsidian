@@ -88,45 +88,58 @@ enum Links {
 
 enum GraphLayout {
     /// Disposición de fuerzas (Fruchterman-Reingold). Devuelve posiciones en [0,1]².
-    static func compute(count n: Int, edges: [(Int, Int)], iterations: Int = 320) -> [CGPoint] {
+    nonisolated static func compute(count n: Int, edges: [(Int, Int)], iterations: Int = 320) -> [CGPoint] {
         guard n > 0 else { return [] }
         if n == 1 { return [CGPoint(x: 0.5, y: 0.5)] }
-        var pos = (0..<n).map { i -> CGPoint in
+        // Las repulsiones son O(n²) por iteración: con muchas notas se hacen menos iteraciones (y se enfría más rápido para llegar a la misma temperatura final).
+        let iters = n <= 300 ? iterations : max(80, iterations * 300 * 300 / (n * n))
+        let cool = pow(0.985, Double(iterations) / Double(iters))
+        var px = [Double](repeating: 0, count: n), py = [Double](repeating: 0, count: n)
+        for i in 0..<n {
             let angle = 2 * Double.pi * Double(i) / Double(n)
             let jitter = abs(sin(Double(i) * 12.9898) * 43758.5453).truncatingRemainder(dividingBy: 1)
             let r = 0.3 + 0.15 * jitter
-            return CGPoint(x: 0.5 + r * cos(angle), y: 0.5 + r * sin(angle))
+            px[i] = 0.5 + r * cos(angle); py[i] = 0.5 + r * sin(angle)
         }
         let k = 0.9 * (1.0 / Double(n)).squareRoot()
         var temp = 0.1
-        for _ in 0..<iterations {
-            var disp = [CGVector](repeating: .zero, count: n)
-            for i in 0..<n {
-                for j in (i + 1)..<n {
-                    let dx = pos[i].x - pos[j].x, dy = pos[i].y - pos[j].y
-                    let d = max((dx * dx + dy * dy).squareRoot(), 0.001)
-                    let f = k * k / d
-                    disp[i].dx += dx / d * f; disp[i].dy += dy / d * f
-                    disp[j].dx -= dx / d * f; disp[j].dy -= dy / d * f
-                }
-            }
+        var dx = [Double](repeating: 0, count: n), dy = [Double](repeating: 0, count: n)
+        for _ in 0..<iters {
+            for i in 0..<n { dx[i] = 0; dy[i] = 0 }
+            px.withUnsafeBufferPointer { x in py.withUnsafeBufferPointer { y in
+                dx.withUnsafeMutableBufferPointer { ddx in dy.withUnsafeMutableBufferPointer { ddy in
+                    for i in 0..<n {
+                        let xi = x[i], yi = y[i]
+                        var ax = 0.0, ay = 0.0
+                        for j in (i + 1)..<n {
+                            let ex = xi - x[j], ey = yi - y[j]
+                            let d = max((ex * ex + ey * ey).squareRoot(), 0.001)
+                            let f = k * k / (d * d)   // fuerza k²/d aplicada al vector sin normalizar (ex/d · k²/d)
+                            ax += ex * f; ay += ey * f
+                            ddx[j] -= ex * f; ddy[j] -= ey * f
+                        }
+                        ddx[i] += ax; ddy[i] += ay
+                    }
+                } }
+            } }
             for (a, b) in edges where a != b {
-                let dx = pos[a].x - pos[b].x, dy = pos[a].y - pos[b].y
-                let d = max((dx * dx + dy * dy).squareRoot(), 0.001)
+                let ex = px[a] - px[b], ey = py[a] - py[b]
+                let d = max((ex * ex + ey * ey).squareRoot(), 0.001)
                 let f = d * d / k
-                disp[a].dx -= dx / d * f; disp[a].dy -= dy / d * f
-                disp[b].dx += dx / d * f; disp[b].dy += dy / d * f
+                dx[a] -= ex / d * f; dy[a] -= ey / d * f
+                dx[b] += ex / d * f; dy[b] += ey / d * f
             }
             for i in 0..<n {
-                disp[i].dx -= (pos[i].x - 0.5) * k * 2
-                disp[i].dy -= (pos[i].y - 0.5) * k * 2
-                let len = max((disp[i].dx * disp[i].dx + disp[i].dy * disp[i].dy).squareRoot(), 0.0001)
+                dx[i] -= (px[i] - 0.5) * k * 2
+                dy[i] -= (py[i] - 0.5) * k * 2
+                let len = max((dx[i] * dx[i] + dy[i] * dy[i]).squareRoot(), 0.0001)
                 let step = min(len, temp)
-                pos[i].x += disp[i].dx / len * step
-                pos[i].y += disp[i].dy / len * step
+                px[i] += dx[i] / len * step
+                py[i] += dy[i] / len * step
             }
-            temp *= 0.985
+            temp *= cool
         }
+        let pos = (0..<n).map { CGPoint(x: px[$0], y: py[$0]) }
         let xs = pos.map(\.x), ys = pos.map(\.y)
         let minX = xs.min()!, maxX = xs.max()!, minY = ys.min()!, maxY = ys.max()!
         let span = max(maxX - minX, maxY - minY, 0.0001)

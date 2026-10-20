@@ -34,7 +34,7 @@ struct TareasView: View {
         let done = store.tasks.filter(\.done).sorted { ($0.completed ?? .distantPast) > ($1.completed ?? .distantPast) }
         let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }.count
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            LazyVStack(alignment: .leading, spacing: 18) {
                 Card(title: "Nueva tarea (va al Inbox)", icon: "plus.circle") {
                     HStack {
                         TextField("Qué hay que hacer", text: $text).onSubmit(add)
@@ -88,7 +88,7 @@ struct TareasView: View {
     }
 
     @ViewBuilder private func section(_ title: String, _ items: [TaskItem], empty: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        LazyVStack(alignment: .leading, spacing: 8) {
             Text("\(title) (\(items.count))").font(.headline)
             if items.isEmpty { Text(empty).foregroundStyle(.secondary) } else { ForEach(items) { TaskRow(task: $0) } }
         }

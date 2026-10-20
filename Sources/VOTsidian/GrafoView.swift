@@ -24,6 +24,7 @@ struct GrafoView: View {
     @State private var panning = false
     @State private var search = ""
     @State private var onlyConnected = false
+    @State private var layoutGeneration = 0
 
     private let palette: [Color] = [Brand.accent, .orange, .blue, .purple, .brown, .yellow, .cyan, .red, .indigo, .pink]
 
@@ -121,7 +122,14 @@ struct GrafoView: View {
         let folders = Array(Set(nodes.map(\.folder))).sorted()
         colors = Dictionary(uniqueKeysWithValues: folders.filter { $0 != "Raíz" }.enumerated().map { ($1, palette[$0 % palette.count]) })
         if folders.contains("Raíz") { colors["Raíz"] = .gray }
-        pos = GraphLayout.compute(count: nodes.count, edges: edges)
+        // La disposición es pesada con muchas notas: se calcula fuera del hilo principal y se pinta al terminar.
+        layoutGeneration += 1
+        let (gen, count, links) = (layoutGeneration, nodes.count, edges)
+        if count <= 150 { pos = GraphLayout.compute(count: count, edges: links); return }
+        Task.detached(priority: .userInitiated) {
+            let result = GraphLayout.compute(count: count, edges: links)
+            await MainActor.run { if gen == layoutGeneration { pos = result } }
+        }
     }
 
     private func zoom(_ f: CGFloat) { scale = min(4, max(0.4, scale * f)); baseScale = scale }

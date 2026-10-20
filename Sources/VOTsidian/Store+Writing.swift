@@ -89,11 +89,10 @@ extension Store {
         ensureBackup()
         do {
             try new.write(to: u, atomically: true, encoding: .utf8)
-            fileCache[rel] = nil
             message = nil
             record(rel, previous: text, written: new, quiet: quiet)
         } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)" }
-        reload()
+        reload(changed: [rel])
     }
 
     func dismissChange(_ id: UUID) { if lastChange?.id == id { lastChange = nil } }

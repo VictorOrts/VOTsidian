@@ -30,8 +30,28 @@ import Testing
     #expect(warm < .seconds(1.0))
     #expect(warm < cold)                         // la caché evita volver a leer y analizar
     // una edición se ve al instante aunque la caché esté activa
-    store.edit("Carpeta 0/Nota 0-0.md") { $0 + "\n- [ ] Añadida ahora\n" }
+    let editTime = clock.measure { store.edit("Carpeta 0/Nota 0-0.md") { $0 + "\n- [ ] Añadida ahora\n" } }
+    let editAgain = clock.measure { store.edit("Carpeta 0/Nota 0-1.md") { $0 + "\n- [ ] Otra\n" } }   // la primera incluye la copia de seguridad del día
+    print("PERF edición \(editTime) siguiente \(editAgain)")
     #expect(store.tasks.contains { $0.text == "Añadida ahora" })
+    // la recarga incremental deja el mismo estado que una recarga completa desde cero
+    let fresh = Store(root: vault, backups: tmp.appendingPathComponent("Copias2"))
+    #expect(store.tasks == fresh.tasks && store.notes.map(\.path) == fresh.notes.map(\.path))
+    #expect(store.noteMeta == fresh.noteMeta && store.noteTags == fresh.noteTags && store.snippets == fresh.snippets)
+    #expect(store.outLinks == fresh.outLinks && store.backLinks == fresh.backLinks && store.aliasIndex == fresh.aliasIndex)
+    func paint<V: View>(_ name: String, _ view: V) {
+        let t = clock.measure { let r = ImageRenderer(content: view.environment(store).frame(width: 1000, height: 800)); r.scale = 1; _ = r.cgImage }
+        print("PERF pantalla \(name) \(t)")
+    }
+    paint("Inicio", InicioView(go: { _ in }))
+    paint("Tareas", TareasView())
+    paint("Calendario", CalendarioView())
+    paint("Notas", NotasView())
+    paint("Semana", SemanaView())
+    paint("Proyectos", ProyectosView())
+    let edgePairs = (0..<1500).map { ($0, ($0 + 1) % 1500) }
+    let layout = clock.measure { _ = GraphLayout.compute(count: 1500, edges: edgePairs) }
+    print("PERF grafo disposición \(layout)")
     let agendaCold = clock.measure { _ = store.agenda(from: DayKey.today(), to: DayKey.adding(days: 400, to: DayKey.today())) }
     let agendaHot = clock.measure { _ = store.agenda(from: DayKey.today(), to: DayKey.adding(days: 400, to: DayKey.today())) }
     print("PERF agenda frío \(agendaCold) caliente \(agendaHot)")
