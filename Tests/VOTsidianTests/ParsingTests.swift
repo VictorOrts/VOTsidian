@@ -112,6 +112,21 @@ import Testing
     #expect(w.projectedGoalDate(window: 120) != nil)
 }
 
+@Test func projectionRange() throws {
+    var w = WeightData(initialKg: 120, goalKg: 90, start: nil, records: [])
+    w.records = [("2026-05-01", 118.0), ("2026-07-01", 112.0), ("2026-08-15", 108.0), ("2026-09-30", 105.0)]
+        .map { WeightRecord(date: DayKey.date($0.0)!, kg: $0.1, note: "") }
+    let p = try #require(w.projection())
+    #expect(p.ratePerMonth < 0)
+    #expect(p.earliest <= p.date && p.date <= p.latest)
+    #expect(p.date > w.last!.date)
+    // sin bajada o ya en objetivo: sin proyección
+    w.records = w.records.reversed().enumerated().map { WeightRecord(date: w.records[$0.offset].date, kg: $0.element.kg, note: "") }
+    #expect(w.projection() == nil)
+    w.goalKg = 200
+    #expect(w.projection() == nil)
+}
+
 /// Copia temporal del vault de prueba, para que los tests en paralelo no se pisen.
 
 @MainActor @Test func realVaultCopy() throws {
@@ -235,4 +250,31 @@ import Testing
     #expect(abs(s[1].kg - 99) < 0.001)
     #expect(s[2].kg < 101 && s[2].kg > 99)
     #expect(WeightData().smoothed().isEmpty)
+}
+
+@Test func baseQueryFiltersAndSorts() {
+    let meta: [String: [String: String]] = [
+        "A/Uno.md": ["tipo": "proyecto", "estado": "Activo", "coste": "30"],
+        "A/Dos.md": ["tipo": "proyecto", "estado": "pausa", "coste": "5"],
+        "A/Tres.md": ["tipo": "proyecto", "estado": "activo"],
+        "A/Cuatro.md": ["tipo": "proyecto", "estado": "activo", "coste": "100"],
+    ]
+    let paths = meta.keys.sorted()
+    var v = BaseView(name: "x")
+    v.conditions = [BaseCondition(key: "estado", op: .equals, value: "ACTIVO")]
+    v.sortKey = "coste"
+    #expect(BaseQuery.apply(v, paths: paths, meta: meta, modified: [:]).map { ($0 as NSString).lastPathComponent } == ["Uno.md", "Cuatro.md", "Tres.md"])
+    v.ascending = false   // sin valor sigue al final
+    #expect(BaseQuery.apply(v, paths: paths, meta: meta, modified: [:]).map { ($0 as NSString).lastPathComponent } == ["Cuatro.md", "Uno.md", "Tres.md"])
+    v.conditions = [BaseCondition(key: "coste", op: .empty)]
+    #expect(BaseQuery.apply(v, paths: paths, meta: meta, modified: [:]) == ["A/Tres.md"])
+    v.conditions = []; v.text = "dos"; v.sortKey = "Nota"
+    #expect(BaseQuery.apply(v, paths: paths, meta: meta, modified: [:]) == ["A/Dos.md"])
+}
+
+@Test func linkContextFindsLinkingLine() {
+    let text = "---\ntipo: x\n---\n# Título\n```\n[[Nala]] en código\n```\n- [ ] Llevar a [[nala|la gata]] al vet\nOtra [[Casa]]"
+    #expect(LinkContext.line(in: text, linkingTo: "Nala") == "Llevar a la gata al vet")
+    #expect(LinkContext.line(in: text, linkingTo: "Casa") == "Otra Casa")
+    #expect(LinkContext.line(in: text, linkingTo: "Nada") == nil)
 }

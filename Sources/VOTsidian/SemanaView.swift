@@ -202,6 +202,8 @@ struct SemanaView: View {
                                     .frame(maxWidth: .infinity, minHeight: 34)
                                     .overlay { if h.days[d] { Image(systemName: "checkmark").foregroundStyle(.white).font(.caption.bold()) } }
                             }.buttonStyle(.plain)
+                            .accessibilityLabel("\(h.name), día \(d + 1)")
+                            .accessibilityValue(h.days[d] ? "hecho" : "pendiente")
                         }
                         Text("\(h.count) / 7").monospacedDigit().foregroundStyle(.secondary)
                     }

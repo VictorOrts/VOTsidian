@@ -98,10 +98,10 @@ struct TaskRow: View {
         HStack(spacing: 8) {
             Button { store.setTask(task, done: !task.done) } label: {
                 Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
-            }.buttonStyle(.plain).foregroundStyle(task.done ? Color.green : Color.accentColor)
-            if task.priority > 0 && !task.done { Image(systemName: "flag.fill").font(.caption).foregroundStyle(task.priority == 3 ? Brand.bad : task.priority == 2 ? Brand.warn : Color.blue).help(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]) }
+            }.buttonStyle(.plain).accessibilityLabel(task.done ? "Marcar como pendiente" : "Marcar como hecha").foregroundStyle(task.done ? Color.green : Color.accentColor)
+            if task.priority > 0 && !task.done { Image(systemName: "flag.fill").font(.caption).foregroundStyle(task.priority == 3 ? Brand.bad : task.priority == 2 ? Brand.warn : Color.blue).help(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]).accessibilityLabel(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]) }
             Text(MDParser.inline(task.text)).strikethrough(task.done).foregroundStyle(task.done ? .secondary : .primary).lineLimit(2)
-            if let r = task.recurrence { Image(systemName: "repeat").font(.caption).foregroundStyle(.secondary).help(Recurrence.describe(r)) }
+            if let r = task.recurrence { Image(systemName: "repeat").font(.caption).foregroundStyle(.secondary).help(Recurrence.describe(r)).accessibilityLabel(Recurrence.describe(r)) }
             Spacer(minLength: 8)
             if let due = task.due {
                 let n = DayKey.days(from: DayKey.today(), to: due)

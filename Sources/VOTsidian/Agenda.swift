@@ -132,9 +132,7 @@ extension Store {
     /// Añade un punto a la nota del día (`Diario/AAAA-MM-DD.md`), que se crea con la fecha ya puesta.
     func appendToDiary(_ day: Date, text: String) {
         let rel = Store.diaryPath(day)
-        let stamp = DateFormatter()
-        stamp.dateFormat = "HH:mm"
-        let line = "- \(stamp.string(from: Date())) \(text)"
+        let line = "- \(Store.stamp("HH:mm")) \(text)"
         if FileManager.default.fileExists(atPath: url(rel).path) {
             edit(rel) { $0.hasSuffix("\n") ? $0 + line + "\n" : $0 + "\n" + line + "\n" }
         } else {

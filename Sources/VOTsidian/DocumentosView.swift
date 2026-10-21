@@ -16,6 +16,7 @@ struct DocumentosView: View {
                         HStack {
                             Image(systemName: n < 0 ? "xmark.octagon.fill" : n <= 60 ? "exclamationmark.triangle.fill" : "checkmark.circle")
                                 .foregroundStyle(n < 0 ? Brand.bad : n <= 60 ? Brand.warn : Brand.accent)
+                                .accessibilityLabel(n < 0 ? "Caducado" : n <= 60 ? "Caduca pronto" : "En vigor")
                             Text(d.name).fontWeight(.medium)
                             Text(d.section).font(.caption).foregroundStyle(.secondary)
                             Spacer()

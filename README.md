@@ -54,6 +54,10 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 - **Exportar** (Ajustes): resumen del año en PDF, datos en CSV (peso, pinchazos, medidas, hábitos, tareas, ánimo y sueño) y todas las notas en .zip.
 - **Rendimiento**: la app solo vuelve a leer los archivos que cambian y vigila la carpeta con FSEvents (recarga al instante cuando algo cambia fuera).
 
+- **Peso**: la fecha estimada de llegada usa la tendencia suavizada y muestra un rango (ritmo de 2 meses, 4 meses o todo el historial), también dibujado en la gráfica.
+- **Bases**: filtros por propiedad (contiene, es, no es, vacía, con valor), orden pulsando la cabecera y vistas guardadas por tipo (menú «Vistas»).
+- **Notas**: «Enlazada desde» muestra la línea que enlaza, y al pasar el ratón sobre un enlace del panel sale una vista previa de esa nota.
+
 ## Órdenes rápidas (⌘K)
 
 Escribe una orden y pulsa intro: `peso 105,5` · `peso 105,5 ayer` · `ánimo 4` · `dormí 7,5` · `pinchazo hoy` · `tarea llamar al dentista el viernes urgente` · `idea …` · `nota …` (a la nota de hoy) · `cita endocrino el 29/10` · `cintura 98,5` · `compra leche, huevos y pan`.

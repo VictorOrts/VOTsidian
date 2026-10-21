@@ -13,7 +13,7 @@ struct ObjetivosView: View {
                     Card(title: "Objetivo de peso", icon: "scalemass", actionTitle: "Ver peso", action: { store.screen = .peso }) {
                         ProgressView(value: w.progress).tint(Brand.accent)
                         Text("\(fmt(l.kg, unit: " kg")) ahora · meta \(fmt(w.goalKg, 0)) kg · faltan \(fmt(w.remainingKg)) kg (\(Int(w.progress * 100)) %)").font(.callout)
-                        if let d = w.projectedGoalDate() {
+                        if let d = w.projection()?.date {
                             Text("Al ritmo reciente llegarías hacia \(DayKey.esLong(d, .dateTime.month(.wide).year())).").font(.callout).foregroundStyle(.secondary)
                         }
                     }

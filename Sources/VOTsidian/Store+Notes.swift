@@ -61,10 +61,9 @@ extension Store {
             raw.replaceSubrange(m.range, with: value)
         }
         let now = Date()
-        let hour = DateFormatter(); hour.dateFormat = "HH:mm"
         var body = raw.replacingOccurrences(of: "{{titulo}}", with: title)
             .replacingOccurrences(of: "{{fecha}}", with: DayKey.string(now))
-            .replacingOccurrences(of: "{{hora}}", with: hour.string(from: now))
+            .replacingOccurrences(of: "{{hora}}", with: Store.stamp("HH:mm"))
             .replacingOccurrences(of: "{{dia}}", with: DayKey.esLong(now, .dateTime.weekday(.wide)))
             .replacingOccurrences(of: "{{semana}}", with: DayKey.weekKey(now))
         var folder = ""

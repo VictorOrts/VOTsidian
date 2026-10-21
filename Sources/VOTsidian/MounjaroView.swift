@@ -36,6 +36,8 @@ struct MounjaroView: View {
                     .chartYScale(domain: 0...(max(15, points.map(\.1).max() ?? 15)))
                     .chartYAxisLabel("mg")
                     .frame(height: 170)
+                    .accessibilityLabel("Gráfica de dosis")
+                    .accessibilityValue(points.suffix(5).map { "\(DayKey.dmy($0.0)) \(fmt($0.1, 1)) mg" }.joined(separator: ", "))
                 }
 
                 if periods.count > 0 { periodsCard(periods) }

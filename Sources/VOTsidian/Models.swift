@@ -10,6 +10,13 @@ struct WeightRecord: Identifiable, Equatable {
     var id: Date { date }
 }
 
+struct WeightProjection: Equatable {
+    var date: Date
+    var earliest: Date
+    var latest: Date
+    var ratePerMonth: Double
+}
+
 struct WeightData: Equatable {
     var initialKg = 0.0
     var goalKg = 0.0
@@ -55,6 +62,19 @@ struct WeightData: Equatable {
     func projectedGoalDate(window days: Int? = 120) -> Date? {
         guard let l = last, let r = ratePerMonth(window: days), r < 0, l.kg > goalKg else { return nil }
         return DayKey.adding(days: Int((l.kg - goalKg) / -r * 30.4), to: l.date)
+    }
+
+    /// Fecha estimada de llegada al objetivo sobre la tendencia suavizada: la central usa los últimos 4 meses;
+    /// el rango va del ritmo más rápido al más lento entre 2 meses, 4 meses y todo el historial (solo los que bajan).
+    func projection() -> WeightProjection? {
+        guard let l = last, l.kg > goalKg, records.count > 1 else { return nil }
+        var trend = self
+        trend.records = smoothed()
+        let rates = [60, 120, nil].compactMap { trend.ratePerMonth(window: $0) }.filter { $0 < 0 }
+        guard let fast = rates.min(), let slow = rates.max() else { return nil }
+        let central = trend.ratePerMonth(window: 120).flatMap { $0 < 0 ? $0 : nil } ?? rates.sorted()[rates.count / 2]
+        func date(_ r: Double) -> Date { DayKey.adding(days: Int((l.kg - goalKg) / -r * 30.4), to: l.date) }
+        return WeightProjection(date: date(central), earliest: date(fast), latest: date(slow), ratePerMonth: central)
     }
 }
 

@@ -487,7 +487,18 @@ struct NotasView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Divider()
             linkRow("Enlaza a (\(outgoing.count))", outgoing)
-            linkRow("Enlazada desde (\(incoming.count))", incoming)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Enlazada desde (\(incoming.count))").font(.subheadline.weight(.semibold))
+                if incoming.isEmpty { Text("Ninguna").font(.callout).foregroundStyle(.secondary) }
+                ForEach(incoming, id: \.self) { p in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small).notePreview(p)
+                        if let c = LinkContext.line(in: store.noteTexts[p] ?? store.read(p), linkingTo: name(path)) {
+                            Text(c).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                    }
+                }
+            }
             if !mentions.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Menciones sin enlazar (\(mentions.count))").font(.subheadline.weight(.semibold))
@@ -509,7 +520,7 @@ struct NotasView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.subheadline.weight(.semibold))
             if paths.isEmpty { Text("Ninguna").font(.callout).foregroundStyle(.secondary) }
-            else { FlowRow(paths) { p in Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small) } }
+            else { FlowRow(paths) { p in Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small).notePreview(p) } }
         }
     }
 

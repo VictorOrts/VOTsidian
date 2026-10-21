@@ -10,3 +10,7 @@ jobs:
           xcode-version: latest-stable   # Package.swift pide swift-tools-version 6.4
       - run: swift --version
       - run: swift test
+      - name: Compilar la app (release) y comprobar que se empaqueta
+        run: |
+          ./scripts/build-app.sh
+          test -x build/VOTsidian.app/Contents/MacOS/VOTsidian

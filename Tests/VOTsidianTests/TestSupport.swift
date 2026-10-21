@@ -105,3 +105,18 @@ let casaFixture = """
     try "# B\n".write(to: dir.appendingPathComponent("B.md"), atomically: true, encoding: .utf8)
     return Store(root: dir)
 }
+
+
+/// Vault mínimo con peso, Mounjaro, Casa y una revisión, para probar pantallas sin depender de notas reales.
+func syntheticVault() throws -> URL {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
+    let files = [VaultPath.peso: pesoFixture, VaultPath.mounjaro: mounjaroFixture, VaultPath.casa: casaFixture,
+                 "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture,
+                 "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n"]
+    for (rel, text) in files {
+        let url = dir.appendingPathComponent(rel)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try text.write(to: url, atomically: true, encoding: .utf8)
+    }
+    return dir
+}

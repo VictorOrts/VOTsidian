@@ -35,9 +35,15 @@ struct PesoView: View {
                     }
                 }
 
-                if let d = w.projectedGoalDate(), let r = rate {
-                    Label("Al ritmo de los últimos 4 meses (\(fmtDelta(r, unit: " kg/mes"))) llegarías a \(fmt(w.goalKg, 0)) kg hacia \(DayKey.esLong(d, .dateTime.month(.wide).year())).",
-                          systemImage: "chart.line.downtrend.xyaxis").font(.callout)
+                if let p = w.projection() {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Al ritmo de la tendencia (\(fmtDelta(p.ratePerMonth, unit: " kg/mes"))) llegarías a \(fmt(w.goalKg, 0)) kg hacia \(DayKey.esLong(p.date, .dateTime.month(.wide).year())).",
+                              systemImage: "chart.line.downtrend.xyaxis").font(.callout)
+                        if DayKey.string(p.earliest) != DayKey.string(p.latest) {
+                            Text("Rango según el ritmo de 2 meses, 4 meses o todo el historial: de \(DayKey.esLong(p.earliest, .dateTime.month(.wide).year())) a \(DayKey.esLong(p.latest, .dateTime.month(.wide).year())).")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 if w.records.count > 1 { changeChart(w) }
@@ -107,6 +113,13 @@ struct PesoView: View {
         return store.weight.records.min { abs($0.date.timeIntervalSince(s)) < abs($1.date.timeIntervalSince(s)) }
     }
 
+    private func chartSummary(_ w: WeightData) -> String {
+        guard let f = w.records.first, let l = w.records.last else { return "Sin registros" }
+        var s = "\(w.records.count) pesajes, de \(fmt(f.kg, unit: " kg")) el \(DayKey.dmy(f.date)) a \(fmt(l.kg, unit: " kg")) el \(DayKey.dmy(l.date)). Objetivo \(fmt(w.goalKg, 0)) kg."
+        if let p = w.projection() { s += " Llegada estimada \(DayKey.esLong(p.date, .dateTime.month(.wide).year()))." }
+        return s
+    }
+
     private func chartMin(_ w: WeightData) -> Double { min(w.goalKg, w.records.map(\.kg).min() ?? w.goalKg) - 2 }
 
     private func mainChart(_ w: WeightData) -> some View {
@@ -133,9 +146,11 @@ struct PesoView: View {
             RuleMark(y: .value("Objetivo", w.goalKg)).foregroundStyle(Brand.accent)
                 .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
                 .annotation(position: .top, alignment: .leading) { Text("objetivo \(fmt(w.goalKg, 0)) kg").font(.caption.weight(.semibold)).foregroundStyle(Brand.accent) }
-            if let l = w.last, let d = w.projectedGoalDate() {
-                LineMark(x: .value("Día", l.date), y: .value("kg", l.kg), series: .value("s", "proy")).foregroundStyle(.secondary).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
-                LineMark(x: .value("Día", d), y: .value("kg", w.goalKg), series: .value("s", "proy")).foregroundStyle(.secondary).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
+            if let l = w.last, let p = w.projection() {
+                ForEach([("proy", p.date), ("proyMin", p.earliest), ("proyMax", p.latest)], id: \.0) { id, d in
+                    LineMark(x: .value("Día", l.date), y: .value("kg", l.kg), series: .value("s", id)).foregroundStyle(.secondary.opacity(id == "proy" ? 1 : 0.45)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
+                    LineMark(x: .value("Día", d), y: .value("kg", w.goalKg), series: .value("s", id)).foregroundStyle(.secondary.opacity(id == "proy" ? 1 : 0.45)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
+                }
             }
             if let l = w.last {
                 PointMark(x: .value("Día", l.date), y: .value("kg", l.kg)).foregroundStyle(Brand.accent).symbolSize(120)
@@ -158,6 +173,8 @@ struct PesoView: View {
         .chartYScale(domain: chartMin(w)...(w.records.map(\.kg).max()! + 5))
         .chartYAxis { AxisMarks(position: .leading) { AxisValueLabel() } }
         .frame(height: 320)
+        .accessibilityLabel("Gráfica de peso")
+        .accessibilityValue(chartSummary(w))
     }
 
     private func changeChart(_ w: WeightData) -> some View {
@@ -174,6 +191,8 @@ struct PesoView: View {
             }
             .chartYAxis(.hidden)
             .frame(height: 150)
+            .accessibilityLabel("Cambio entre pesajes")
+            .accessibilityValue(deltas.suffix(5).map { "\(DayKey.dmy($0.0)) \(fmtDelta($0.1))" }.joined(separator: ", "))
             Text("Verde: bajaste respecto al pesaje anterior. Naranja: subiste.").font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -186,6 +205,7 @@ struct PesoView: View {
                 HStack {
                     Image(systemName: (hit != nil || m.markedDone) ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle((hit != nil || m.markedDone) ? Color.green : .secondary)
+                        .accessibilityLabel((hit != nil || m.markedDone) ? "Conseguido" : "Pendiente")
                     Text(m.name)
                     Spacer()
                     if let hit { Text(DayKey.dmy(hit.date)).font(.caption).foregroundStyle(.secondary) }
