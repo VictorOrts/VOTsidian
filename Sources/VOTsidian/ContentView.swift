@@ -67,7 +67,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     if let m = store.message {
                         HStack { Text(m).font(.callout); Spacer(); Button("Cerrar") { store.message = nil }.buttonStyle(.link) }
-                            .padding(8).background(Color.orange.opacity(0.25))
+                            .padding(.horizontal, 14).padding(.vertical, 8).background(Color.orange.opacity(0.2))
                     }
                     detail
                 }
@@ -120,9 +120,8 @@ struct ContentView: View {
                 if c.undoable { Button("Deshacer") { store.undo() }.buttonStyle(.link) }
             }
             .padding(.horizontal, 16).padding(.vertical, 10)
-            .background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().stroke(.quaternary))
-            .shadow(radius: 8, y: 2)
+            .glassEffect(.regular, in: .capsule)
+            .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
             .padding(.bottom, 18)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: c.id) {
@@ -140,7 +139,7 @@ struct ContentView: View {
                 Button { store.showQuickAdd = true } label: { Label("Añadir", systemImage: "plus") }.help("Captura rápida (⇧⌘N)")
                 Button { store.showPalette = true } label: { Image(systemName: "magnifyingglass").accessibilityLabel("Buscar") }.help("Buscar (⌘K)")
                 Button { store.reload() } label: { Image(systemName: "arrow.clockwise").accessibilityLabel("Recargar") }.help("Recargar")
-            }.controlSize(.small)
+            }.controlSize(.small).buttonStyle(.glass)
             AppearancePicker().controlSize(.small)
             Label(store.vaultName, systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary)
         }

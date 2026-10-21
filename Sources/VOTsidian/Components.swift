@@ -31,14 +31,15 @@ struct Tile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased()).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 24, weight: .semibold, design: .rounded)).monospacedDigit()
+            Text(title.uppercased()).font(.caption2.weight(.semibold)).tracking(0.6).foregroundStyle(.secondary)
+            Text(value).font(.system(size: 26, weight: .bold, design: .rounded)).monospacedDigit()
                 .foregroundStyle(tint ?? .primary).lineLimit(1).minimumScaleFactor(0.7)
             if let note { Text(note).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
         }
         .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
-        .padding(12)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .padding(14)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
     }
 }
 
@@ -52,7 +53,8 @@ struct Card<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label(title, systemImage: icon ?? "circle").labelStyle(.titleAndIcon).font(.headline)
+                Label { Text(title) } icon: { Image(systemName: icon ?? "circle").foregroundStyle(Brand.accent) }
+                    .labelStyle(.titleAndIcon).font(.headline)
                 Spacer()
                 if let actionTitle, let action {
                     Button(action: action) { Text(actionTitle) + Text(" ›") }.buttonStyle(.link).font(.callout)
@@ -61,9 +63,10 @@ struct Card<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(16)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary, lineWidth: 1))
+        .padding(18)
+        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
     }
 }
 
@@ -360,8 +363,8 @@ struct ChoiceMenu: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 4)
             .frame(width: width)
-            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.12)))
+            .background(Color.primary.opacity(0.07), in: Capsule())
+            .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
     }
@@ -476,6 +479,8 @@ struct MoodPicker: View {
                         .frame(width: 26, height: 26)
                         .foregroundStyle(on ? Color.white : Color.primary)
                         .background(on ? colors[n - 1] : colors[n - 1].opacity(0.18), in: Circle())
+                        .scaleEffect(on ? 1.12 : 1)
+                        .animation(.spring(duration: 0.25), value: on)
                 }.buttonStyle(.plain).help(labels[n - 1])
             }
         }
