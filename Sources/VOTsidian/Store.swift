@@ -94,6 +94,10 @@ final class Store {
     /// Día (AAAA-MM-DD) de la última copia automática comprobada; así la copia es de verdad diaria aunque la app siga abierta.
     var lastBackupDay: String?
     @ObservationIgnored var backupJob = DispatchGroup()
+    /// Día en que ya se lanzó la copia automática en segundo plano.
+    @ObservationIgnored var dailyBackupDay: String?
+    /// Contraseña de las copias (del Llavero); si hay, las copias salen cifradas.
+    private(set) var backupPassword: String?
     enum UndoStep {
         /// `written` es lo último que escribió la app; si al deshacer el archivo ya no coincide, alguien más lo cambió.
         case write(rel: String, previous: String?, written: String?)
@@ -130,14 +134,34 @@ final class Store {
     /// Cuántas copias automáticas se conservan; las más viejas se borran solas.
     static let keepAutoBackups = 14
 
+    /// Activa el cifrado de las copias (guarda la contraseña en el Llavero) o lo quita con `nil`.
+    @discardableResult
+    func setBackupPassword(_ password: String?, keychain: Bool = true) -> Bool {
+        if let password, !password.isEmpty {
+            if keychain, !BackupKeychain.save(password) { message = "No se pudo guardar la contraseña en el Llavero."; return false }
+            backupPassword = password
+        } else {
+            if keychain { BackupKeychain.delete() }
+            backupPassword = nil
+        }
+        return true
+    }
+
     init(root: URL? = nil, backups: URL? = nil) {
         self.backupsFolder = backups ?? (root == nil
             ? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents/Copias VOTsidian")
             : FileManager.default.temporaryDirectory.appendingPathComponent("votsidian-backups-\(UUID().uuidString)"))
         self.root = root ?? Store.defaultRoot()
-        if root == nil { moveLooseBackups() }
+        if root == nil { backupPassword = BackupKeychain.load(); moveLooseBackups() }
         reload()
-        if root == nil { startWatching(); startDailyBackup() }
+        if root == nil {
+            removeStaleStaging()
+            startWatching()
+            startDailyBackup()
+            Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.startDailyBackup() }
+            }
+        }
         pendingNote = ProcessInfo.processInfo.environment["VOT_NOTE"]
         let overlay = ProcessInfo.processInfo.environment["VOT_OVERLAY"]
         showPalette = overlay == "palette"
@@ -379,6 +403,7 @@ final class Store {
         root = u
         UserDefaults.standard.set(u.path, forKey: "vaultPath")
         lastBackupDay = nil
+        dailyBackupDay = nil
         fileCache.removeAll()
         derivedInputs.removeAll()
         reviewCache.removeAll()

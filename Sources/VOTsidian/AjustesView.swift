@@ -5,9 +5,32 @@ struct AjustesView: View {
     @AppStorage("appearance") private var appearance = Appearance.system.rawValue
     @AppStorage("menuBar") private var menuBar = true
     @State private var backupMessage = ""
+    @State private var newPassword = ""
+    @State private var repeatPassword = ""
+    @State private var cryptoMessage = ""
     @State private var repairMessage = ""
     @State private var exportMessage = ""
     @State private var exportYear = Calendar.current.component(.year, from: Date())
+
+    @ViewBuilder private var encryptionControls: some View {
+        if store.backupPassword != nil {
+            Label("Las copias nuevas van cifradas (AES-256). Se abren con doble clic en Finder y tu contraseña, sin la app.", systemImage: "lock.fill")
+                .font(.callout).foregroundStyle(Brand.accent)
+            Text("Las copias anteriores siguen como carpetas sin cifrar. Si quitas el cifrado, las cifradas siguen necesitando la contraseña de entonces.").font(.caption).foregroundStyle(.secondary)
+            Button("Dejar de cifrar copias nuevas") { store.setBackupPassword(nil); cryptoMessage = "" }
+        } else {
+            Text("Cifrar las copias nuevas").font(.headline)
+            SecureField("Contraseña", text: $newPassword).frame(width: 260)
+            SecureField("Repite la contraseña", text: $repeatPassword).frame(width: 260)
+            Text("Se guarda en el Llavero de macOS y no se vuelve a pedir. Apúntala también en otro sitio: sin ella las copias cifradas no se pueden abrir.").font(.caption).foregroundStyle(.secondary)
+            Button("Activar cifrado") {
+                if newPassword.count < 8 { cryptoMessage = "Mínimo 8 caracteres." }
+                else if newPassword != repeatPassword { cryptoMessage = "Las contraseñas no coinciden." }
+                else if store.setBackupPassword(newPassword) { newPassword = ""; repeatPassword = ""; cryptoMessage = "" }
+            }
+        }
+        if !cryptoMessage.isEmpty { Text(cryptoMessage).font(.callout).foregroundStyle(.red) }
+    }
 
     var body: some View {
         ScrollView {
@@ -32,13 +55,15 @@ struct AjustesView: View {
                         .font(.callout).foregroundStyle(.secondary)
                     HStack {
                         Button("Hacer copia ahora") {
-                            backupMessage = store.backupNow().map { "Creada: \($0.lastPathComponent)" } ?? "No se pudo crear."
+                            backupMessage = store.backupNow().map { "Creando: \($0.lastPathComponent) (aparece al terminar)" } ?? "No se pudo crear."
                         }
                         Button("Ver copias en Finder") { try? FileManager.default.createDirectory(at: store.backupsFolder, withIntermediateDirectories: true); NSWorkspace.shared.open(store.backupsFolder) }
                         Text(backupMessage).foregroundStyle(.secondary)
                     }
                     Text("\(store.allBackups().count) copias guardadas (\(store.autoBackups().count) automáticas).").font(.caption).foregroundStyle(.secondary)
                     Text("Cada cambio también se puede deshacer con el botón del aviso o con ⌥⌘Z.").font(.caption).foregroundStyle(.secondary)
+                    Divider()
+                    encryptionControls
                 }
                 if !store.pendingDownloads.isEmpty {
                     Card(title: "iCloud", icon: "icloud.and.arrow.down") {

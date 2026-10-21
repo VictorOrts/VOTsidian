@@ -94,16 +94,24 @@ extension Store {
     /// Copia manual, con hora en el nombre. No se borra sola.
     @discardableResult
     func backupNow() -> URL? {
-        let fm = FileManager.default
-        try? fm.createDirectory(at: backupsFolder, withIntermediateDirectories: true)
-        let dest = backupsFolder.appendingPathComponent("\(vaultName)-manual-\(Store.stamp("yyyy-MM-dd-HHmm"))")
-        do { try fm.copyItem(at: root, to: dest); message = nil; return dest }
-        catch { message = "No se pudo crear la copia: \(error.localizedDescription)"; return nil }
+        try? FileManager.default.createDirectory(at: backupsFolder, withIntermediateDirectories: true)
+        let name = "\(vaultName)-manual-\(Store.stamp("yyyy-MM-dd-HHmm"))"
+        let password = backupPassword
+        let dest = backupsFolder.appendingPathComponent(password == nil ? name : "\(name).\(EncryptedBackup.ext)")
+        guard !FileManager.default.fileExists(atPath: dest.path) else { return dest }
+        let src = root
+        message = nil
+        // La copia (y el cifrado) corren fuera del hilo principal; la carpeta o el .dmg aparece al terminar.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let ok = Store.makeBackup(from: src, to: dest, password: password)
+            if !ok { DispatchQueue.main.async { self?.message = "No se pudo crear la copia." } }
+        }
+        return dest
     }
 
     func allBackups() -> [URL] {
         ((try? FileManager.default.contentsOfDirectory(at: backupsFolder, includingPropertiesForKeys: nil)) ?? [])
-            .filter { $0.hasDirectoryPath && !$0.lastPathComponent.hasPrefix(".") }.sorted { $0.lastPathComponent > $1.lastPathComponent }
+            .filter { ($0.hasDirectoryPath || $0.pathExtension == EncryptedBackup.ext) && !$0.lastPathComponent.hasPrefix(".") }.sorted { $0.lastPathComponent > $1.lastPathComponent }
     }
 
     func addCasaRow(section: String, cells: [String]) {

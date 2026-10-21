@@ -28,6 +28,7 @@ struct VOTsidianApp: App {
                 .onAppear { NSApplication.shared.activate() }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     store.reload()
+                    store.startDailyBackup()
                     if systemNotifications {
                         let events = ICS.events(store.reminderSources(), plan: ReminderPlan.stored)
                         Task { _ = await Notifier.schedule(events) }

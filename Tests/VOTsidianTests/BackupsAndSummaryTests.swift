@@ -76,6 +76,8 @@ import Testing
     #expect(try String(contentsOf: today.appendingPathComponent("Cambio físico/Peso.md"), encoding: .utf8).contains("| 01/01/2026 | 100 |"))
     #expect(!(try String(contentsOf: today.appendingPathComponent("Cambio físico/Peso.md"), encoding: .utf8)).contains("99"))
     let manual = try #require(store.backupNow())
+    for _ in 0..<300 where !FileManager.default.fileExists(atPath: manual.path) { Thread.sleep(forTimeInterval: 0.1) }
+    #expect(FileManager.default.fileExists(atPath: manual.appendingPathComponent("Cambio físico/Peso.md").path))
     #expect(manual.lastPathComponent.contains("-manual-") && manual.deletingLastPathComponent().resolvingSymlinksInPath().path == backups.resolvingSymlinksInPath().path)
 }
 
@@ -103,4 +105,43 @@ import Testing
     store.appendToDiary(DayKey.date("2026-10-27")!, text: "hola")
     #expect(store.read(Store.diaryPath(DayKey.date("2026-10-27")!)).contains("[[Revisión semanal 2026-W44]]"))
     print("AISLADAS", store.isolatedNotes().map(\.name))
+}
+
+
+@MainActor @Test func encryptedBackupNeedsThePasswordAndKeepsContent() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)")
+    let vault = tmp.appendingPathComponent("Notas")
+    let backups = tmp.appendingPathComponent("Copias")
+    try FileManager.default.createDirectory(at: vault, withIntermediateDirectories: true)
+    try "secreto médico".write(to: vault.appendingPathComponent("Nota.md"), atomically: true, encoding: .utf8)
+    let store = Store(root: vault, backups: backups)
+    store.setBackupPassword("clave-de-prueba", keychain: false)
+
+    let manual = try #require(store.backupNow())               // el cifrado sigue en segundo plano
+    for _ in 0..<300 where !FileManager.default.fileExists(atPath: manual.path) { Thread.sleep(forTimeInterval: 0.1) }
+    #expect(manual.pathExtension == "dmg" && store.allBackups().map(\.lastPathComponent).contains(manual.lastPathComponent))
+    #expect(!(try Data(contentsOf: manual)).contains(Data("secreto médico".utf8)))   // no hay texto en claro
+
+    func attach(_ password: String) -> Bool {
+        let mount = tmp.appendingPathComponent("m-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        p.arguments = ["attach", "-stdinpass", "-nobrowse", "-readonly", "-mountpoint", mount.path, manual.path]
+        let input = Pipe()
+        p.standardInput = input; p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
+        guard (try? p.run()) != nil else { return false }
+        input.fileHandleForWriting.write(Data(password.utf8)); try? input.fileHandleForWriting.close()
+        p.waitUntilExit()
+        guard p.terminationStatus == 0 else { return false }
+        defer { let d = Process(); d.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil"); d.arguments = ["detach", mount.path, "-force"]; d.standardOutput = FileHandle.nullDevice; d.standardError = FileHandle.nullDevice; try? d.run(); d.waitUntilExit() }
+        return (try? String(contentsOf: mount.appendingPathComponent("Nota.md"), encoding: .utf8)) == "secreto médico"
+    }
+    #expect(!attach("otra-clave"))
+    #expect(attach("clave-de-prueba"))
+
+    // la automática de hoy también sale cifrada y entra en la poda
+    store.ensureBackup()                       // el clon es inmediato; el cifrado sigue en segundo plano
+    for _ in 0..<300 where !store.autoBackups().contains(where: { $0.pathExtension == "dmg" }) { Thread.sleep(forTimeInterval: 0.1) }
+    #expect(store.autoBackups().contains { $0.pathExtension == "dmg" })
 }
