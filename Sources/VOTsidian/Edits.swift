@@ -246,9 +246,22 @@ extension Edit {
         return lines.joined(separator: "\n")
     }
 
-    static func renameLinks(_ text: String, old: String, new: String) -> String {
-        let pattern = "\\[\\[" + NSRegularExpression.escapedPattern(for: old) + "(?=[\\]|#\\\\])"
-        return text.replacingOccurrences(of: pattern, with: "[[" + new.replacingOccurrences(of: "$", with: "\\$"), options: [.regularExpression, .caseInsensitive])
+    /// Cambia los enlaces a `old` por `new`. Entiende mayúsculas y tildes distintas (`[[medico]]` → «Médico») y enlaces
+    /// con carpeta (`[[Salud/Médico]]`), que conservan su carpeta; los de otra carpeta con el mismo nombre no se tocan.
+    static func renameLinks(_ text: String, old: String, new: String, folder: String = "") -> String {
+        guard let re = try? NSRegularExpression(pattern: #"\[\[([^\]|#\\]+)(?=[\]|#\\])"#) else { return text }
+        let ns = text as NSString
+        let oldKey = MD.fold(old), folderKey = MD.fold(folder)
+        var out = text
+        for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)).reversed() {
+            let target = ns.substring(with: m.range(at: 1))
+            let dir = (target as NSString).deletingLastPathComponent
+            guard MD.fold((target as NSString).lastPathComponent) == oldKey else { continue }
+            if !dir.isEmpty, !folderKey.isEmpty, !folderKey.hasSuffix(MD.fold(dir)) { continue }
+            let replacement = dir.isEmpty ? new : dir + "/" + new
+            out = (out as NSString).replacingCharacters(in: m.range(at: 1), with: replacement)
+        }
+        return out
     }
 
     static func addHabitRow(_ text: String, name: String) -> String? {

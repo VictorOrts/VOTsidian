@@ -117,7 +117,11 @@ final class Store {
     @ObservationIgnored var derivedInputs: [String: String] = [:]
     @ObservationIgnored var reviewCache: [String: (text: String, week: WeekReview)] = [:]
     @ObservationIgnored var agendaCache: [String: [String: [AgendaItem]]] = [:]
+    /// Nombre plegado → ruta (la primera en orden de carpeta), para resolver enlaces sin recorrer todas las notas.
+    @ObservationIgnored var nameIndex: [String: String] = [:]
     @ObservationIgnored var watcher: VaultWatcher?
+    /// Día en que se programaron por última vez los avisos del sistema.
+    @ObservationIgnored var notificationsDay: String?
     @ObservationIgnored var generation = 0
     @ObservationIgnored var scanning = false
     @ObservationIgnored var rescanRequested = false
@@ -158,7 +162,7 @@ final class Store {
             startWatching()
             startDailyBackup()
             Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.startDailyBackup() }
+                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications() }
             }
         }
         pendingNote = ProcessInfo.processInfo.environment["VOT_NOTE"]
@@ -363,6 +367,17 @@ final class Store {
 
     var habitNames: [String] { habitDefs.map(\.name) }
 
+    /// Reprograma los avisos de macOS (si están activados). Sin `force` solo actúa una vez al día: así la ventana
+    /// de 30 días avanza aunque la app pase semanas abierta sin volver a primer plano.
+    func refreshSystemNotifications(force: Bool = false) {
+        guard UserDefaults.standard.bool(forKey: "systemNotifications") else { return }
+        let day = Store.stamp("yyyy-MM-dd")
+        guard force || notificationsDay != day else { return }
+        notificationsDay = day
+        let events = ICS.events(reminderSources(), plan: ReminderPlan.stored)
+        Task { _ = await Notifier.schedule(events) }
+    }
+
     /// Pide a iCloud que descargue los archivos pendientes.
     func downloadPending() {
         for rel in pendingDownloads { try? FileManager.default.startDownloadingUbiquitousItem(at: url(rel)) }
@@ -384,11 +399,12 @@ final class Store {
         }
         outLinks = out
         backLinks = back.mapValues { $0.sorted() }
+        nameIndex = index
     }
 
     func resolve(_ name: String) -> String? {
         let key = MD.fold((name as NSString).lastPathComponent)
-        return notes.first { MD.fold($0.name) == key }?.path ?? aliasIndex[key]
+        return nameIndex[key] ?? aliasIndex[key]
     }
 
     func chooseFolder() {

@@ -156,6 +156,7 @@ extension Store {
         "tareas": .tareas, "proyectos": .proyectos, "habitos": .semana, "revision semanal": .semana, "revision mensual": .mes, "revisiones": .semana,
         "calendario": .calendario, "grafo": .grafo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
         "medicos": .salud, "analiticas": .salud, "analisis": .salud, "medico": .salud, "doctor": .salud, "inicio": .inicio,
+        "enlaces rotos": .enlaces,
     ]
 
     func screenAlias(_ name: String) -> Screen? { Store.screenAliases[MD.fold((name as NSString).lastPathComponent)] }
@@ -176,24 +177,59 @@ extension Store {
     }
 
     struct BrokenLink: Identifiable {
-        var id = UUID()
+        var id: String { path + "\u{0}" + target }
         var path: String
         var target: String
         var suggestion: String?   // nombre de la nota que probablemente quería
+        var candidates: [String] = []   // notas de nombre parecido, para elegir a mano
     }
 
     func brokenLinks() -> [BrokenLink] {
         var out: [BrokenLink] = []
         for n in notes {
             var seen = Set<String>()
-            for name in Links.extract(read(n.path)) where seen.insert(name).inserted {
+            for name in Links.extract(noteTexts[n.path] ?? read(n.path)) where seen.insert(name).inserted {
                 if resolve(name) != nil || attachmentURL(name) != nil { continue }
                 let sug = fuzzyResolve(name).map { (($0 as NSString).lastPathComponent as NSString).deletingPathExtension }
                 if sug == nil, screenAlias(name) != nil { continue }
-                out.append(BrokenLink(path: n.path, target: name, suggestion: sug))
+                var candidates = similarNotes(name)
+                if let sug { candidates.removeAll { $0 == sug }; candidates.insert(sug, at: 0) }
+                out.append(BrokenLink(path: n.path, target: name, suggestion: sug, candidates: Array(candidates.prefix(3))))
             }
         }
         return out
+    }
+
+    /// Hasta `limit` nombres de nota parecidos a `name` (distancia de edición sin tildes ni mayúsculas), del más al menos parecido.
+    func similarNotes(_ name: String, limit: Int = 3) -> [String] {
+        let key = Array(MD.fold(name))
+        guard !key.isEmpty else { return [] }
+        var scored: [(name: String, score: Double)] = []
+        var seen = Set<String>()
+        for n in notes where seen.insert(MD.fold(n.name)).inserted {
+            let other = Array(MD.fold(n.name))
+            let longest = max(key.count, other.count)
+            guard abs(key.count - other.count) <= max(3, longest / 2) else { continue }
+            let contains = other.count >= 3 && (String(key).contains(String(other)) || String(other).contains(String(key)))
+            let score = contains ? 0.2 : Double(Store.editDistance(key, other)) / Double(longest)
+            if score <= 0.4 { scored.append((n.name, score)) }
+        }
+        return scored.sorted { ($0.score, $0.name) < ($1.score, $1.name) }.prefix(limit).map(\.name)
+    }
+
+    nonisolated static func editDistance(_ a: [Character], _ b: [Character]) -> Int {
+        if a.isEmpty { return b.count }
+        if b.isEmpty { return a.count }
+        var prev = Array(0...b.count)
+        var cur = [Int](repeating: 0, count: b.count + 1)
+        for i in 1...a.count {
+            cur[0] = i
+            for j in 1...b.count {
+                cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1))
+            }
+            swap(&prev, &cur)
+        }
+        return prev[b.count]
     }
 
     /// Corrige los enlaces rotos que tienen una sugerencia clara. Devuelve cuántos cambió.
@@ -202,10 +238,22 @@ extension Store {
         var fixed = 0
         for b in brokenLinks() {
             guard let s = b.suggestion else { continue }
-            edit(b.path) { Edit.renameLinks($0, old: b.target, new: s) }
+            fixLink(b, to: s)
             fixed += 1
         }
         return fixed
+    }
+
+    /// Cambia en su nota el enlace roto por uno a `name`.
+    func fixLink(_ b: BrokenLink, to name: String) {
+        edit(b.path) { Edit.renameLinks($0, old: b.target, new: name) }
+    }
+
+    /// Crea la nota que falta, en la misma carpeta que la nota que la enlaza.
+    @discardableResult
+    func createMissingNote(_ b: BrokenLink) -> String? {
+        let folder = (b.path as NSString).deletingLastPathComponent
+        return createNote(folder: folder, name: b.target, template: "En blanco")
     }
 }
 

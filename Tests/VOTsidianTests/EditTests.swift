@@ -56,6 +56,10 @@ import Testing
     let text = "Ver [[Peso]] y [[Peso|alias]] y [[Peso#x]] y [[Pesos]] y [[Mapa\\|Peso]]"
     let out = Edit.renameLinks(text, old: "Peso", new: "Control $peso")
     #expect(out == "Ver [[Control $peso]] y [[Control $peso|alias]] y [[Control $peso#x]] y [[Pesos]] y [[Mapa\\|Peso]]")
+    // tildes, mayúsculas y enlaces con carpeta; el homónimo de otra carpeta no se toca
+    let paths = "[[medico]] · [[Salud/Médico|doc]] · [[Casa/Médico]] · ![[MÉDICO#Citas]]"
+    #expect(Edit.renameLinks(paths, old: "Médico", new: "Doctor", folder: "Organización/Salud")
+        == "[[Doctor]] · [[Salud/Doctor|doc]] · [[Casa/Médico]] · ![[Doctor#Citas]]")
 
     let inbox = "## Ideas\n- \n\n## Otro\n- x"
     let a = try #require(Edit.appendToSection(inbox, section: "Ideas", line: "- nueva"))

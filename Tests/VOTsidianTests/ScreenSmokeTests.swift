@@ -43,6 +43,7 @@ import Testing
         case .notas: try render("Notas", NotasView())
         case .bases: try render("Bases", BasesView())
         case .grafo: try render("Grafo", GrafoView())
+        case .enlaces: try render("Enlaces", EnlacesView())
         case .avisos: try render("Avisos", RemindersView())
         case .ajustes: try render("Ajustes", AjustesView())
         }

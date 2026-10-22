@@ -58,6 +58,14 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 - **Bases**: filtros por propiedad (contiene, es, no es, vacía, con valor), orden pulsando la cabecera y vistas guardadas por tipo (menú «Vistas»).
 - **Notas**: «Enlazada desde» muestra la línea que enlaza, y al pasar el ratón sobre un enlace del panel sale una vista previa de esa nota.
 
+- **Fiabilidad** (octubre 2026): las fechas imposibles («31/2», «el 31» en un mes de 30 días) ya no se convierten en otra fecha; al cerrar la app (⌘Q) se guarda lo que el autoguardado aún no había guardado; renombrar una nota actualiza también los enlaces con carpeta (`[[Salud/Médico]]`) o con otras tildes y mayúsculas; borrar una nota no quita los enlaces si queda otra con el mismo nombre; el grafo se actualiza al añadir enlaces; las notas con saltos de línea de Windows se leen bien; los avisos del sistema se reprograman cada día aunque la app siga abierta.
+
+## Recuperar versiones y enlaces rotos
+
+- **Historial de una nota** (Notas → ⋯ → Historial…): cada versión distinta de la nota en las copias de seguridad, comparada línea a línea con la actual (rojo: estaba y ya no; verde: añadido después). «Restaurar esta versión» se deshace con ⌥⌘Z. Las copias cifradas se abren con la contraseña del Llavero; las de otra contraseña se cuentan aparte.
+- **Restaurar una copia entera** (Ajustes → Copias de seguridad): lista de copias con «Abrir» (Finder; las cifradas piden la contraseña) y «Restaurar…». Antes de restaurar se guarda una copia `…-antes-de-restaurar` del estado actual, que es la forma de volver atrás. Las notas creadas después de la copia se conservan.
+- **Enlaces rotos** (Conocimiento → Enlaces rotos): los `[[…]]` que no llevan a ninguna nota, agrupados por nota, con hasta tres notas de nombre parecido para cambiar el enlace con un clic, «Crear nota» (en la misma carpeta) y la lista de notas sin ningún enlace.
+
 ## Órdenes rápidas (⌘K)
 
 Escribe una orden y pulsa intro: `peso 105,5` · `peso 105,5 ayer` · `ánimo 4` · `dormí 7,5` · `pinchazo hoy` · `tarea llamar al dentista el viernes urgente` · `idea …` · `nota …` (a la nota de hoy) · `cita endocrino el 29/10` · `cintura 98,5` · `compra leche, huevos y pan`.
@@ -89,3 +97,12 @@ Claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documen
 ## Estructura del código
 
 `Store` (estado de la app) se reparte en extensiones: `Store+Scan` (leer la carpeta, también en segundo plano), `Store+Writing` (escritura y copias), `Store+Undo`, `Store+Links`, `Store+Notes`, etc. Los modelos y parsers están en `Models`, `Parsers`, `CasaEnlaces`, `Tablas` y `Medidas`; las ediciones puras de texto en `Edits` y `Templates`.
+
+## Próximas funcionalidades
+
+Ideas pendientes, por orden de prioridad:
+
+1. **Atajos y Siri (App Intents)**: «Anotar peso», «Añadir tarea» o «Pinchazo hoy» desde Atajos, reutilizando las órdenes rápidas de ⌘K. Solo en la app compilada con `build-app.sh`.
+2. **Plantilla del diario**: `Plantillas/Diario.md` se aplica al crear la nota de cada día.
+3. **Tareas con hora** (`⏰ 10:30`): el aviso del sistema salta a esa hora y no a las 9.
+4. **Citas del Calendario de macOS** (EventKit) en Inicio y en la barra de menús, junto a las tareas del vault.

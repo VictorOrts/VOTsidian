@@ -80,7 +80,10 @@ enum MD {
         s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    static func lines(_ text: String) -> [String] { text.components(separatedBy: "\n") }
+    /// Líneas sin el salto. Los archivos con saltos de Windows (`\r\n`) se leen igual; al editarlos quedan con `\n`.
+    static func lines(_ text: String) -> [String] {
+        (text.contains("\r\n") ? text.replacingOccurrences(of: "\r\n", with: "\n") : text).components(separatedBy: "\n")
+    }
 
     static func frontmatter(_ text: String) -> [String: String] {
         let l = lines(text)

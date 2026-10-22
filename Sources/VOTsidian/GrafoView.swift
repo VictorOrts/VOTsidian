@@ -78,6 +78,7 @@ struct GrafoView: View {
         .navigationTitle("Grafo")
         .onAppear { if nodes.isEmpty { rebuild() } }
         .onChange(of: store.notes) { rebuild() }
+        .onChange(of: store.outLinks) { rebuild() }
     }
 
     private var legend: some View {

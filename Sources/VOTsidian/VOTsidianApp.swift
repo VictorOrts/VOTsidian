@@ -6,10 +6,13 @@ struct VOTsidianApp: App {
     @State private var store = Store()
     @AppStorage("appearance") private var appearance = Appearance.system.rawValue
     @AppStorage("menuBar") private var menuBar = true
-    @AppStorage("systemNotifications") private var systemNotifications = false
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
+        // Se recibe en el hilo principal y antes de salir: guarda lo que el autoguardado aún no había guardado.
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: nil) { _ in
+            MainActor.assumeIsolated { PendingSaves.flush() }
+        }
     }
 
     private var scheme: ColorScheme? {
@@ -27,12 +30,10 @@ struct VOTsidianApp: App {
                 .preferredColorScheme(scheme)
                 .onAppear { NSApplication.shared.activate() }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    store.reload()
+                    // FSEvents ya avisa de los cambios: aquí basta una pasada en segundo plano, sin bloquear la ventana.
+                    store.reloadInBackground()
                     store.startDailyBackup()
-                    if systemNotifications {
-                        let events = ICS.events(store.reminderSources(), plan: ReminderPlan.stored)
-                        Task { _ = await Notifier.schedule(events) }
-                    }
+                    store.refreshSystemNotifications(force: true)
                 }
         }
         .defaultSize(width: 1280, height: 860)

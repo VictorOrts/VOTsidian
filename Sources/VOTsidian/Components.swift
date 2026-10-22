@@ -57,7 +57,7 @@ struct Card<Content: View>: View {
                     .labelStyle(.titleAndIcon).font(.headline)
                 Spacer()
                 if let actionTitle, let action {
-                    Button(action: action) { Text(actionTitle) + Text(" ›") }.buttonStyle(.link).font(.callout)
+                    Button(action: action) { Text("\(actionTitle) ›") }.buttonStyle(.link).font(.callout)
                 }
             }
             content
@@ -455,11 +455,40 @@ struct LinkPreview: View {
 
 extension View {
     /// Ejecuta `action` cuando `value` lleva `delay` segundos sin cambiar (autoguardado). Se cancela si cambia antes.
+    /// Si la app se cierra antes de que pase el plazo, se guarda igualmente (`PendingSaves`).
     func autosave<V: Equatable>(on value: V, delay: Double = 1.5, _ action: @escaping () -> Void) -> some View {
-        task(id: value) {
-            try? await Task.sleep(for: .seconds(delay))
-            if !Task.isCancelled { action() }
-        }
+        modifier(Autosave(value: value, delay: delay, action: action))
+    }
+}
+
+private struct Autosave<V: Equatable>: ViewModifier {
+    let value: V
+    let delay: Double
+    let action: () -> Void
+    @State private var id = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: value) { PendingSaves.actions[id] = action }
+            .task(id: value) {
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled else { return }
+                PendingSaves.actions[id] = nil
+                action()
+            }
+            .onDisappear { PendingSaves.actions[id] = nil }
+    }
+}
+
+/// Autoguardados que aún esperan su plazo. Al cerrar la app se ejecutan todos, para no perder lo último que se escribió.
+@MainActor
+enum PendingSaves {
+    static var actions: [UUID: () -> Void] = [:]
+
+    static func flush() {
+        let pending = actions
+        actions = [:]
+        for action in pending.values { action() }
     }
 }
 

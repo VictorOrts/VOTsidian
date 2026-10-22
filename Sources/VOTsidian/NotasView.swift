@@ -22,6 +22,7 @@ struct NotasView: View {
     @State private var conflict = false
     @State private var showNew = false
     @State private var showRename = false
+    @State private var showHistory = false
     @State private var confirmDelete = false
     @State private var rowSpec: RowSpec?
     @State private var savedFlash = false
@@ -161,6 +162,9 @@ struct NotasView: View {
             NewNoteSheet(folders: Array(Set(store.notes.map(\.folder).filter { $0 != "Raíz" })).sorted()) { path in
                 if saveIfDirty() { if let s = selected { back.append(s) }; if !tabs.contains(path) { tabs.append(path) }; open(path); mode = .editar }
             }
+        }
+        .sheet(isPresented: $showHistory) {
+            if let p = selected { NoteHistorySheet(path: p) { text in draft = text; baseline = text; conflict = false } }
         }
         .sheet(isPresented: $showRename) {
             if let p = selected {
@@ -416,6 +420,7 @@ struct NotasView: View {
             Button("Guardar") { save(path, force: false) }.keyboardShortcut("s", modifiers: .command).disabled(!dirty)
             Menu {
                 Button("Renombrar…") { showRename = true }
+                Button("Historial…") { if saveIfDirty() { showHistory = true } }
                 Button("Copiar como Markdown") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(store.read(path), forType: .string) }
                 Button("Exportar a PDF…") { exportPDF(path) }
                 Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([store.url(path)]) }

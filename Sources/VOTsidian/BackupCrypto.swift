@@ -58,4 +58,37 @@ enum EncryptedBackup {
             return true
         } catch { try? fm.removeItem(at: partial); return false }
     }
+
+    /// Monta la imagen en solo lectura, sin que aparezca en Finder. Devuelve dónde, o `nil` si la contraseña no vale.
+    nonisolated static func attach(_ image: URL, password: String) -> URL? {
+        let fm = FileManager.default
+        let mount = fm.temporaryDirectory.appendingPathComponent("votsidian-copia-\(UUID().uuidString)")
+        try? fm.createDirectory(at: mount, withIntermediateDirectories: true)
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        p.arguments = ["attach", "-stdinpass", "-nobrowse", "-readonly", "-noverify", "-mountpoint", mount.path, image.path]
+        let input = Pipe()
+        p.standardInput = input
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        do {
+            try p.run()
+            input.fileHandleForWriting.write(Data(password.utf8))
+            try input.fileHandleForWriting.close()
+            p.waitUntilExit()
+        } catch { try? fm.removeItem(at: mount); return nil }
+        guard p.terminationStatus == 0 else { try? fm.removeItem(at: mount); return nil }
+        return mount
+    }
+
+    nonisolated static func detach(_ mount: URL) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        p.arguments = ["detach", mount.path, "-force"]
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        try? p.run()
+        p.waitUntilExit()
+        try? FileManager.default.removeItem(at: mount)
+    }
 }

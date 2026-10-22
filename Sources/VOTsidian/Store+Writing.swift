@@ -33,6 +33,9 @@ extension Store {
         dailyBackupDay = day
         let dest = autoBackupURL(day)
         guard !autoBackupExists(day) else { lastBackupDay = day; return }
+        // Los archivos que iCloud no tiene en este Mac solo se copiarían como marcadores vacíos: se piden ya,
+        // y lo que no haya llegado queda avisado en Avisos («no entran en las copias»).
+        for rel in pendingDownloads { try? FileManager.default.startDownloadingUbiquitousItem(at: url(rel)) }
         let src = root
         let password = backupPassword
         let job = backupJob
@@ -79,7 +82,7 @@ extension Store {
         do { try fm.copyItem(at: src, to: staging) } catch { try? fm.removeItem(at: staging); return false }
         DispatchQueue.global(qos: .utility).async {
             _ = EncryptedBackup.create(from: staging, to: dest, password: password)
-            try? fm.removeItem(at: staging)
+            try? FileManager.default.removeItem(at: staging)
         }
         return true
     }

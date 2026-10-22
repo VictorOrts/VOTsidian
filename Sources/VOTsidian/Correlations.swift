@@ -198,7 +198,7 @@ struct CorrelacionesView: View {
                         LineMark(x: .value("Semana", d.0), y: .value(unit, d.1)).foregroundStyle(color).interpolationMethod(.monotone)
                         PointMark(x: .value("Semana", d.0), y: .value(unit, d.1)).foregroundStyle(color).symbolSize(30)
                     }
-                    if let avg = data.isEmpty ? nil : data.reduce(0) { $0 + $1.1 } / Double(data.count) {
+                    if let avg = data.isEmpty ? nil : data.reduce(0, { $0 + $1.1 }) / Double(data.count) {
                         RuleMark(y: .value("Media", avg)).foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                             .annotation(position: .top, alignment: .trailing) { Text("media \(fmt(avg, 1))").font(.caption2).foregroundStyle(.secondary) }
                     }

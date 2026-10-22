@@ -112,7 +112,10 @@ extension Store {
         var trashed: NSURL?
         do { try FileManager.default.trashItem(at: url(rel), resultingItemURL: &trashed); message = nil }
         catch { message = "No se pudo mover a la papelera: \(error.localizedDescription)"; return }
-        let (links, failed) = rewriteLinks { Edit.unlink($0, name: name) }
+        // Si queda otra nota con el mismo nombre, los enlaces por nombre pasan a ser suyos: no se quitan.
+        let homonym = notes.contains { $0.path != rel && MD.fold($0.name) == MD.fold(name) }
+        var links: [(rel: String, previous: String)] = [], failed: [String] = []
+        if !homonym { (links, failed) = rewriteLinks { Edit.unlink($0, name: name) } }
         if let t = trashed as URL? { push(.trash(rel: rel, trashed: t, links: links)) }
         if !failed.isEmpty { message = "La nota se movió, pero no se pudieron actualizar los enlaces en: \(failed.joined(separator: ", "))." }
         lastChange = Change(file: rel, undoable: trashed != nil)
@@ -147,7 +150,7 @@ extension Store {
         catch { message = "No se pudo renombrar: \(error.localizedDescription)"; return nil }
         pinned = pinned.map { $0 == rel ? newRel : $0 }
         fileCache.removeAll()
-        let (links, failed) = rewriteLinks(except: rel) { Edit.renameLinks($0, old: oldName, new: clean) }
+        let (links, failed) = rewriteLinks(except: rel) { Edit.renameLinks($0, old: oldName, new: clean, folder: dir) }
         push(.rename(old: rel, new: newRel, links: links))
         if !failed.isEmpty { message = "Se renombró, pero no se pudieron actualizar los enlaces en: \(failed.joined(separator: ", "))." }
         lastChange = Change(file: newRel, undoable: true)

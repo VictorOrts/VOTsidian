@@ -4,7 +4,7 @@ enum Screen: String, CaseIterable, Identifiable {
     case inicio = "Inicio", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
     case peso = "Peso", nutricion = "Plan nutricional", mounjaro = "Mounjaro", salud = "Salud y médicos", correlaciones = "Correlaciones"
     case casa = "Casa", compra = "Compra", moda = "Moda", nala = "Nala", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas"
-    case notas = "Notas", bases = "Bases", grafo = "Grafo", avisos = "Avisos", ajustes = "Ajustes"
+    case notas = "Notas", bases = "Bases", grafo = "Grafo", enlaces = "Enlaces rotos", avisos = "Avisos", ajustes = "Ajustes"
     var id: String { rawValue }
     var icon: String {
         switch self {
@@ -21,6 +21,7 @@ enum Screen: String, CaseIterable, Identifiable {
         case .mounjaro: "syringe"
         case .salud: "cross.case"
         case .correlaciones: "chart.xyaxis.line"
+        case .enlaces: "link.badge.plus"
         case .casa: "house.and.flag"
         case .compra: "cart"
         case .moda: "tshirt"
@@ -57,7 +58,7 @@ struct ContentView: View {
                     Section("Día a día") { row(.tareas); row(.calendario); row(.planificar); row(.semana); row(.mes); row(.proyectos); row(.objetivos) }
                     Section("Cuerpo") { row(.peso); row(.nutricion); row(.mounjaro); row(.salud); row(.correlaciones) }
                     Section("Hogar y vida") { row(.casa); row(.compra); row(.moda); row(.nala); row(.personas); row(.documentos); row(.finanzas) }
-                    Section("Conocimiento") { row(.notas); row(.bases); row(.grafo) }
+                    Section("Conocimiento") { row(.notas); row(.bases); row(.grafo); row(.enlaces) }
                     Section("Sistema") { row(.avisos); row(.ajustes) }
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -95,6 +96,7 @@ struct ContentView: View {
         case .mounjaro: MounjaroView()
         case .salud: SaludView()
         case .correlaciones: CorrelacionesView()
+        case .enlaces: EnlacesView()
         case .casa: CasaView()
         case .compra: CompraView()
         case .moda: ModaView()

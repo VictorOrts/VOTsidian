@@ -55,7 +55,7 @@ extension Store {
                 out.append(Alert(level: .info, icon: "party.popper", text: "\(e.name) \(relativeDays(n))", screen: .finanzas))
             }
         }
-        if !pendingDownloads.isEmpty { out.append(Alert(level: .soon, icon: "icloud.and.arrow.down", text: "\(pendingDownloads.count) archivos de iCloud sin descargar en este Mac", screen: .ajustes)) }
+        if !pendingDownloads.isEmpty { out.append(Alert(level: .soon, icon: "icloud.and.arrow.down", text: "\(pendingDownloads.count) archivos de iCloud sin descargar en este Mac (no entran en las copias)", screen: .ajustes)) }
         if !unreadableFiles.isEmpty { out.append(Alert(level: .soon, icon: "exclamationmark.triangle", text: "\(unreadableFiles.count) \(unreadableFiles.count == 1 ? "nota no se puede leer" : "notas no se pueden leer"): \(unreadableFiles.prefix(2).joined(separator: ", "))", screen: .ajustes)) }
         let conflicts = conflictCopies
         if !conflicts.isEmpty {

@@ -139,6 +139,10 @@ import Testing
     }
     #expect(!attach("otra-clave"))
     #expect(attach("clave-de-prueba"))
+    // el historial abre la copia cifrada con la contraseña; con otra, la cuenta como cerrada
+    let entry = BackupEntry(url: manual)
+    #expect(Store.noteHistory("Nota.md", in: [entry], password: "clave-de-prueba").versions.first?.text == "secreto médico")
+    #expect(Store.noteHistory("Nota.md", in: [entry], password: "otra-clave").locked == 1)
 
     // la automática de hoy también sale cifrada y entra en la poda
     store.ensureBackup()                       // el clon es inmediato; el cifrado sigue en segundo plano

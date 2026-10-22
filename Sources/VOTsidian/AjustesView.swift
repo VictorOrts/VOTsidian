@@ -8,7 +8,6 @@ struct AjustesView: View {
     @State private var newPassword = ""
     @State private var repeatPassword = ""
     @State private var cryptoMessage = ""
-    @State private var repairMessage = ""
     @State private var exportMessage = ""
     @State private var exportYear = Calendar.current.component(.year, from: Date())
 
@@ -63,6 +62,9 @@ struct AjustesView: View {
                     Text("\(store.allBackups().count) copias guardadas (\(store.autoBackups().count) automáticas).").font(.caption).foregroundStyle(.secondary)
                     Text("Cada cambio también se puede deshacer con el botón del aviso o con ⌥⌘Z.").font(.caption).foregroundStyle(.secondary)
                     Divider()
+                    BackupsList()
+                    Text("El historial de una sola nota está en Notas → ⋯ → Historial.").font(.caption).foregroundStyle(.secondary)
+                    Divider()
                     encryptionControls
                 }
                 if !store.pendingDownloads.isEmpty {
@@ -105,27 +107,9 @@ struct AjustesView: View {
 
     private var brokenLinksCard: some View {
         let broken = store.brokenLinks()
-        return Card(title: "Enlaces entre notas", icon: "link") {
+        return Card(title: "Enlaces entre notas", icon: "link", actionTitle: "Abrir", action: { store.screen = .enlaces }) {
             if broken.isEmpty { Label("Todos los enlaces funcionan.", systemImage: "checkmark.seal").foregroundStyle(Brand.accent) }
-            let isolated = store.isolatedNotes()
-            if isolated.isEmpty { Label("Todas las notas están conectadas.", systemImage: "point.3.connected.trianglepath.dotted").foregroundStyle(Brand.accent) }
-            else { Text("Sin ningún enlace: \(isolated.map(\.name).joined(separator: ", ")).").foregroundStyle(Brand.warn) }
-            ForEach(broken.prefix(10)) { b in
-                HStack {
-                    Text("[[\(b.target)]]").font(.callout.monospaced())
-                    Text("en \(((b.path as NSString).lastPathComponent as NSString).deletingPathExtension)").foregroundStyle(.secondary)
-                    Spacer()
-                    Text(b.suggestion.map { "→ \($0)" } ?? "sin sugerencia").foregroundStyle(b.suggestion == nil ? Brand.warn : Brand.accent)
-                }
-            }
-            if !broken.isEmpty {
-                HStack {
-                    Button("Reparar los que tienen sugerencia") { repairMessage = "Reparados: \(store.repairLinks())" }
-                        .disabled(!broken.contains { $0.suggestion != nil })
-                    Text(repairMessage).foregroundStyle(.secondary)
-                }
-            }
-            Text("Los enlaces a pantallas de la app (Tareas, Calendario, Hábitos…) también funcionan y no cuentan como rotos.").font(.caption).foregroundStyle(.secondary)
+            else { Text("\(broken.count) \(broken.count == 1 ? "enlace roto" : "enlaces rotos"). Arréglalos uno a uno en «Enlaces rotos».").foregroundStyle(Brand.warn) }
         }
     }
 
