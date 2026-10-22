@@ -178,7 +178,7 @@ struct InicioView: View {
                     }
                 }
             }
-            if items.isEmpty && overdue.isEmpty { Text("Nada programado para hoy.").foregroundStyle(.secondary) }
+            if items.isEmpty && overdue.isEmpty { EmptyNote("Nada programado para hoy.", icon: "checkmark.circle") }
         }
     }
 
@@ -233,7 +233,7 @@ struct InicioView: View {
     @ViewBuilder private var attention: some View {
         let list = store.alerts()
         Card(title: list.isEmpty ? "Todo al día" : "Atención", icon: list.isEmpty ? "checkmark.seal" : "bell.badge") {
-            if list.isEmpty { Text("No hay nada urgente ni próximo.").foregroundStyle(.secondary) }
+            if list.isEmpty { EmptyNote("No hay nada urgente ni próximo.", icon: "checkmark.circle") }
             ForEach(list.prefix(8)) { a in
                 Button { go(a.screen) } label: {
                     HStack(spacing: 10) {
@@ -278,7 +278,7 @@ struct InicioView: View {
                         .foregroundStyle(Brand.warn).font(.callout)
                 }
             } else {
-                Text("Sin registros de peso.").foregroundStyle(.secondary)
+                EmptyNote("Sin registros de peso.")
             }
         }
     }
@@ -314,7 +314,7 @@ struct InicioView: View {
                         .foregroundStyle(Brand.warn).font(.callout)
                 }
             } else {
-                Text("Sin pinchazos registrados.").foregroundStyle(.secondary)
+                EmptyNote("Sin pinchazos registrados.")
             }
         }
     }
@@ -325,7 +325,7 @@ struct InicioView: View {
         Card(title: "Tareas de hoy y próximos 7 días", icon: "checklist", actionTitle: "Todas", action: { go(.tareas) }) {
             let upcoming = upcomingTasks
             if upcoming.isEmpty {
-                Text("Nada pendiente en los próximos 7 días.").foregroundStyle(.secondary)
+                EmptyNote("Nada pendiente en los próximos 7 días.", icon: "checkmark.circle")
             } else {
                 ForEach(upcoming.prefix(7)) { TaskRow(task: $0) }
             }
@@ -359,7 +359,7 @@ struct InicioView: View {
                     ForEach(["L", "M", "X", "J", "V", "S", "D"], id: \.self) { Text($0).font(.caption2).foregroundStyle(.secondary).frame(width: 16) }
                 }
             } else {
-                Text("Todavía no hay revisión para esta semana.").foregroundStyle(.secondary)
+                EmptyNote("Todavía no hay revisión para esta semana.")
             }
         }
     }
@@ -392,7 +392,7 @@ struct InicioView: View {
                 }
                 if let l = store.weight.last { Text("\(fmt(p.protein / l.kg)) g de proteína por kg con tu peso actual").font(.callout).foregroundStyle(.secondary) }
             } else {
-                Text("Sin plan cargado.").foregroundStyle(.secondary)
+                EmptyNote("Sin plan cargado.")
             }
         }
     }

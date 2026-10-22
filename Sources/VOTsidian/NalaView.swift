@@ -26,7 +26,7 @@ struct NalaView: View {
                     ForEach(Array(n.upcoming.enumerated()), id: \.offset) { _, u in
                         Text("\(u.title): \(DayKey.dmy(u.date)) (\(relativeDays(DayKey.days(from: DayKey.today(), to: u.date))))")
                     }
-                    if n.overdue.isEmpty && n.upcoming.isEmpty { Text("Sin citas ni vacunas programadas.").foregroundStyle(.secondary) }
+                    if n.overdue.isEmpty && n.upcoming.isEmpty { EmptyNote("Sin citas ni vacunas programadas.") }
                     ForEach(tasks) { TaskRow(task: $0) }
                 }
                 Card(title: "Registrar visita o vacuna", icon: "plus.circle") {

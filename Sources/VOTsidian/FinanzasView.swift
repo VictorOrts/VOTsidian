@@ -37,7 +37,7 @@ struct FinanzasView: View {
                 Button { showNew = true } label: { Label("Nuevo evento o pago", systemImage: "plus") }.buttonStyle(.borderedProminent)
                 Card(title: "Objetivos de ahorro y pagos", icon: "list.bullet") {
                     ForEach(store.tasks.filter { $0.file == file && !$0.done }) { TaskRow(task: $0) }
-                    if store.tasks.filter({ $0.file == file && !$0.done }).isEmpty { Text("Sin tareas.").foregroundStyle(.secondary) }
+                    if store.tasks.filter({ $0.file == file && !$0.done }).isEmpty { EmptyNote("Sin tareas.") }
                 }
             }
             .padding(24)

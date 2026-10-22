@@ -80,6 +80,59 @@ struct Card<Content: View>: View {
     }
 }
 
+/// Aviso de «no hay nada» dentro de una tarjeta. Mismo aspecto en toda la app: icono tenue y texto secundario.
+struct EmptyNote: View {
+    let text: String
+    var icon = "tray"
+
+    init(_ text: String, icon: String = "tray") { self.text = text; self.icon = icon }
+
+    var body: some View {
+        Label { Text(text).foregroundStyle(.secondary) } icon: { Image(systemName: icon).foregroundStyle(.tertiary) }
+            .font(.callout)
+    }
+}
+
+/// Coloca las vistas en fila y pasa a la siguiente línea cuando no caben (etiquetas, filtros…).
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(subviews, width: proposal.width ?? .infinity)
+        return CGSize(width: rows.map(\.width).max() ?? 0, height: rows.reduce(0) { $0 + $1.height } + spacing * CGFloat(max(rows.count - 1, 0)))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(subviews, width: bounds.width) {
+            var x = bounds.minX
+            for i in row.items {
+                let size = subviews[i].sizeThatFits(.unspecified)
+                subviews[i].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> [(items: [Int], width: CGFloat, height: CGFloat)] {
+        var rows: [(items: [Int], width: CGFloat, height: CGFloat)] = []
+        var current: (items: [Int], width: CGFloat, height: CGFloat) = ([], 0, 0)
+        for i in subviews.indices {
+            let size = subviews[i].sizeThatFits(.unspecified)
+            let needed = current.items.isEmpty ? size.width : current.width + spacing + size.width
+            if needed > width, !current.items.isEmpty {
+                rows.append(current)
+                current = ([i], size.width, size.height)
+            } else {
+                current = (current.items + [i], needed, max(current.height, size.height))
+            }
+        }
+        if !current.items.isEmpty { rows.append(current) }
+        return rows
+    }
+}
+
 /// ⓘ que enseña una explicación al pasar el ratón o al pulsarlo.
 struct InfoButton: View {
     let text: String
@@ -386,7 +439,7 @@ struct NoteTables: View {
                             }
                         }
                     }
-                    if rows.isEmpty { Text("Sin filas.").foregroundStyle(.secondary) }
+                    if rows.isEmpty { EmptyNote("Sin filas.") }
                     Button { spec = RowSpec(file: file, mode: .add(afterLine: t.lastLine, headerLine: t.headerLine), title: t.title.isEmpty ? "tabla" : t.title) } label: {
                         Label("Añadir fila", systemImage: "plus")
                     }.buttonStyle(.borderless).font(.callout)
@@ -519,7 +572,7 @@ struct ListCard: View {
     var body: some View {
         let items = Parse.listItems(store.read(file), section: section)
         Card(title: title, icon: icon) {
-            if items.isEmpty { Text("Sin elementos.").foregroundStyle(.secondary) }
+            if items.isEmpty { EmptyNote("Sin elementos.") }
             ForEach(items) { it in
                 HStack(alignment: .firstTextBaseline) {
                     Text("•").foregroundStyle(.secondary)

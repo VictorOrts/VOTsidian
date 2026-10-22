@@ -45,7 +45,7 @@ struct SaludView: View {
 
                 Button { showSummary = true } label: { Label("Resumen para la consulta (copiar)", systemImage: "doc.on.clipboard") }
                 Card(title: "Próximas citas", icon: "calendar.badge.clock", info: "Se guarda con fecha en Médico y aparece en Tareas y en los avisos de Calendar.") {
-                    if appointments.isEmpty { Text("Sin citas pendientes.").foregroundStyle(.secondary) }
+                    if appointments.isEmpty { EmptyNote("Sin citas pendientes.") }
                     ForEach(appointments) { TaskRow(task: $0) }
                     Divider()
                     HStack {
@@ -84,7 +84,7 @@ struct SaludView: View {
                 }
 
                 Card(title: "Citas y visitas anotadas", icon: "stethoscope") {
-                    if visits.isEmpty { Text("Todavía no hay notas de visita. Crea una con el botón.").foregroundStyle(.secondary) }
+                    if visits.isEmpty { EmptyNote("Todavía no hay notas de visita. Crea una con el botón.") }
                     ForEach(visits, id: \.path) { v in
                         Button { store.pendingNote = v.path } label: {
                             HStack {

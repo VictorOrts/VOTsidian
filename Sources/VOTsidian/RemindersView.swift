@@ -30,58 +30,89 @@ struct RemindersView: View {
                      birthdays: birthdays, documents: docs, events: eventsOn)
     }
 
+    /// Fila de un aviso: nombre, sus ajustes (día, hora) y el interruptor, todo en la misma línea.
+    private func row<Extra: View>(_ title: String, _ on: Binding<Bool>, @ViewBuilder extra: () -> Extra = { EmptyView() }) -> some View {
+        HStack(spacing: 10) {
+            Text(title).foregroundStyle(on.wrappedValue ? .primary : .secondary)
+            Spacer()
+            extra().disabled(!on.wrappedValue).opacity(on.wrappedValue ? 1 : 0.4)
+            Toggle(title, isOn: on).labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func hour(_ minutes: Binding<Int>) -> some View {
+        DatePicker("Hora", selection: time(minutes), displayedComponents: .hourAndMinute).labelsHidden().fixedSize()
+    }
+
     var body: some View {
         let events = ICS.events(store.reminderSources(), plan: plan)
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Qué quieres que te recuerde Calendar").font(.title3.weight(.semibold))
-                Form {
-                    Toggle("Pinchazo de Mounjaro (cada \(store.mounjaro.everyDays) días)", isOn: $mounjaro)
-                    DatePicker("Hora", selection: time($mounjaroMin), displayedComponents: .hourAndMinute).disabled(!mounjaro)
-                    Toggle("Revisión semanal", isOn: $review)
-                    Picker("Día", selection: $reviewDay) {
-                        ForEach([(2, "Lunes"), (3, "Martes"), (4, "Miércoles"), (5, "Jueves"), (6, "Viernes"), (7, "Sábado"), (1, "Domingo")], id: \.0) { Text($0.1).tag($0.0) }
-                    }.disabled(!review)
-                    DatePicker("Hora", selection: time($reviewMin), displayedComponents: .hourAndMinute).disabled(!review)
-                    Toggle("Pesaje mensual (último día del mes)", isOn: $weightOn)
-                    DatePicker("Hora", selection: time($weightMin), displayedComponents: .hourAndMinute).disabled(!weightOn)
-                    Toggle("Tareas con fecha 📅", isOn: $tasksOn)
-                    Toggle("Citas y vacunas de \(store.nala.name)", isOn: $nalaOn)
-                    Toggle("Cumpleaños (se repiten cada año)", isOn: $birthdays)
-                    Toggle("Caducidad de documentos (aviso 30 días antes)", isOn: $docs)
-                    Toggle("Eventos y fechas de Casa (aviso 7 días antes)", isOn: $eventsOn)
-                }.formStyle(.grouped).scrollDisabled(true).frame(maxWidth: 560, minHeight: 560)
-
-                HStack {
-                    Button("Añadir a Calendar") {
-                        message = ICS.openInCalendar(events)
-                            ? "Calendar se abrió con \(events.count) eventos. Confirma la importación."
-                            : "No se pudo crear el archivo de avisos."
-                    }.buttonStyle(.borderedProminent)
-                    Text(message).foregroundStyle(.secondary)
-                }
-                HStack {
-                    Toggle("Avisos del sistema (notificaciones de macOS)", isOn: $systemNotifications)
-                        .onChange(of: systemNotifications) { _, on in
-                            Task {
-                                if on {
-                                    if let n = await Notifier.schedule(events) { message = "\(n) avisos programados para los próximos \(Notifier.horizonDays) días." }
-                                    else { systemNotifications = false; message = Notifier.available ? "macOS no dio permiso para notificar." : "Solo funcionan en la app (build-app.sh), no con swift run." }
-                                } else { Notifier.cancelAll() }
-                            }
+            VStack(alignment: .leading, spacing: 16) {
+                Card(title: "Qué recordar", icon: "bell") {
+                    VStack(spacing: 6) {
+                        row("Pinchazo de Mounjaro (cada \(store.mounjaro.everyDays) días)", $mounjaro) { hour($mounjaroMin) }
+                        Divider()
+                        row("Revisión semanal", $review) {
+                            Picker("Día", selection: $reviewDay) {
+                                ForEach([(2, "Lunes"), (3, "Martes"), (4, "Miércoles"), (5, "Jueves"), (6, "Viernes"), (7, "Sábado"), (1, "Domingo")], id: \.0) { Text($0.1).tag($0.0) }
+                            }.labelsHidden().fixedSize()
+                            hour($reviewMin)
                         }
-                }
-                Text("Cada evento tiene un identificador fijo. Si vuelves a importar, Calendar actualiza los eventos en vez de duplicarlos.")
-                    .font(.caption).foregroundStyle(.secondary)
-
-                Text("Se crearán \(events.count) eventos").font(.headline)
-                ForEach(events.prefix(14)) { e in
-                    HStack {
-                        Text(e.title)
-                        Spacer()
-                        Text(shortDate(e.start) + (e.minutes.map { String(format: " %02d:%02d", $0 / 60, $0 % 60) } ?? "") + (e.rule != nil ? " · se repite" : ""))
-                            .font(.callout).foregroundStyle(.secondary)
+                        Divider()
+                        row("Pesaje mensual (último día del mes)", $weightOn) { hour($weightMin) }
+                        Divider()
+                        row("Tareas con fecha", $tasksOn)
+                        Divider()
+                        row("Citas y vacunas de \(store.nala.name)", $nalaOn)
+                        Divider()
+                        row("Cumpleaños (cada año)", $birthdays)
+                        Divider()
+                        row("Caducidad de documentos (30 días antes)", $docs)
+                        Divider()
+                        row("Eventos y fechas de Casa (7 días antes)", $eventsOn)
                     }
+                }
+
+                // Las dos formas de recibir los avisos, juntas.
+                Card(title: "Cómo recibirlos", icon: "paperplane",
+                     info: "Cada evento tiene un identificador fijo. Si vuelves a importar, Calendar actualiza los eventos en vez de duplicarlos. Las notificaciones de macOS solo funcionan en la app (build-app.sh), no con swift run.") {
+                    HStack {
+                        Label("Calendar", systemImage: "calendar")
+                        Spacer()
+                        Button("Añadir a Calendar") {
+                            message = ICS.openInCalendar(events)
+                                ? "Calendar se abrió con \(events.count) eventos. Confirma la importación."
+                                : "No se pudo crear el archivo de avisos."
+                        }.buttonStyle(.borderedProminent)
+                    }
+                    Divider()
+                    HStack {
+                        Label("Notificaciones de macOS (próximos \(Notifier.horizonDays) días)", systemImage: "bell.badge")
+                        Spacer()
+                        Toggle("Notificaciones de macOS", isOn: $systemNotifications).labelsHidden().toggleStyle(.switch).controlSize(.small)
+                            .onChange(of: systemNotifications) { _, on in
+                                Task {
+                                    if on {
+                                        if let n = await Notifier.schedule(events) { message = "\(n) avisos programados para los próximos \(Notifier.horizonDays) días." }
+                                        else { systemNotifications = false; message = Notifier.available ? "macOS no dio permiso para notificar." : "Solo funcionan en la app (build-app.sh), no con swift run." }
+                                    } else { Notifier.cancelAll() }
+                                }
+                            }
+                    }
+                    if !message.isEmpty { Text(message).font(.callout).foregroundStyle(.secondary) }
+                }
+
+                Card(title: "Se crearán \(events.count) eventos", icon: "list.bullet") {
+                    ForEach(events.prefix(14)) { e in
+                        HStack {
+                            Text(MDParser.inline(e.title))
+                            Spacer()
+                            Text(shortDate(e.start) + (e.minutes.map { String(format: " %02d:%02d", $0 / 60, $0 % 60) } ?? "") + (e.rule != nil ? " · se repite" : ""))
+                                .font(.callout).foregroundStyle(.secondary)
+                        }
+                    }
+                    if events.count > 14 { Text("y \(events.count - 14) más").font(.caption).foregroundStyle(.secondary) }
                 }
             }
             .padding(24)

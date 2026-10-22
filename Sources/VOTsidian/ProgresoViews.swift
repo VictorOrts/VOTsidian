@@ -149,7 +149,7 @@ struct FotosCard: View {
                 DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).frame(width: 200)
                 Button { add() } label: { Label("Añadir fotos…", systemImage: "plus") }
             }
-            if list.isEmpty { Text("Todavía no hay fotos. Hazlas siempre con la misma luz, ropa y postura.").foregroundStyle(.secondary) }
+            if list.isEmpty { EmptyNote("Todavía no hay fotos. Hazlas siempre con la misma luz, ropa y postura.") }
             if list.count > 1 { compare(list) }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 10)], spacing: 10) {
                 ForEach(list, id: \.url) { p in

@@ -133,7 +133,7 @@ struct CalendarioView: View {
                     Text(relativeDays(DayKey.days(from: DayKey.today(), to: selected))).foregroundStyle(.secondary)
                 }
 
-                if visible.isEmpty { Text("Nada este día.").foregroundStyle(.secondary) }
+                if visible.isEmpty { EmptyNote("Nada este día.", icon: "checkmark.circle") }
                 ForEach(visible) { item in row(item) }
 
                 Divider()

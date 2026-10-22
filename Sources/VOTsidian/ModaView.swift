@@ -47,7 +47,7 @@ struct ModaView: View {
                 }
                 if let buy, !board {
                     Card(title: "Por comprar", icon: "bag") {
-                        if rows.isEmpty { Text("Nada en la lista.").foregroundStyle(.secondary) }
+                        if rows.isEmpty { EmptyNote("Nada en la lista.") }
                         Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 9) {
                             if !rows.isEmpty {
                                 GridRow { Text("Prenda"); Text("Modelo"); Text("Prioridad"); Text("Precio"); Text("Objetivo"); Text("Estado"); Text("") }

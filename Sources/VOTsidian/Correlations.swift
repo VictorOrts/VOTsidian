@@ -148,7 +148,7 @@ struct CorrelacionesView: View {
 
                 let withData = points.filter { $0.mood != nil || $0.sleep != nil }
                 if withData.isEmpty {
-                    Card(title: "Ánimo y sueño por semana", icon: "moon.zzz") { Text("Aún no hay ánimo ni sueño en las notas del día.").foregroundStyle(.secondary) }
+                    Card(title: "Ánimo y sueño por semana", icon: "moon.zzz") { EmptyNote("Aún no hay ánimo ni sueño en las notas del día.") }
                 } else {
                     // Cada serie con su escala: ánimo (1-5) y horas de sueño no caben en el mismo eje.
                     HStack(alignment: .top, spacing: 12) {
@@ -192,7 +192,7 @@ struct CorrelacionesView: View {
 
     private func weeklyCard(_ title: String, icon: String, unit: String, color: Color, domain: ClosedRange<Double>?, data: [(Date, Double)]) -> some View {
         Card(title: title, icon: icon) {
-            if data.isEmpty { Text("Sin datos.").foregroundStyle(.secondary) }
+            if data.isEmpty { EmptyNote("Sin datos.") }
             else {
                 Chart {
                     ForEach(Array(data.enumerated()), id: \.offset) { _, d in

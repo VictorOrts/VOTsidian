@@ -25,7 +25,7 @@ struct PersonasView: View {
                     }
                 }
                 Card(title: "Contacto", icon: "bubble.left.and.bubble.right") {
-                    if people.isEmpty { Text("Sin personas.").foregroundStyle(.secondary) }
+                    if people.isEmpty { EmptyNote("Sin personas.") }
                     ForEach(people.sorted { ($0.lastContact ?? .distantPast) < ($1.lastContact ?? .distantPast) }) { p in
                         HStack {
                             VStack(alignment: .leading) {

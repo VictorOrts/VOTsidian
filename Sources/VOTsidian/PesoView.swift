@@ -197,7 +197,7 @@ struct PesoView: View {
 
     private func milestonesCard(_ w: WeightData, rate: Double?) -> some View {
         Card(title: "Hitos", icon: "flag") {
-            if store.milestones.isEmpty { Text("Sin hitos en Proyectos/Cambio físico 2026.").foregroundStyle(.secondary) }
+            if store.milestones.isEmpty { EmptyNote("Sin hitos en Proyectos/Cambio físico 2026.") }
             ForEach(store.milestones) { m in
                 let hit = w.records.first { $0.kg <= m.kg }
                 HStack {

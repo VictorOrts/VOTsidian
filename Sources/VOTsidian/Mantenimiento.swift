@@ -77,7 +77,7 @@ struct MantenimientoCard: View {
         let activeTitles = Set(store.tasks.filter { $0.file == VaultPath.casa }.map { MD.fold($0.text) })
         let suggestions = Maintenance.presets(appliances: store.appliances).filter { !activeTitles.contains(MD.fold($0.title)) }
         Card(title: "Mantenimiento del hogar", icon: "wrench.and.screwdriver") {
-            if active.isEmpty { Text("Sin tareas de mantenimiento. Elige abajo las que quieras: se repiten solas y salen en el calendario y los avisos.").foregroundStyle(.secondary) }
+            if active.isEmpty { EmptyNote("Sin tareas de mantenimiento. Elige abajo las que quieras: se repiten solas y salen en el calendario y los avisos.") }
             ForEach(active) { TaskRow(task: $0) }
             if !suggestions.isEmpty {
                 Divider()

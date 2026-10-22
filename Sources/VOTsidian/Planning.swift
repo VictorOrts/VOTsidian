@@ -66,6 +66,7 @@ struct PlanificarView: View {
     @State private var editing: TaskItem?
     @State private var message = ""
     @State private var showAllUndated = false
+    @State private var hoverDay: String?
 
     private var weekStart: Date { DayKey.adding(days: offset * 7, to: DayKey.weekStart(Date())) }
 
@@ -82,20 +83,29 @@ struct PlanificarView: View {
                     Text("\(shortDate(weekStart)) – \(shortDate(end))").font(.title3.weight(.semibold)).frame(minWidth: 180)
                     Button { offset += 1 } label: { Image(systemName: "chevron.right").accessibilityLabel("Siguiente / abrir") }
                     if offset != 0 { Button("Esta semana") { offset = 0 } }
+                    InfoButton(text: "Arrastra una tarea a otro día para cambiarle la fecha, o a «Sin fecha» para quitársela. Pasa el ratón por un día para añadirle una tarea.")
                     Spacer()
-                    Text("\(total) \(total == 1 ? "tarea" : "tareas")" + (busy > 0 ? " · \(busy) \(busy == 1 ? "día cargado" : "días cargados")" : ""))
-                        .font(.callout).foregroundStyle(busy > 0 ? Brand.warn : .secondary)
+                    if total > 0 {
+                        Text("\(total) \(total == 1 ? "tarea" : "tareas")" + (busy > 0 ? " · \(busy) \(busy == 1 ? "día cargado" : "días cargados")" : ""))
+                            .font(.callout).foregroundStyle(busy > 0 ? Brand.warn : .secondary)
+                    }
                 }
-                Text("Arrastra una tarea a otro día para cambiarle la fecha, o a «Sin fecha» para quitársela.").font(.caption).foregroundStyle(.secondary)
                 if !message.isEmpty { Label(message, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 215), spacing: 12, alignment: .top)], alignment: .leading, spacing: 12) {
+                // Una fila de lunes a domingo, para que se lea como una semana.
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .top), count: 7), alignment: .leading, spacing: 8) {
                     ForEach(plan.days, id: \.self) { day in dayColumn(day, plan) }
                 }
 
-                HStack(alignment: .top, spacing: 12) {
-                    overdueCard(plan)
+                // Sin vencidas basta una línea; «Sin fecha» usa entonces todo el ancho.
+                if plan.overdue.isEmpty {
+                    Label("Nada vencido", systemImage: "checkmark.circle").foregroundStyle(Brand.good)
                     undatedCard(plan)
+                } else {
+                    HStack(alignment: .top, spacing: 12) {
+                        overdueCard(plan)
+                        undatedCard(plan)
+                    }
                 }
             }
             .padding(24)
@@ -118,7 +128,7 @@ struct PlanificarView: View {
                     .foregroundStyle(isToday ? Brand.accent : .primary)
                 Spacer()
                 if busy { Image(systemName: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(Brand.warn).help("Día cargado") }
-                Text("\(list.count)").font(.caption).foregroundStyle(.secondary)
+                if !list.isEmpty { Text("\(list.count)").font(.caption).foregroundStyle(.secondary) }
             }
             ForEach(plan.other[key] ?? []) { it in
                 HStack(spacing: 6) {
@@ -127,13 +137,16 @@ struct PlanificarView: View {
                 }
             }
             ForEach(list) { t in taskCard(t, overdue: past) }
-            if list.isEmpty && (plan.other[key] ?? []).isEmpty { Text("Libre").font(.caption).foregroundStyle(.tertiary).frame(maxWidth: .infinity, minHeight: 28) }
             Spacer(minLength: 0)
+            // El campo solo se ve al pasar el ratón por el día (o si ya tiene algo escrito): la semana vacía queda limpia.
             TextField("Añadir…", text: Binding(get: { drafts[key] ?? "" }, set: { drafts[key] = $0 }))
                 .font(.caption).onSubmit { add(to: day) }
+                .opacity(hoverDay == key || !(drafts[key] ?? "").isEmpty ? 1 : 0)
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, minHeight: 190, alignment: .topLeading)
+        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .contentShape(Rectangle())
+        .onHover { hoverDay = $0 ? key : (hoverDay == key ? nil : hoverDay) }
         .background(isToday ? Brand.accent.opacity(0.10) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: Brand.radius))
         .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(busy ? Brand.warn.opacity(0.7) : (isToday ? Brand.accent.opacity(0.5) : Color.clear), lineWidth: 1.5))
         .dropDestination(for: String.self) { ids, _ in
@@ -172,7 +185,6 @@ struct PlanificarView: View {
 
     private func overdueCard(_ plan: WeekPlan) -> some View {
         Card(title: "Vencidas (\(plan.overdue.count))", icon: "exclamationmark.triangle") {
-            if plan.overdue.isEmpty { Text("Nada vencido.").foregroundStyle(.secondary) }
             ForEach(plan.overdue) { taskCard($0, overdue: true) }
             if !plan.overdue.isEmpty {
                 Button("Pasar todas a hoy") { store.moveOverdueToToday(); message = "Lo vencido pasa a hoy" }.controlSize(.small)
@@ -183,7 +195,7 @@ struct PlanificarView: View {
     private func undatedCard(_ plan: WeekPlan) -> some View {
         let shown = showAllUndated ? plan.undated : Array(plan.undated.prefix(8))
         return Card(title: "Sin fecha (\(plan.undated.count))", icon: "tray") {
-            if plan.undated.isEmpty { Text("Todo tiene fecha.").foregroundStyle(.secondary) }
+            if plan.undated.isEmpty { EmptyNote("Todo tiene fecha.", icon: "checkmark.circle") }
             ForEach(shown) { taskCard($0, overdue: false) }
             if plan.undated.count > 8 { Button(showAllUndated ? "Ver menos" : "Ver las \(plan.undated.count)") { showAllUndated.toggle() }.buttonStyle(.accentLink) }
             Text("Suelta aquí una tarea para quitarle la fecha.").font(.caption).foregroundStyle(.tertiary)

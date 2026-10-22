@@ -129,7 +129,7 @@ struct CasaView: View {
     private func section(_ title: String, icon: String, table t: SectionTable, costCol: String, extraCols: [String]) -> some View {
         Card(title: title, icon: icon) {
             let rows = t.rows.filter { !($0.cells.first ?? "").isEmpty }
-            if rows.isEmpty { Text("Sin elementos.").foregroundStyle(.secondary) }
+            if rows.isEmpty { EmptyNote("Sin elementos.") }
             else {
                 Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
                     GridRow {

@@ -11,6 +11,12 @@ struct BasesView: View {
     @State private var newViewName = ""
 
     private static let templateForType = ["proyecto": "Proyecto", "cita_medica": "Cita médica", "evento": "Evento", "casa_item": "Reforma o compra"]
+    /// Nombres con tilde que `pretty` no puede adivinar.
+    private static let names = ["revision_semanal": "Revisión semanal", "revision_mensual": "Revisión mensual", "cita_medica": "Cita médica",
+                                "control_peso": "Control de peso", "casa_item": "Reforma o compra", "reunion": "Reunión", "fecha_limite": "Fecha límite"]
+
+    /// Nombre legible de un tipo o propiedad: `control_peso` → «Control de peso». En el archivo sigue igual.
+    static func pretty(_ key: String) -> String { names[key] ?? capitalizedFirst(key.replacingOccurrences(of: "_", with: " ")) }
 
     private var types: [(name: String, count: Int)] {
         var c: [String: Int] = [:]
@@ -30,14 +36,13 @@ struct BasesView: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Cada nota con la propiedad «tipo» forma parte de una base. Edita las celdas sin abrir la nota.").foregroundStyle(.secondary)
-                ScrollView(.horizontal) {
-                    HStack {
-                        ForEach(all, id: \.name) { t in
-                            Button { type = t.name; query = BaseView(name: ""); saved = BaseViewStore.load(t.name) } label: {
-                                Text("\(t.name) · \(t.count)").padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(t.name == current ? Brand.accent.opacity(0.25) : Color.primary.opacity(0.07), in: Capsule())
-                            }.buttonStyle(.plain)
-                        }
+                // Los tipos se reparten en varias líneas en vez de cortarse por la derecha.
+                FlowLayout(spacing: 6) {
+                    ForEach(all, id: \.name) { t in
+                        Button { type = t.name; query = BaseView(name: ""); saved = BaseViewStore.load(t.name) } label: {
+                            Text("\(Self.pretty(t.name)) · \(t.count)").padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(t.name == current ? Brand.accent.opacity(0.25) : Color.primary.opacity(0.07), in: Capsule())
+                        }.buttonStyle(.plain).help(t.name)
                     }
                 }
                 HStack {
@@ -49,14 +54,15 @@ struct BasesView: View {
                 }
                 ForEach($query.conditions) { $c in
                     HStack {
-                        Picker("", selection: $c.key) { ForEach(allKeys, id: \.self) { Text($0).tag($0) } }.labelsHidden().frame(width: 150)
+                        Picker("", selection: $c.key) { ForEach(allKeys, id: \.self) { Text(Self.pretty($0)).tag($0) } }.labelsHidden().frame(width: 150)
                         Picker("", selection: $c.op) { ForEach(BaseCondition.Op.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.labelsHidden().frame(width: 110)
                         if c.op.needsValue { TextField("valor", text: $c.value).frame(width: 160) }
                         Button { query.conditions.removeAll { $0.id == c.id } } label: { Image(systemName: "xmark.circle.fill").accessibilityLabel("Quitar filtro") }.buttonStyle(.borderless)
                     }
                 }
-                Card(title: current.isEmpty ? "Sin bases" : current.capitalized, icon: "square.grid.3x3") {
-                    if notes.isEmpty { Text("No hay notas de este tipo.").foregroundStyle(.secondary) }
+                Card(title: current.isEmpty ? "Sin bases" : Self.pretty(current), icon: "square.grid.3x3",
+                     info: all.isEmpty ? nil : "Las propiedades se guardan en el encabezado de cada nota. Para crear una propiedad nueva, ábrela en Notas y añádela en «Propiedades».") {
+                    if notes.isEmpty { EmptyNote("No hay notas de este tipo.") }
                     ScrollView(.horizontal) {
                         Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
                             if !notes.isEmpty {
@@ -75,11 +81,9 @@ struct BasesView: View {
                         }
                     }
                 }
-                if !all.isEmpty {
-                    Text("Las propiedades se guardan en el encabezado de cada nota. Para crear una propiedad nueva, ábrela en Notas y añádela en «Propiedades».").font(.caption).foregroundStyle(.secondary)
-                }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Bases")
         .onAppear { saved = BaseViewStore.load(type) }
@@ -93,10 +97,10 @@ struct BasesView: View {
     private func header(_ key: String) -> some View {
         Button { toggleSort(key) } label: {
             HStack(spacing: 2) {
-                Text(key)
+                Text(Self.pretty(key))
                 if query.sortKey == key { Image(systemName: query.ascending ? "chevron.up" : "chevron.down").font(.caption2) }
             }
-        }.buttonStyle(.plain).help("Ordenar por \(key)")
+        }.buttonStyle(.plain).help("Ordenar por \(Self.pretty(key))")
     }
 
     private func toggleSort(_ key: String) {
