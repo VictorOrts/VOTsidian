@@ -40,6 +40,18 @@ enum Screen: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @Environment(Store.self) private var store
+    /// Secciones plegadas de la barra lateral, separadas por «|». Se recuerdan al reabrir.
+    @AppStorage("sidebarCollapsed") private var collapsedRaw = ""
+    @State private var counts: [Screen: Int] = [:]
+
+    private struct SidebarSection { let title: String; let color: Color; let screens: [Screen] }
+    private static let sections = [
+        SidebarSection(title: "Día a día", color: Brand.accent, screens: [.tareas, .calendario, .planificar, .semana, .mes, .proyectos, .objetivos]),
+        SidebarSection(title: "Cuerpo", color: Brand.violet, screens: [.peso, .nutricion, .mounjaro, .salud, .correlaciones]),
+        SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .nala, .personas, .documentos, .finanzas]),
+        SidebarSection(title: "Conocimiento", color: Brand.info, screens: [.notas, .bases, .grafo, .enlaces]),
+        SidebarSection(title: "Sistema", color: Brand.slate, screens: [.avisos, .ajustes]),
+    ]
 
     var body: some View {
         @Bindable var store = store
@@ -54,14 +66,15 @@ struct ContentView: View {
         } else {
             NavigationSplitView {
                 List(selection: $store.screen) {
-                    row(.inicio)
-                    Section("Día a día") { row(.tareas); row(.calendario); row(.planificar); row(.semana); row(.mes); row(.proyectos); row(.objetivos) }
-                    Section("Cuerpo") { row(.peso); row(.nutricion); row(.mounjaro); row(.salud); row(.correlaciones) }
-                    Section("Hogar y vida") { row(.casa); row(.compra); row(.moda); row(.nala); row(.personas); row(.documentos); row(.finanzas) }
-                    Section("Conocimiento") { row(.notas); row(.bases); row(.grafo); row(.enlaces) }
-                    Section("Sistema") { row(.avisos); row(.ajustes) }
+                    row(.inicio, color: Brand.accent)
+                    ForEach(Self.sections, id: \.title) { sec in
+                        Section(isExpanded: expanded(sec.title)) {
+                            ForEach(sec.screens) { row($0, color: sec.color) }
+                        } header: { header(sec) }
+                    }
                 }
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+                .navigationSplitViewColumnWidth(min: 190, ideal: 210)
+                .task(id: store.revision) { counts = store.sidebarCounts() }
                 .safeAreaInset(edge: .bottom) { footer.padding(10) }
             } detail: {
                 VStack(spacing: 0) {
@@ -131,17 +144,47 @@ struct ContentView: View {
         }
     }
 
-    private func row(_ s: Screen) -> some View { Label(s.rawValue, systemImage: s.icon).tag(s) }
+    private var collapsed: Set<String> { Set(collapsedRaw.split(separator: "|").map(String.init)) }
+
+    private func expanded(_ title: String) -> Binding<Bool> {
+        Binding(get: { !collapsed.contains(title) }, set: { open in
+            var c = collapsed
+            if open { c.remove(title) } else { c.insert(title) }
+            collapsedRaw = c.sorted().joined(separator: "|")
+        })
+    }
+
+    /// Plegada, la sección suma los contadores de sus pantallas para que no se pierda nada pendiente.
+    private func header(_ sec: SidebarSection) -> some View {
+        let total = sec.screens.reduce(0) { $0 + (counts[$1] ?? 0) }
+        return HStack {
+            Text(sec.title)
+            Spacer()
+            if collapsed.contains(sec.title), total > 0 { Text("\(total)").monospacedDigit().foregroundStyle(.secondary) }
+        }
+    }
+
+    private func row(_ s: Screen, color: Color) -> some View {
+        Label { Text(s.rawValue) } icon: { Image(systemName: s.icon).foregroundStyle(color) }
+            .badge(badge(s))
+            .tag(s)
+    }
+
+    /// Tareas en rojo si hay vencidas; Mounjaro dice «hoy» o «tarde» en vez de un número.
+    private func badge(_ s: Screen) -> Text? {
+        if s == .mounjaro, let d = store.mounjaro.daysUntilNext, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
+        guard let n = counts[s] else { return nil }
+        let overdue = s == .tareas && store.tasks.contains { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }
+        return Text("\(n)").foregroundStyle(overdue ? Brand.bad : .secondary)
+    }
 
     private var footer: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Button { store.showQuickAdd = true } label: { Label("Añadir", systemImage: "plus") }.help("Captura rápida (⇧⌘N)")
-                Button { store.showPalette = true } label: { Image(systemName: "magnifyingglass").accessibilityLabel("Buscar") }.help("Buscar (⌘K)")
-                Button { store.reload() } label: { Image(systemName: "arrow.clockwise").accessibilityLabel("Recargar") }.help("Recargar")
-            }.controlSize(.small).buttonStyle(.glass)
-            AppearancePicker().controlSize(.small)
-            Label(store.vaultName, systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary)
+        HStack {
+            Button { store.showQuickAdd = true } label: { Label("Añadir", systemImage: "plus") }.help("Captura rápida (⇧⌘N)")
+            Button { store.showPalette = true } label: { Image(systemName: "magnifyingglass").accessibilityLabel("Buscar") }.help("Buscar (⌘K)")
+            Spacer()
+            Label(store.vaultName, systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary).lineLimit(1).help(store.root.path)
         }
+        .controlSize(.small).buttonStyle(.glass)
     }
 }

@@ -56,6 +56,7 @@ import Testing
     #expect(store.writeNote("Notas/Receta de lentejas.md", text: "# Lentejas\n"))
     #expect(store.writeNote("Notas/Índice.md", text: "Ver [[Receta de lentejaz]] y [[Algo nuevo]]\n"))
     let broken = store.brokenLinks()
+    #expect(store.brokenLinkCount == broken.count && store.sidebarCounts()[.enlaces] == broken.count)   // el contador barato cuadra con la lista
     let typo = try #require(broken.first { $0.target == "Receta de lentejaz" })
     #expect(typo.candidates.first == "Receta de lentejas")
     store.fixLink(typo, to: "Receta de lentejas")

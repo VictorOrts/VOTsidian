@@ -87,3 +87,26 @@ extension Store {
         return existing.contains(sibling(String(name[..<space])))
     }
 }
+
+extension Store {
+    /// Números de la barra lateral. Se calculan una vez por recarga, no en cada pintado.
+    func sidebarCounts(today: Date = DayKey.today()) -> [Screen: Int] {
+        var out: [Screen: Int] = [:]
+        out[.tareas] = tasks.filter { !$0.done && ($0.due.map { $0 <= today } ?? false) }.count
+        out[.compra] = shoppingItems.filter { !$0.done }.count
+        out[.avisos] = alerts(today: today).filter { $0.level != .info }.count
+        out[.enlaces] = brokenLinkCount
+        if let d = mounjaro.daysUntilNext, d <= 0 { out[.mounjaro] = 1 }
+        return out.filter { $0.value > 0 }
+    }
+
+    /// Cuántos enlaces no llevan a nada. Versión barata de `brokenLinks()`: usa los enlaces ya analizados y no busca sugerencias.
+    var brokenLinkCount: Int {
+        var n = 0
+        for note in notes {
+            let names = fileCache[note.path]?.parsed.links ?? Links.extract(noteTexts[note.path] ?? "")
+            n += Set(names).filter { resolve($0) == nil && attachmentURL($0) == nil && screenAlias($0) == nil }.count
+        }
+        return n
+    }
+}

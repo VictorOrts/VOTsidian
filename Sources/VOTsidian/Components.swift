@@ -446,16 +446,6 @@ enum Appearance: String, CaseIterable, Identifiable {
     var scheme: ColorScheme? { switch self { case .system: nil; case .light: .light; case .dark: .dark } }
 }
 
-struct AppearancePicker: View {
-    @AppStorage("appearance") private var appearance = Appearance.system.rawValue
-
-    var body: some View {
-        Picker("", selection: $appearance) {
-            ForEach(Appearance.allCases) { Image(systemName: $0.icon).help($0.title).tag($0.rawValue) }
-        }.pickerStyle(.segmented).labelsHidden()
-    }
-}
-
 /// Lista de puntos `- texto` de una sección, con añadir y quitar.
 struct ListCard: View {
     @Environment(Store.self) private var store
