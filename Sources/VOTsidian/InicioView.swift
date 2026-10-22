@@ -213,7 +213,7 @@ struct InicioView: View {
                 .buttonStyle(.bordered).controlSize(.small).padding(10)
             }
         }
-        .overlay { if customizing { RoundedRectangle(cornerRadius: 12).stroke(Brand.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])) } }
+        .overlay { if customizing { RoundedRectangle(cornerRadius: Brand.radiusLarge).stroke(Brand.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])) } }
     }
 
     @ViewBuilder private func hiddenCards(_ layout: HomeLayout) -> some View {
@@ -385,9 +385,9 @@ struct InicioView: View {
             if p.kcal > 0 {
                 HStack(spacing: 22) {
                     macro("kcal", fmt(p.kcal, 0), Brand.accent)
-                    macro("proteína", fmt(p.protein, 0, unit: " g"), .blue)
-                    macro("hidratos", fmt(p.carbs, 0, unit: " g"), .orange)
-                    macro("grasas", fmt(p.fat, 0, unit: " g"), .purple)
+                    macro("proteína", fmt(p.protein, 0, unit: " g"), Brand.info)
+                    macro("hidratos", fmt(p.carbs, 0, unit: " g"), Brand.amber)
+                    macro("grasas", fmt(p.fat, 0, unit: " g"), Brand.violet)
                 }
                 if let l = store.weight.last { Text("\(fmt(p.protein / l.kg)) g de proteína por kg con tu peso actual").font(.callout).foregroundStyle(.secondary) }
             } else {

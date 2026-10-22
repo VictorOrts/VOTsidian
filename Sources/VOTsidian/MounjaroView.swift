@@ -105,7 +105,7 @@ struct MounjaroView: View {
                         Text(fmt(p.startKg, unit: " kg")).monospacedDigit()
                         Text(fmt(p.endKg, unit: " kg")).monospacedDigit()
                         Text(fmt(p.lostKg, unit: " kg")).monospacedDigit().foregroundStyle(Brand.accent)
-                        Text(p.kgPerMonth.map { String(format: "%.1f kg/mes", $0) } ?? "–").monospacedDigit()
+                        Text(p.kgPerMonth.map { fmt($0, unit: " kg/mes") } ?? "–").monospacedDigit()
                     }
                 }
             }

@@ -41,7 +41,7 @@ struct ModaView: View {
                 if let buy, board {
                     StatusBoard(columns: modaEstados.filter { !$0.isEmpty },
                                 cards: Dictionary(grouping: rows, by: { let e = buy.value($0, "estado"); return e.isEmpty ? "Pendiente" : e }).mapValues { rs in
-                                    rs.map { BoardCard(id: "\($0.line)", title: buy.value($0, "prenda"), subtitle: buy.value($0, "modelo"), badge: Money.parse(buy.value($0, "precio")) > 0 ? Money.format(Money.parse(buy.value($0, "precio"))) : buy.value($0, "prioridad"), color: .mint) }
+                                    rs.map { BoardCard(id: "\($0.line)", title: buy.value($0, "prenda"), subtitle: buy.value($0, "modelo"), badge: Money.parse(buy.value($0, "precio")) > 0 ? Money.format(Money.parse(buy.value($0, "precio"))) : buy.value($0, "prioridad"), color: Brand.lime) }
                                 },
                                 move: { id, col in if let r = rows.first(where: { "\($0.line)" == id }) { set(buy, r, "estado", col) } })
                 }
@@ -87,7 +87,7 @@ struct ModaView: View {
 
                 ListCard(file: file, section: "Estrategia", title: "Estrategia", icon: "lightbulb", placeholder: "Añadir regla de estilo")
                 ListCard(file: file, section: "Calzado y accesorios", title: "Calzado y accesorios: notas", icon: "shoeprints.fill", placeholder: "Añadir nota")
-                Button("Editar la nota completa") { store.pendingNote = file }.buttonStyle(.link)
+                Button("Editar la nota completa") { store.pendingNote = file }.buttonStyle(.accentLink)
             }
             .padding(24)
         }

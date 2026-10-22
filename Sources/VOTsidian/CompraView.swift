@@ -48,7 +48,7 @@ struct CompraView: View {
                     Card(title: "\(cat) · \(list.filter { !$0.done }.count)", icon: "cart") {
                         ForEach(list) { it in
                             HStack(spacing: 10) {
-                                Button { store.toggleShopping(it) } label: { Image(systemName: it.done ? "checkmark.circle.fill" : "circle").accessibilityLabel(it.done ? "Marcar como pendiente" : "Marcar como comprado").foregroundStyle(it.done ? Color.green : Brand.accent) }
+                                Button { store.toggleShopping(it) } label: { Image(systemName: it.done ? "checkmark.circle.fill" : "circle").accessibilityLabel(it.done ? "Marcar como pendiente" : "Marcar como comprado").foregroundStyle(it.done ? Brand.good : Brand.accent) }
                                     .buttonStyle(.plain)
                                 Text(it.text).strikethrough(it.done).foregroundStyle(it.done ? .secondary : .primary)
                                 Spacer()
@@ -57,7 +57,7 @@ struct CompraView: View {
                         }
                     }
                 }
-                if store.shoppingExists { Button("Editar la nota completa") { store.pendingNote = Shopping.file }.buttonStyle(.link) }
+                if store.shoppingExists { Button("Editar la nota completa") { store.pendingNote = Shopping.file }.buttonStyle(.accentLink) }
             }
             .padding(24)
         }

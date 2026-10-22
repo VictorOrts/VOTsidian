@@ -93,26 +93,25 @@ struct CalendarioView: View {
     private func cell(_ day: Date, inMonth: Bool, items: [AgendaItem]) -> some View {
         let isToday = day == DayKey.today()
         let isSel = day == selected
-        let kinds = Array(Set(items.map(\.kind.rawValue))).sorted().compactMap(AgendaItem.Kind.init(rawValue:)).filter { $0 != .done }
+        // Hasta dos títulos con el color de su tipo; el resto se resume en «+N».
+        let shown = items.filter { $0.kind != .done && $0.kind != .diary }
         return Button { select(day) } label: {
-            VStack(spacing: 4) {
-                HStack {
-                    Text("\(cal.component(.day, from: day))").font(.system(size: 14, weight: isToday ? .bold : .regular, design: .rounded))
-                        .foregroundStyle(isToday ? Brand.accent : inMonth ? Color.primary : Color.secondary.opacity(0.5))
-                    Spacer()
-                    if items.filter({ $0.kind != .done && $0.kind != .diary }).count > 1 {
-                        Text("\(items.filter { $0.kind != .done && $0.kind != .diary }.count)").font(.caption2).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(cal.component(.day, from: day))").font(.system(size: 14, weight: isToday ? .bold : .regular, design: .rounded))
+                    .foregroundStyle(isToday ? Brand.accent : inMonth ? Color.primary : Color.secondary.opacity(0.5))
+                ForEach(shown.prefix(2)) { item in
+                    HStack(spacing: 4) {
+                        Circle().fill(item.kind.color).frame(width: 6, height: 6)
+                        Text(item.title).font(.caption2).lineLimit(1).foregroundStyle(inMonth ? .primary : .secondary)
                     }
                 }
-                HStack(spacing: 3) { ForEach(kinds.prefix(6), id: \.self) { Circle().fill($0.color).frame(width: 7, height: 7) } ; Spacer(minLength: 0) }
-                if let t = items.first(where: { $0.kind == .task || $0.kind == .appointment }) {
-                    Text(t.title).font(.caption2).lineLimit(1).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
-                } else { Spacer(minLength: 0) }
+                if shown.count > 2 { Text("+\(shown.count - 2) más").font(.caption2).foregroundStyle(.secondary) }
+                Spacer(minLength: 0)
             }
             .padding(7)
-            .frame(maxWidth: .infinity, minHeight: 78, maxHeight: .infinity, alignment: .topLeading)
-            .background(isSel ? Brand.accent.opacity(0.18) : Color.primary.opacity(inMonth ? 0.05 : 0.02), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(isSel ? Brand.accent : isToday ? Brand.accent.opacity(0.5) : .clear, lineWidth: isSel ? 2 : 1))
+            .frame(maxWidth: .infinity, minHeight: 64, maxHeight: .infinity, alignment: .topLeading)
+            .background(isSel ? Brand.accent.opacity(0.18) : Color.primary.opacity(inMonth ? 0.05 : 0.02), in: RoundedRectangle(cornerRadius: Brand.radius))
+            .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(isSel ? Brand.accent : isToday ? Brand.accent.opacity(0.5) : .clear, lineWidth: isSel ? 2 : 1))
             .contentShape(Rectangle())
         }.buttonStyle(.plain)
         .dropDestination(for: String.self) { ids, _ in
@@ -165,7 +164,7 @@ struct CalendarioView: View {
                 TextEditor(text: $noteDraft)
                     .font(.body).frame(minHeight: 140)
                     .scrollContentBackground(.hidden).padding(6)
-                    .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+                    .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.radius))
                 Text("Se guarda en Diario/\(DayKey.string(selected)).md al cambiar de día o pulsar Guardar.").font(.caption).foregroundStyle(.secondary)
             }
             .padding(20)

@@ -154,7 +154,7 @@ struct CommandPalette: View {
                                     if !it.tag.isEmpty { Text(it.tag).font(.caption2).padding(.horizontal, 6).padding(.vertical, 1).background(Color.primary.opacity(0.08), in: Capsule()) }
                                 }
                                 .padding(.horizontal, 12).padding(.vertical, 7)
-                                .background(i == selection ? Brand.accent.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                                .background(i == selection ? Brand.accent.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: Brand.radiusSmall))
                                 .contentShape(Rectangle())
                             }.buttonStyle(.plain).id(i)
                         }

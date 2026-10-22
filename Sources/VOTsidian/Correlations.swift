@@ -132,7 +132,7 @@ struct CorrelacionesView: View {
                             ForEach(Array(doses.enumerated()), id: \.offset) { i, d in
                                 let end = i + 1 < doses.count ? doses[i + 1].date : DayKey.today()
                                 RectangleMark(xStart: .value("Desde", d.date), xEnd: .value("Hasta", end))
-                                    .foregroundStyle((i % 2 == 0 ? Color.accentColor : Color.orange).opacity(0.10))
+                                    .foregroundStyle((i % 2 == 0 ? Brand.accent : Brand.amber).opacity(0.10))
                                     .annotation(position: .top, alignment: .leading) { Text(d.dose).font(.caption2).foregroundStyle(.secondary) }
                             }
                             ForEach(store.weight.records) { r in
@@ -153,7 +153,7 @@ struct CorrelacionesView: View {
                     // Cada serie con su escala: ánimo (1-5) y horas de sueño no caben en el mismo eje.
                     HStack(alignment: .top, spacing: 12) {
                         weeklyCard("Ánimo por semana", icon: "face.smiling", unit: "Ánimo (1-5)", color: Brand.accent, domain: 1...5, data: withData.compactMap { p in p.mood.map { (p.start, $0) } })
-                        weeklyCard("Sueño por semana", icon: "moon.zzz", unit: "Sueño (h)", color: .indigo, domain: nil, data: withData.compactMap { p in p.sleep.map { (p.start, $0) } })
+                        weeklyCard("Sueño por semana", icon: "moon.zzz", unit: "Sueño (h)", color: Brand.violet, domain: nil, data: withData.compactMap { p in p.sleep.map { (p.start, $0) } })
                     }
                 }
             }

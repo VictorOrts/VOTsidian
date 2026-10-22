@@ -20,9 +20,9 @@ struct NutricionView: View {
                 if p.kcal > 0 {
                     HStack(spacing: 12) {
                         Tile(title: "Calorías", value: fmt(p.kcal, 0), note: "kcal al día")
-                        Tile(title: "Proteína", value: fmt(p.protein, 0, unit: " g"), note: "\(Int(p.protein * 4 / p.kcal * 100)) % · \(fmt(p.protein * 4, 0)) kcal", tint: .blue)
-                        Tile(title: "Carbohidratos", value: fmt(p.carbs, 0, unit: " g"), note: "\(Int(p.carbs * 4 / p.kcal * 100)) % · \(fmt(p.carbs * 4, 0)) kcal", tint: .orange)
-                        Tile(title: "Grasas", value: fmt(p.fat, 0, unit: " g"), note: "\(Int(p.fat * 9 / p.kcal * 100)) % · \(fmt(p.fat * 9, 0)) kcal", tint: .purple)
+                        Tile(title: "Proteína", value: fmt(p.protein, 0, unit: " g"), note: "\(Int(p.protein * 4 / p.kcal * 100)) % · \(fmt(p.protein * 4, 0)) kcal", tint: Brand.info)
+                        Tile(title: "Carbohidratos", value: fmt(p.carbs, 0, unit: " g"), note: "\(Int(p.carbs * 4 / p.kcal * 100)) % · \(fmt(p.carbs * 4, 0)) kcal", tint: Brand.amber)
+                        Tile(title: "Grasas", value: fmt(p.fat, 0, unit: " g"), note: "\(Int(p.fat * 9 / p.kcal * 100)) % · \(fmt(p.fat * 9, 0)) kcal", tint: Brand.violet)
                     }
                     HStack(alignment: .top, spacing: 16) {
                         Card(title: "Reparto de calorías", icon: "chart.pie") {
@@ -31,7 +31,7 @@ struct NutricionView: View {
                                 SectorMark(angle: .value("kcal", p.carbs * 4), innerRadius: .ratio(0.62), angularInset: 2).foregroundStyle(by: .value("Macro", "Hidratos"))
                                 SectorMark(angle: .value("kcal", p.fat * 9), innerRadius: .ratio(0.62), angularInset: 2).foregroundStyle(by: .value("Macro", "Grasas"))
                             }
-                            .chartForegroundStyleScale(["Proteína": Color.blue, "Hidratos": Color.orange, "Grasas": Color.purple])
+                            .chartForegroundStyleScale(["Proteína": Brand.info, "Hidratos": Brand.amber, "Grasas": Brand.violet])
                             .chartBackground { _ in Text("\(fmt(p.kcal, 0))\nkcal").font(.title3.bold()).multilineTextAlignment(.center) }
                             .frame(height: 200)
                         }
@@ -81,7 +81,7 @@ struct NutricionView: View {
                 HStack {
                     Button("Abrir la nota Plan Nutricional") { store.pendingNote = VaultPath.plan }
                     Button("Abrir Menú y compra") { store.pendingNote = "Cambio físico/Menú y compra.md" }
-                }.buttonStyle(.link)
+                }.buttonStyle(.accentLink)
                 Text("Valores orientativos de tu nota. Confírmalos con tu médico o dietista, sobre todo mientras usas Mounjaro.")
                     .font(.caption).foregroundStyle(.secondary)
             }

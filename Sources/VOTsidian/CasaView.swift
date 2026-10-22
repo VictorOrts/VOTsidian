@@ -40,14 +40,16 @@ struct CasaView: View {
         let all = (reformas + compras).sorted { $0.cost > $1.cost }
         let totalR = reformas.reduce(0) { $0 + $1.cost }, totalC = compras.reduce(0) { $0 + $1.cost }
         let pending = all.filter { !cerrados.contains(MD.fold($0.estado)) }.reduce(0) { $0 + $1.cost }
+        let spent = all.filter { ["comprado", "hecho"].contains(MD.fold($0.estado)) }.reduce(0) { $0 + $1.cost }
 
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
                     Tile(title: "Reformas", value: Money.format(totalR), note: reformas.count == 1 ? "1 idea" : "\(reformas.count) ideas")
                     Tile(title: "Compras", value: Money.format(totalC), note: compras.count == 1 ? "1 idea" : "\(compras.count) ideas")
-                    Tile(title: "Total estimado", value: Money.format(totalR + totalC), tint: Brand.accent)
-                    Tile(title: "Por gastar", value: Money.format(pending), note: "sin comprado, hecho ni descartado")
+                    // «Por gastar» ya dice el total cuando no hay nada cerrado: no se repite la misma cifra en dos tarjetas.
+                    Tile(title: "Por gastar", value: Money.format(pending), note: pending == totalR + totalC ? "todo pendiente" : "de \(Money.format(totalR + totalC)) estimados", tint: Brand.accent)
+                    Tile(title: "Hecho o comprado", value: Money.format(spent), note: spent == 0 ? "nada cerrado todavía" : "ya gastado")
                 }
 
                 if !all.isEmpty {
@@ -58,7 +60,7 @@ struct CasaView: View {
                                 .cornerRadius(4)
                                 .annotation(position: .trailing) { Text(Money.format(i.cost)).font(.caption).foregroundStyle(.secondary) }
                         }
-                        .chartForegroundStyleScale(["Reforma": Brand.accent, "Compra": Color.orange])
+                        .chartForegroundStyleScale(["Reforma": Brand.accent, "Compra": Brand.amber])
                         .chartXAxis(.hidden)
                         .frame(height: CGFloat(max(100, all.count * 42)))
                     }
@@ -71,7 +73,7 @@ struct CasaView: View {
                     StatusBoard(columns: estados, cards: Dictionary(grouping: all, by: { $0.1.value($0.2, "Estado") }).mapValues { rows in
                         rows.map { sec, t, r in BoardCard(id: "\(sec)|\(r.line)", title: t.value(r, "Qué"), subtitle: t.value(r, "Estancia"),
                                                           badge: Money.parse(t.value(r, sec == "Reformas" ? "Coste estimado" : "Precio estimado")) > 0 ? Money.format(Money.parse(t.value(r, sec == "Reformas" ? "Coste estimado" : "Precio estimado"))) : "",
-                                                          color: sec == "Reformas" ? Brand.accent : .orange) }
+                                                          color: sec == "Reformas" ? Brand.accent : Brand.amber) }
                     }, move: { id, col in
                         let parts = id.split(separator: "|")
                         guard parts.count == 2, let line = Int(parts[1]), let t = tables.first(where: { $0.0 == parts[0] })?.1, let r = t.rows.first(where: { $0.line == line }) else { return }
@@ -101,7 +103,7 @@ struct CasaView: View {
 
                 NoteTables(file: VaultPath.casa, icon: "refrigerator", include: { $0.title.localizedCaseInsensitiveContains("electrodom") })
 
-                Button("Abrir la nota Casa") { store.pendingNote = VaultPath.casa }.buttonStyle(.link)
+                Button("Abrir la nota Casa") { store.pendingNote = VaultPath.casa }.buttonStyle(.accentLink)
             }
             .padding(24)
         }

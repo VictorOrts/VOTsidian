@@ -35,8 +35,8 @@ struct StatusBoard: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(9)
-                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08)))
+                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: Brand.radius))
+                            .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(Color.primary.opacity(0.08)))
                             .draggable(c.id)
                             .onTapGesture { open?(c.id) }
                         }
@@ -46,7 +46,7 @@ struct StatusBoard: View {
                     .padding(10)
                     .frame(width: columnWidth, alignment: .topLeading)
                     .frame(minHeight: 140)
-                    .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: Brand.radius))
                     .dropDestination(for: String.self) { ids, _ in
                         guard let id = ids.first else { return false }
                         move(id, col)

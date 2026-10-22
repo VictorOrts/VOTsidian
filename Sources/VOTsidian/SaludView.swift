@@ -163,7 +163,7 @@ struct SummarySheet: View {
             ScrollView {
                 Text(text).font(.system(size: 12, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(10).background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+            .padding(10).background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.radius))
             HStack {
                 Text("Se genera con tus datos actuales. Revísalo antes de compartirlo.").font(.caption).foregroundStyle(.secondary)
                 Spacer()

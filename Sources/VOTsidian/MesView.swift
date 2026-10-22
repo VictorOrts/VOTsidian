@@ -56,8 +56,8 @@ struct MesView: View {
                 if !moods.isEmpty || !sleeps.isEmpty {
                     Card(title: "Ánimo y sueño", icon: "face.smiling") {
                         HStack(spacing: 12) {
-                            Tile(title: "Ánimo medio", value: moods.isEmpty ? "–" : String(format: "%.1f / 5", moods.reduce(0) { $0 + $1.1 } / Double(moods.count)), note: "\(moods.count) días anotados")
-                            Tile(title: "Sueño medio", value: sleeps.isEmpty ? "–" : String(format: "%.1f h", sleeps.reduce(0) { $0 + $1.1 } / Double(sleeps.count)), note: "\(sleeps.count) días anotados")
+                            Tile(title: "Ánimo medio", value: moods.isEmpty ? "–" : fmt(moods.reduce(0) { $0 + $1.1 } / Double(moods.count), unit: " / 5"), note: "\(moods.count) días anotados")
+                            Tile(title: "Sueño medio", value: sleeps.isEmpty ? "–" : fmt(sleeps.reduce(0) { $0 + $1.1 } / Double(sleeps.count), unit: " h"), note: "\(sleeps.count) días anotados")
                         }
                         if moods.count > 2 {
                             Chart(moods, id: \.0) { m in
@@ -102,9 +102,9 @@ struct MesView: View {
                     HStack {
                         Button("Guardar revisión") { saveMonth(quiet: false) }
                             .keyboardShortcut("s", modifiers: .command).buttonStyle(.borderedProminent)
-                        if saved { Label("Guardado", systemImage: "checkmark.circle.fill").foregroundStyle(.green) }
+                        if saved { Label("Guardado", systemImage: "checkmark.circle.fill").foregroundStyle(Brand.good) }
                         Spacer()
-                        Button("Editar la nota completa") { store.pendingNote = store.monthReviewFile(key) }.buttonStyle(.link)
+                        Button("Editar la nota completa") { store.pendingNote = store.monthReviewFile(key) }.buttonStyle(.accentLink)
                     }
                 } else {
                     ContentUnavailableView {

@@ -23,14 +23,14 @@ struct AgendaItem: Identifiable {
             case .task: Brand.accent
             case .done: .gray
             case .appointment: Brand.bad
-            case .dose, .doseNext: .purple
-            case .weight: .orange
-            case .birthday: .cyan
-            case .document: .brown
-            case .nala: .teal
-            case .event: .indigo
-            case .shopping: .mint
-            case .diary: .blue
+            case .dose, .doseNext: Brand.violet
+            case .weight: Brand.amber
+            case .birthday: Brand.sky
+            case .document: Brand.slate
+            case .nala: Brand.clay
+            case .event: Brand.rose
+            case .shopping: Brand.lime
+            case .diary: Brand.info
             }
         }
     }

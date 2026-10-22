@@ -125,7 +125,7 @@ struct YearSummaryView: View {
                 tile("Peso", stats.deltaKg.map { fmtDelta($0) } ?? "–", stats.lastKg.map { "ahora \(fmt($0, unit: " kg"))" } ?? "sin pesajes")
                 tile("Pinchazos", "\(stats.injections)", stats.dosesByMg.map { "\(MD.formatNumber($0.mg, comma: true)) mg ×\($0.count)" }.joined(separator: " · "))
                 tile("Tareas hechas", "\(stats.tasksDone)", "")
-                tile("Ánimo", stats.moodAvg.map { String(format: "%.1f / 5", $0) } ?? "–", stats.sleepAvg.map { String(format: "sueño %.1f h", $0) } ?? "")
+                tile("Ánimo", stats.moodAvg.map { fmt($0, unit: " / 5") } ?? "–", stats.sleepAvg.map { "sueño " + fmt($0, unit: " h") } ?? "")
             }
             if stats.weights.count > 1 {
                 Text("Peso (kg)").font(.headline)
@@ -162,7 +162,7 @@ struct YearSummaryView: View {
             Text(note).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
         }
         .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading).padding(10)
-        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: Brand.radius))
     }
 }
 

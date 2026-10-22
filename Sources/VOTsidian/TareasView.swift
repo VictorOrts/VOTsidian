@@ -73,7 +73,7 @@ struct TareasView: View {
                         VStack(alignment: .leading, spacing: 6) { ForEach(done.prefix(30)) { TaskRow(task: $0) } }.padding(.top, 6)
                     }
                 }
-                Text("Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). El lápiz edita el texto y la fecha; el nombre de la nota abre esa nota.").font(.caption).foregroundStyle(.secondary)
+                Text("Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). Pasa el ratón por una tarea para aplazarla o editarla; el nombre de la nota abre esa nota.").font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
         }

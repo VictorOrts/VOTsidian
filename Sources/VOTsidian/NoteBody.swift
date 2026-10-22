@@ -133,7 +133,7 @@ struct EmbedView: View {
         let (name, heading) = Embed.target(raw)
         if Embed.isImage(name) {
             if let url = store.attachmentURL(name) {
-                ThumbView(url: url, size: 1000).frame(maxWidth: 520, maxHeight: 420).clipShape(RoundedRectangle(cornerRadius: 8))
+                ThumbView(url: url, size: 1000).frame(maxWidth: 520, maxHeight: 420).clipShape(RoundedRectangle(cornerRadius: Brand.radius))
             } else {
                 Label("No encuentro la imagen \(name)", systemImage: "photo").font(.caption).foregroundStyle(.secondary)
             }
@@ -143,7 +143,7 @@ struct EmbedView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.turn.down.right").font(.caption).foregroundStyle(Brand.accent)
                     Button(((path as NSString).lastPathComponent as NSString).deletingPathExtension + (heading.map { " › \($0)" } ?? "")) { store.pendingNote = path }
-                        .buttonStyle(.link).font(.caption.weight(.semibold))
+                        .buttonStyle(.accentLink).font(.caption.weight(.semibold))
                 }
                 if depth >= 2 { Text("(contenido anidado: ábrela para verla)").font(.caption).foregroundStyle(.secondary) }
                 else if text.isEmpty { Text(heading == nil ? "Nota vacía." : "No encuentro la sección «\(heading!)».").font(.caption).foregroundStyle(.secondary) }
@@ -151,7 +151,7 @@ struct EmbedView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Brand.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+            .background(Brand.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: Brand.radius))
             .overlay(alignment: .leading) { RoundedRectangle(cornerRadius: 2).fill(Brand.accent).frame(width: 3).padding(.vertical, 6) }
         } else {
             Label("No encuentro la nota «\(name)»", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.warn)
@@ -195,10 +195,10 @@ struct NoteBody: View {
             }.padding(.leading, CGFloat(indent) * 18)
         case .quote(let t):
             Text(MDParser.inline(t)).padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Brand.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                .background(Brand.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: Brand.radius))
         case .code(let t):
             Text(t).font(.system(size: 12, design: .monospaced)).padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8)).textSelection(.enabled)
+                .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Brand.radius)).textSelection(.enabled)
         case .embed(let raw): EmbedView(raw: raw, depth: depth)
         case .dataview: EmptyView()   // consultas de Obsidian: la app muestra esos datos en sus pantallas
         case .table(let tb):
@@ -220,7 +220,7 @@ struct NoteBody: View {
                 }
                 Button { actions.addRow(tb) } label: { Label("Añadir fila", systemImage: "plus") }.buttonStyle(.borderless).font(.caption).padding(.leading, 10)
             }
-            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 8))
+            .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: Brand.radius))
         case .rule: Divider()
         case .properties(let p):
             DisclosureGroup("Propiedades") {

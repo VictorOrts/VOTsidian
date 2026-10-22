@@ -28,7 +28,7 @@ struct AjustesView: View {
                 else if store.setBackupPassword(newPassword) { newPassword = ""; repeatPassword = ""; cryptoMessage = "" }
             }
         }
-        if !cryptoMessage.isEmpty { Text(cryptoMessage).font(.callout).foregroundStyle(.red) }
+        if !cryptoMessage.isEmpty { Text(cryptoMessage).font(.callout).foregroundStyle(Brand.bad) }
     }
 
     var body: some View {

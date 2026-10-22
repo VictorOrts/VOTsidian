@@ -66,8 +66,8 @@ struct ContentView: View {
             } detail: {
                 VStack(spacing: 0) {
                     if let m = store.message {
-                        HStack { Text(m).font(.callout); Spacer(); Button("Cerrar") { store.message = nil }.buttonStyle(.link) }
-                            .padding(.horizontal, 14).padding(.vertical, 8).background(Color.orange.opacity(0.2))
+                        HStack { Text(m).font(.callout); Spacer(); Button("Cerrar") { store.message = nil }.buttonStyle(.accentLink) }
+                            .padding(.horizontal, 14).padding(.vertical, 8).background(Brand.warn.opacity(0.2))
                     }
                     detail
                 }
@@ -117,7 +117,7 @@ struct ContentView: View {
             HStack(spacing: 12) {
                 Image(systemName: c.undoable ? "checkmark.circle.fill" : "arrow.uturn.backward.circle.fill").foregroundStyle(Brand.accent)
                 Text(c.undoable ? "Guardado en \(((c.file as NSString).lastPathComponent as NSString).deletingPathExtension)" : c.file)
-                if c.undoable { Button("Deshacer") { store.undo() }.buttonStyle(.link) }
+                if c.undoable { Button("Deshacer") { store.undo() }.buttonStyle(.accentLink) }
             }
             .padding(.horizontal, 16).padding(.vertical, 10)
             .glassEffect(.regular, in: .capsule)

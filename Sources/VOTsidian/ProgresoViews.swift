@@ -30,7 +30,7 @@ struct MedidasCard: View {
                             ForEach(records.reversed()) { r in
                                 GridRow {
                                     Text(DayKey.dmy(r.date)).monospacedDigit()
-                                    ForEach(Measures.fields, id: \.self) { Text(r.values[$0].map { String(format: "%.1f", $0) } ?? "–").monospacedDigit() }
+                                    ForEach(Measures.fields, id: \.self) { Text(r.values[$0].map { fmt($0) } ?? "–").monospacedDigit() }
                                     EditButton { spec = RowSpec(file: Measures.file, mode: .edit(line: r.line), title: "medida") }
                                 }
                             }
@@ -50,11 +50,11 @@ struct MedidasCard: View {
                 Button { metric = f } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(f.uppercased()).font(.caption2).foregroundStyle(.secondary)
-                        Text(last.map { String(format: "%.1f %@", $0, Measures.units[f] ?? "") } ?? "–").font(.system(size: 18, weight: .semibold, design: .rounded)).monospacedDigit()
+                        Text(last.map { fmt($0, unit: " " + (Measures.units[f] ?? "")) } ?? "–").font(.system(size: 18, weight: .semibold, design: .rounded)).monospacedDigit()
                         if let l = last, let p = prev { Text(fmtDelta(l - p, unit: " " + (Measures.units[f] ?? ""))).font(.caption).foregroundStyle(l < p ? Brand.accent : .secondary) }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading).padding(10)
-                    .background(f == metric ? Brand.accent.opacity(0.15) : Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                    .background(f == metric ? Brand.accent.opacity(0.15) : Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Brand.radius))
                 }.buttonStyle(.plain)
             }
         }
@@ -155,7 +155,7 @@ struct FotosCard: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 10)], spacing: 10) {
                 ForEach(list, id: \.url) { p in
                     VStack(spacing: 3) {
-                        ThumbView(url: p.url, size: 300).frame(width: 110, height: 140).clipShape(RoundedRectangle(cornerRadius: 8))
+                        ThumbView(url: p.url, size: 300).frame(width: 110, height: 140).clipShape(RoundedRectangle(cornerRadius: Brand.radius))
                             .onTapGesture { NSWorkspace.shared.open(p.url) }
                             .contextMenu {
                                 Button("Abrir") { NSWorkspace.shared.open(p.url) }
@@ -178,11 +178,11 @@ struct FotosCard: View {
             Text("Comparar").font(.subheadline.weight(.semibold))
             HStack(spacing: 14) {
                 VStack(spacing: 4) {
-                    ThumbView(url: list[ia].url, size: 700).frame(width: 220, height: 290).clipShape(RoundedRectangle(cornerRadius: 10))
+                    ThumbView(url: list[ia].url, size: 700).frame(width: 220, height: 290).clipShape(RoundedRectangle(cornerRadius: Brand.radius))
                     ChoiceMenu(options: labels, current: labels[ia], width: 140) { v in a = labels.firstIndex(of: v) ?? 0 }
                 }
                 VStack(spacing: 4) {
-                    ThumbView(url: list[ib].url, size: 700).frame(width: 220, height: 290).clipShape(RoundedRectangle(cornerRadius: 10))
+                    ThumbView(url: list[ib].url, size: 700).frame(width: 220, height: 290).clipShape(RoundedRectangle(cornerRadius: Brand.radius))
                     ChoiceMenu(options: labels, current: labels[ib], width: 140) { v in b = labels.firstIndex(of: v) ?? list.count - 1 }
                 }
                 if let da = list[ia].date, let db = list[ib].date, let w = Optional(store.weight) {

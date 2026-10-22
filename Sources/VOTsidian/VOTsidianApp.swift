@@ -58,7 +58,7 @@ struct VOTsidianApp: App {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "scalemass")
-                Text(store.weight.last.map { String(format: "%.1f", $0.kg) } ?? "")
+                Text(store.weight.last.map { fmt($0.kg) } ?? "")
             }
         }
         .menuBarExtraStyle(.window)

@@ -48,14 +48,14 @@ struct SemanaView: View {
                         Text("Fechas importantes").font(.subheadline.weight(.semibold))
                         TextEditor(text: $fechasText).frame(minHeight: 70).font(.body)
                             .scrollContentBackground(.hidden).padding(6)
-                            .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+                            .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.radius))
                         ForEach(fechasText.components(separatedBy: "\n").filter { $0.contains("[[") }, id: \.self) { LinkPreview(text: $0) }
                     }
                     HStack {
                         Button("Guardar revisión") { saveWeek(quiet: false) }.keyboardShortcut("s", modifiers: .command).buttonStyle(.borderedProminent)
-                        if saved { Label("Guardado", systemImage: "checkmark.circle.fill").foregroundStyle(.green) }
+                        if saved { Label("Guardado", systemImage: "checkmark.circle.fill").foregroundStyle(Brand.good) }
                         Spacer()
-                        Button("Editar la nota completa") { store.pendingNote = store.reviewFile(key) }.buttonStyle(.link)
+                        Button("Editar la nota completa") { store.pendingNote = store.reviewFile(key) }.buttonStyle(.accentLink)
                     }
                 } else {
                     ContentUnavailableView {
@@ -197,7 +197,7 @@ struct SemanaView: View {
                         }.frame(maxWidth: 190, alignment: .leading).gridColumnAlignment(.leading)
                         ForEach(0..<7, id: \.self) { d in
                             Button { store.toggleHabit(key: key, habit: h.name, day: d) } label: {
-                                RoundedRectangle(cornerRadius: 7)
+                                RoundedRectangle(cornerRadius: Brand.radiusSmall)
                                     .fill(h.days[d] ? Brand.accent : Color.secondary.opacity(0.16))
                                     .frame(maxWidth: .infinity, minHeight: 34)
                                     .overlay { if h.days[d] { Image(systemName: "checkmark").foregroundStyle(.white).font(.caption.bold()) } }
@@ -258,7 +258,7 @@ struct HabitsSheet: View {
                 HStack {
                     TextField("Hábito", text: $defs[i].name).frame(width: 150)
                     TextField("Qué cuenta como cumplido", text: $defs[i].criterion)
-                    Button { defs.remove(at: i) } label: { Image(systemName: "minus.circle").accessibilityLabel("Quitar") }.buttonStyle(.borderless).foregroundStyle(.red)
+                    Button { defs.remove(at: i) } label: { Image(systemName: "minus.circle").accessibilityLabel("Quitar") }.buttonStyle(.borderless).foregroundStyle(Brand.bad)
                 }
             }
             HStack {

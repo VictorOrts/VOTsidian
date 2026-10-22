@@ -17,7 +17,7 @@ struct PesoView: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
                     Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { DayKey.dmy($0.date) })
-                    Tile(title: "Perdidos", value: fmt(w.lostKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: .green)
+                    Tile(title: "Perdidos", value: fmt(w.lostKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
                     Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: "objetivo \(fmt(w.goalKg, 0)) kg")
                     Tile(title: "Ritmo reciente", value: rate.map { fmtDelta($0, unit: " kg/mes") } ?? "–", note: "últimos 4 meses")
                 }
@@ -85,13 +85,13 @@ struct PesoView: View {
                             Text(DayKey.dmy(r.date)).monospacedDigit()
                             Text(fmt(r.kg, unit: " kg")).monospacedDigit()
                             Text(i > 0 ? fmtDelta(r.kg - w.records[i - 1].kg) : "–").monospacedDigit()
-                                .foregroundStyle(i > 0 && r.kg > w.records[i - 1].kg ? Color.orange : .primary)
+                                .foregroundStyle(i > 0 && r.kg > w.records[i - 1].kg ? Brand.warn : .primary)
                             Text(r.note).foregroundStyle(.secondary)
                             EditButton { spec = RowSpec(file: VaultPath.peso, mode: .edit(line: r.line), title: "pesaje") }
                         }
                     }
                 }
-                Button("Abrir la nota Peso") { store.pendingNote = VaultPath.peso }.buttonStyle(.link)
+                Button("Abrir la nota Peso") { store.pendingNote = VaultPath.peso }.buttonStyle(.accentLink)
             }
             .padding(24)
         }
@@ -135,21 +135,21 @@ struct PesoView: View {
             if smooth && w.records.count > 1 {
                 ForEach(w.smoothed()) { r in
                     LineMark(x: .value("Día", r.date), y: .value("kg", r.kg), series: .value("s", "tendencia"))
-                        .foregroundStyle(.orange).lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3])).interpolationMethod(.monotone)
+                        .foregroundStyle(Brand.amber).lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3])).interpolationMethod(.monotone)
                 }
             }
             ForEach(store.milestones.filter { $0.kg > w.goalKg }) { m in
                 RuleMark(y: .value("Hito", m.kg)).foregroundStyle(.secondary.opacity(0.35))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
-                    .annotation(position: .top, alignment: .leading) { Text("\(fmt(m.kg, 0)) kg").font(.caption2).foregroundStyle(.secondary) }
+                    .annotation(position: .top, alignment: .trailing) { Text("hito \(fmt(m.kg, 0))").font(.caption2).foregroundStyle(.tertiary) }
             }
             RuleMark(y: .value("Objetivo", w.goalKg)).foregroundStyle(Brand.accent)
                 .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
                 .annotation(position: .top, alignment: .leading) { Text("objetivo \(fmt(w.goalKg, 0)) kg").font(.caption.weight(.semibold)).foregroundStyle(Brand.accent) }
             if let l = w.last, let p = w.projection() {
                 ForEach([("proy", p.date), ("proyMin", p.earliest), ("proyMax", p.latest)], id: \.0) { id, d in
-                    LineMark(x: .value("Día", l.date), y: .value("kg", l.kg), series: .value("s", id)).foregroundStyle(.secondary.opacity(id == "proy" ? 1 : 0.45)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
-                    LineMark(x: .value("Día", d), y: .value("kg", w.goalKg), series: .value("s", id)).foregroundStyle(.secondary.opacity(id == "proy" ? 1 : 0.45)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
+                    LineMark(x: .value("Día", l.date), y: .value("kg", l.kg), series: .value("s", id)).foregroundStyle(Brand.info.opacity(id == "proy" ? 0.9 : 0.35)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
+                    LineMark(x: .value("Día", d), y: .value("kg", w.goalKg), series: .value("s", id)).foregroundStyle(Brand.info.opacity(id == "proy" ? 0.9 : 0.35)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
                 }
             }
             if let l = w.last {
@@ -164,7 +164,7 @@ struct PesoView: View {
                             Text(fmt(r.kg, unit: " kg")).font(.callout.bold())
                             if let i = w.records.firstIndex(of: r), i > 0 { Text(fmtDelta(r.kg - w.records[i - 1].kg)).font(.caption) }
                         }
-                        .padding(8).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .padding(8).background(.regularMaterial, in: RoundedRectangle(cornerRadius: Brand.radius))
                     }
             }
         }
@@ -204,7 +204,7 @@ struct PesoView: View {
                 let hit = w.records.first { $0.kg <= m.kg }
                 HStack {
                     Image(systemName: (hit != nil || m.markedDone) ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle((hit != nil || m.markedDone) ? Color.green : .secondary)
+                        .foregroundStyle((hit != nil || m.markedDone) ? Brand.good : .secondary)
                         .accessibilityLabel((hit != nil || m.markedDone) ? "Conseguido" : "Pendiente")
                     Text(m.name)
                     Spacer()

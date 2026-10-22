@@ -27,7 +27,7 @@ struct GrafoView: View {
     @State private var onlyConnected = false
     @State private var layoutGeneration = 0
 
-    private let palette: [Color] = [Brand.accent, .orange, .blue, .purple, .brown, .yellow, .cyan, .red, .indigo, .pink]
+    private let palette = Brand.series
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -87,7 +87,7 @@ struct GrafoView: View {
                 HStack(spacing: 6) { Circle().fill(colors[f] ?? .gray).frame(width: 9, height: 9); Text(f).font(.caption) }
             }
         }
-        .padding(8).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(8).background(.regularMaterial, in: RoundedRectangle(cornerRadius: Brand.radius))
     }
 
     private func info(_ n: GraphNode) -> some View {
@@ -97,7 +97,7 @@ struct GrafoView: View {
             Text("\((store.outLinks[n.path] ?? []).count) enlaces salientes · \((store.backLinks[n.path] ?? []).count) entrantes").font(.caption)
             Text("Pulsa para abrir la nota").font(.caption2).foregroundStyle(.secondary)
         }
-        .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: Brand.radius))
     }
 
     // MARK: Datos

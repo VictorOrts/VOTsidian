@@ -21,7 +21,7 @@ struct NalaView: View {
                 }
                 Card(title: "Avisos", icon: "bell") {
                     ForEach(Array(n.overdue.enumerated()), id: \.offset) { _, o in
-                        Label("\(o.title) vencida el \(DayKey.dmy(o.date))", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        Label("\(o.title) vencida el \(DayKey.dmy(o.date))", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.warn)
                     }
                     ForEach(Array(n.upcoming.enumerated()), id: \.offset) { _, u in
                         Text("\(u.title): \(DayKey.dmy(u.date)) (\(relativeDays(DayKey.days(from: DayKey.today(), to: u.date))))")
@@ -69,7 +69,7 @@ struct NalaView: View {
                         }
                     }
                 }
-                Button("Abrir la nota Nala") { store.pendingNote = VaultPath.nala }.buttonStyle(.link)
+                Button("Abrir la nota Nala") { store.pendingNote = VaultPath.nala }.buttonStyle(.accentLink)
             }
             .padding(24)
         }

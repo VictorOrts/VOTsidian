@@ -1,13 +1,14 @@
 import SwiftUI
 
+/// Número para mostrar en español: coma decimal y `digits` decimales fijos («105,0»). Para escribir en notas usa `MD.formatNumber`.
 func fmt(_ v: Double?, _ digits: Int = 1, unit: String = "") -> String {
     guard let v else { return "–" }
-    return String(format: "%.\(digits)f", v) + unit
+    return v.formatted(.number.precision(.fractionLength(digits)).grouping(.never).locale(Locale(identifier: "es_ES"))) + unit
 }
 
 func fmtDelta(_ v: Double?, unit: String = " kg") -> String {
     guard let v else { return "–" }
-    return String(format: "%+.1f", v) + unit
+    return (v >= 0 ? "+" : "") + fmt(v, 1, unit: unit)
 }
 
 func shortDate(_ d: Date) -> String { DayKey.esLong(d, .dateTime.day().month(.abbreviated)) }
@@ -38,8 +39,8 @@ struct Tile: View {
         }
         .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
         .padding(14)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
     }
 }
 
@@ -57,16 +58,15 @@ struct Card<Content: View>: View {
                     .labelStyle(.titleAndIcon).font(.headline)
                 Spacer()
                 if let actionTitle, let action {
-                    Button(action: action) { Text("\(actionTitle) ›") }.buttonStyle(.link).font(.callout)
+                    Button(action: action) { Text("\(actionTitle) ›") }.buttonStyle(.accentLink).font(.callout)
                 }
             }
             content
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(18)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
+        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
     }
 }
 
@@ -96,45 +96,98 @@ struct TaskRow: View {
     @Environment(Store.self) private var store
     let task: TaskItem
     @State private var editing = false
+    @State private var hover = false
 
     var body: some View {
         HStack(spacing: 8) {
             Button { store.setTask(task, done: !task.done) } label: {
                 Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
-            }.buttonStyle(.plain).accessibilityLabel(task.done ? "Marcar como pendiente" : "Marcar como hecha").foregroundStyle(task.done ? Color.green : Color.accentColor)
-            if task.priority > 0 && !task.done { Image(systemName: "flag.fill").font(.caption).foregroundStyle(task.priority == 3 ? Brand.bad : task.priority == 2 ? Brand.warn : Color.blue).help(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]).accessibilityLabel(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]) }
+            }.buttonStyle(.plain).accessibilityLabel(task.done ? "Marcar como pendiente" : "Marcar como hecha").foregroundStyle(task.done ? Brand.good : Brand.accent)
+            if task.priority > 0 && !task.done { Image(systemName: "flag.fill").font(.caption).foregroundStyle(task.priority == 3 ? Brand.bad : task.priority == 2 ? Brand.warn : Brand.info).help(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]).accessibilityLabel(["", "Prioridad baja", "Prioridad media", "Prioridad alta"][task.priority]) }
             Text(MDParser.inline(task.text)).strikethrough(task.done).foregroundStyle(task.done ? .secondary : .primary).lineLimit(2)
             if let r = task.recurrence { Image(systemName: "repeat").font(.caption).foregroundStyle(.secondary).help(Recurrence.describe(r)).accessibilityLabel(Recurrence.describe(r)) }
             Spacer(minLength: 8)
             if let due = task.due {
                 let n = DayKey.days(from: DayKey.today(), to: due)
                 Text(n < 0 && !task.done ? "vencida \(shortDate(due))" : shortDate(due))
-                    .font(.caption).foregroundStyle(n < 0 && !task.done ? Color.red : .secondary)
+                    .font(.caption).foregroundStyle(n < 0 && !task.done ? Brand.bad : .secondary)
             }
             Button(task.noteName) { store.pendingNote = task.file }
-                .buttonStyle(.link).font(.caption)
-            if !task.done {
-                Menu {
-                    Button("Hoy") { store.reschedule(task, to: DayKey.today()) }
-                    Button("Mañana") { store.reschedule(task, to: DayKey.adding(days: 1, to: DayKey.today())) }
-                    Button("En una semana") { store.reschedule(task, to: DayKey.adding(days: 7, to: DayKey.today())) }
-                    Button("El lunes") {
-                        let wd = DayKey.calendar().component(.weekday, from: DayKey.today())
-                        store.reschedule(task, to: DayKey.adding(days: (9 - wd) % 7 == 0 ? 7 : (9 - wd) % 7, to: DayKey.today()))
-                    }
-                } label: { Image(systemName: "clock.arrow.circlepath").accessibilityLabel("Aplazar") }
-                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().foregroundStyle(.secondary).help("Aplazar")
+                .buttonStyle(.accentLink).font(.caption)
+            // Aplazar y editar solo se ven al pasar el ratón por la fila: así la lista no se llena de iconos repetidos.
+            HStack(spacing: 8) {
+                if !task.done {
+                    Menu {
+                        Button("Hoy") { store.reschedule(task, to: DayKey.today()) }
+                        Button("Mañana") { store.reschedule(task, to: DayKey.adding(days: 1, to: DayKey.today())) }
+                        Button("En una semana") { store.reschedule(task, to: DayKey.adding(days: 7, to: DayKey.today())) }
+                        Button("El lunes") {
+                            let wd = DayKey.calendar().component(.weekday, from: DayKey.today())
+                            store.reschedule(task, to: DayKey.adding(days: (9 - wd) % 7 == 0 ? 7 : (9 - wd) % 7, to: DayKey.today()))
+                        }
+                    } label: { Image(systemName: "clock.arrow.circlepath").accessibilityLabel("Aplazar") }
+                        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().foregroundStyle(.secondary).help("Aplazar")
+                }
+                EditButton { editing = true }
             }
-            EditButton { editing = true }
+            .opacity(hover || editing ? 1 : 0)
         }
+        .contentShape(Rectangle())
+        .onHover { hover = $0 }
         .sheet(isPresented: $editing) { TaskSheet(task: task) }
     }
 }
 
+/// Enlace con el color de la app: el `.link` del sistema siempre es azul. Se subraya al pasar el ratón.
+struct AccentLinkStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View { LinkLabel(configuration: configuration) }
+
+    private struct LinkLabel: View {
+        let configuration: Configuration
+        @State private var hover = false
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(enabled ? Brand.accent : Color.secondary)
+                .underline(hover && enabled)
+                .opacity(configuration.isPressed ? 0.6 : 1)
+                .contentShape(Rectangle())
+                .onHover { hover = $0 }
+                .pointerStyle(.link)
+        }
+    }
+}
+
+extension ButtonStyle where Self == AccentLinkStyle {
+    static var accentLink: AccentLinkStyle { AccentLinkStyle() }
+}
+
+/// Colores de la app. Usa estos en vez de los del sistema (`.green`, `.blue`…) para que todo combine en claro y oscuro.
 enum Brand {
     static let accent = Color(red: 0.16, green: 0.62, blue: 0.50)
-    static let warn = Color.orange
+    static let warn = Color(red: 0.93, green: 0.55, blue: 0.20)
     static let bad = Color(red: 0.88, green: 0.28, blue: 0.25)
+    /// Lo que va bien (kilos perdidos, hecho, guardado): el verde de la app, no el del sistema.
+    static let good = accent
+    /// Datos neutros y previsiones (proyecciones, prioridad baja, diario).
+    static let info = Color(red: 0.29, green: 0.50, blue: 0.86)
+
+    // Categorías (calendario, nutrición, gráficas): tonos medios que se distinguen entre sí y con el acento.
+    static let violet = Color(red: 0.56, green: 0.38, blue: 0.82)
+    static let amber = Color(red: 0.86, green: 0.64, blue: 0.16)
+    static let sky = Color(red: 0.22, green: 0.66, blue: 0.86)
+    static let rose = Color(red: 0.86, green: 0.36, blue: 0.62)
+    static let clay = Color(red: 0.70, green: 0.48, blue: 0.34)
+    static let lime = Color(red: 0.52, green: 0.70, blue: 0.26)
+    static let slate = Color(red: 0.46, green: 0.52, blue: 0.60)
+    /// Esquinas: controles y resaltados pequeños, filas y paneles, tarjetas.
+    static let radiusSmall: CGFloat = 6
+    static let radius: CGFloat = 10
+    static let radiusLarge: CGFloat = 16
+
+    /// Para series sin significado propio (carpetas del grafo…).
+    static let series: [Color] = [accent, amber, info, violet, clay, sky, rose, lime, slate, bad]
 }
 
 
@@ -497,7 +550,7 @@ struct MoodPicker: View {
     let value: Double?
     let set: (Double?) -> Void
     private let labels = ["Mal", "Regular", "Normal", "Bien", "Genial"]
-    private let colors: [Color] = [Brand.bad, Brand.warn, .yellow, .mint, Brand.accent]
+    private let colors: [Color] = [Brand.bad, Brand.warn, Brand.amber, Brand.lime, Brand.accent]
 
     var body: some View {
         HStack(spacing: 6) {
@@ -506,8 +559,10 @@ struct MoodPicker: View {
                 Button { set(on ? nil : Double(n)) } label: {
                     Text("\(n)").font(.caption.weight(.semibold))
                         .frame(width: 26, height: 26)
-                        .foregroundStyle(on ? Color.white : Color.primary)
-                        .background(on ? colors[n - 1] : colors[n - 1].opacity(0.18), in: Circle())
+                        // Sin elegir: gris con el número en su color. Elegido: relleno sólido y un aro, para que se vea de un vistazo.
+                        .foregroundStyle(on ? Color.white : colors[n - 1])
+                        .background(on ? colors[n - 1] : Color.secondary.opacity(0.12), in: Circle())
+                        .overlay { if on { Circle().stroke(colors[n - 1].opacity(0.35), lineWidth: 3).padding(-3) } }
                         .scaleEffect(on ? 1.12 : 1)
                         .animation(.spring(duration: 0.25), value: on)
                 }.buttonStyle(.plain).help(labels[n - 1])

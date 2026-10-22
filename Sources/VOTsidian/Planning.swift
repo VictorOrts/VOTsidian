@@ -134,8 +134,8 @@ struct PlanificarView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 190, alignment: .topLeading)
-        .background(isToday ? Brand.accent.opacity(0.10) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(busy ? Brand.warn.opacity(0.7) : (isToday ? Brand.accent.opacity(0.5) : Color.clear), lineWidth: 1.5))
+        .background(isToday ? Brand.accent.opacity(0.10) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: Brand.radius))
+        .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(busy ? Brand.warn.opacity(0.7) : (isToday ? Brand.accent.opacity(0.5) : Color.clear), lineWidth: 1.5))
         .dropDestination(for: String.self) { ids, _ in
             guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }) else { return false }
             if WeekPlan.day(of: t) != day { store.reschedule(t, to: day); message = "«\(t.text)» pasa al \(shortDate(day))" }
@@ -148,7 +148,7 @@ struct PlanificarView: View {
             Button { store.setTask(t, done: true) } label: { Image(systemName: "circle").accessibilityLabel("Completar") }.buttonStyle(.plain).foregroundStyle(Brand.accent).help("Completar")
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    if t.priority > 0 { Image(systemName: "flag.fill").font(.caption2).foregroundStyle(t.priority == 3 ? Brand.bad : t.priority == 2 ? Brand.warn : Color.blue) }
+                    if t.priority > 0 { Image(systemName: "flag.fill").font(.caption2).foregroundStyle(t.priority == 3 ? Brand.bad : t.priority == 2 ? Brand.warn : Brand.info) }
                     Text(MDParser.inline(t.text)).font(.callout).lineLimit(3)
                 }
                 if t.noteName != "Inbox" { Text(t.noteName).font(.caption2).foregroundStyle(.tertiary) }
@@ -157,8 +157,8 @@ struct PlanificarView: View {
             if t.recurrence != nil { Image(systemName: "repeat").font(.caption2).foregroundStyle(.secondary) }
         }
         .padding(8)
-        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(overdue ? Brand.bad.opacity(0.5) : Color.primary.opacity(0.08)))
+        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: Brand.radius))
+        .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(overdue ? Brand.bad.opacity(0.5) : Color.primary.opacity(0.08)))
         .draggable(t.id)
         .contextMenu {
             Button("Editar…") { editing = t }
@@ -185,7 +185,7 @@ struct PlanificarView: View {
         return Card(title: "Sin fecha (\(plan.undated.count))", icon: "tray") {
             if plan.undated.isEmpty { Text("Todo tiene fecha.").foregroundStyle(.secondary) }
             ForEach(shown) { taskCard($0, overdue: false) }
-            if plan.undated.count > 8 { Button(showAllUndated ? "Ver menos" : "Ver las \(plan.undated.count)") { showAllUndated.toggle() }.buttonStyle(.link) }
+            if plan.undated.count > 8 { Button(showAllUndated ? "Ver menos" : "Ver las \(plan.undated.count)") { showAllUndated.toggle() }.buttonStyle(.accentLink) }
             Text("Suelta aquí una tarea para quitarle la fecha.").font(.caption).foregroundStyle(.tertiary)
         }
         .dropDestination(for: String.self) { ids, _ in

@@ -24,7 +24,7 @@ struct ObjetivosView: View {
                         LineField(file: file, marker: "**\(f):**", label: f, text: text)
                     }
                 }
-                Button("Abrir Objetivos como nota") { store.pendingNote = file }.buttonStyle(.link)
+                Button("Abrir Objetivos como nota") { store.pendingNote = file }.buttonStyle(.accentLink)
             }
             .padding(24)
         }

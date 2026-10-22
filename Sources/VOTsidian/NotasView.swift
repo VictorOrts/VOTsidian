@@ -244,7 +244,7 @@ struct NotasView: View {
                         Spacer()
                         Button("Sobrescribir con lo mío") { save(path, force: true) }
                         Button("Descartar lo mío") { let d = store.read(path); draft = d; baseline = d; conflict = false }
-                    }.padding(10).background(Color.orange.opacity(0.25))
+                    }.padding(10).background(Brand.warn.opacity(0.25))
                 }
                 if mode == .editar {
                     formatBar
@@ -330,15 +330,15 @@ struct NotasView: View {
                                     Text(sug.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 .padding(.horizontal, 8).padding(.vertical, 5)
-                                .background(i == suggestIndex ? Brand.accent.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                                .background(i == suggestIndex ? Brand.accent.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: Brand.radiusSmall))
                                 .contentShape(Rectangle())
                             }.buttonStyle(.plain)
                         }
                         Text("↑↓ elegir · ⏎ o ⇥ insertar · esc cerrar").font(.caption2).foregroundStyle(.tertiary).padding(.horizontal, 8).padding(.top, 2)
                     }
                     .padding(6).frame(width: 330)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(.quaternary))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Brand.radius))
+                    .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(.quaternary))
                     .shadow(radius: 10, y: 3).padding(12)
                 }
             }
@@ -375,7 +375,7 @@ struct NotasView: View {
                         }
                         .padding(.horizontal, 10).padding(.vertical, 6)
                         .frame(maxWidth: 190)
-                        .background(active ? Brand.accent.opacity(0.2) : Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 7))
+                        .background(active ? Brand.accent.opacity(0.2) : Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Brand.radiusSmall))
                         .contentShape(Rectangle())
                         .onTapGesture { if saveIfDirty() { open(t) } }
                         .contextMenu {
@@ -510,7 +510,7 @@ struct NotasView: View {
                     Text("Estas notas nombran «\(name(path))» sin enlace. Enlázalas para conectarlas.").font(.caption).foregroundStyle(.secondary)
                     ForEach(mentions.prefix(8)) { m in
                         HStack {
-                            Button(m.name) { go(m.path) }.buttonStyle(.link)
+                            Button(m.name) { go(m.path) }.buttonStyle(.accentLink)
                             if let s = store.snippets[m.path] { Text(s).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                             Spacer()
                             Button("Enlazar") { store.linkMention(in: m.path, to: name(path)) }.controlSize(.small)

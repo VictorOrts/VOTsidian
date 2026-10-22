@@ -75,7 +75,7 @@ private struct FlowLinks: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), alignment: .leading)], alignment: .leading, spacing: 4) {
-            ForEach(names, id: \.self) { n in Button(n) { open(n) }.buttonStyle(.link).lineLimit(1) }
+            ForEach(names, id: \.self) { n in Button(n) { open(n) }.buttonStyle(.accentLink).lineLimit(1) }
         }
     }
 }

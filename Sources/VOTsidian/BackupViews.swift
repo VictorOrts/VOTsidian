@@ -119,7 +119,7 @@ struct NoteHistorySheet: View {
                     }
                 }.textSelection(.enabled)
             }
-            .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+            .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.radius))
         }
         .padding(.leading, 8)
         .confirmationDialog("¿Restaurar la versión de \(v.backup.label.lowercased())?", isPresented: $confirmRestore) {
@@ -151,7 +151,7 @@ struct BackupsList: View {
                     Button("Restaurar…") { restoring = b }.disabled(working)
                 }
             }
-            if entries.count > 5 { Button(showAll ? "Ver menos" : "Ver las \(entries.count)") { showAll.toggle() }.buttonStyle(.link) }
+            if entries.count > 5 { Button(showAll ? "Ver menos" : "Ver las \(entries.count)") { showAll.toggle() }.buttonStyle(.accentLink) }
             if working { ProgressView("Restaurando…").controlSize(.small) }
             if !result.isEmpty { Text(result).font(.callout).foregroundStyle(.secondary).textSelection(.enabled) }
         }
