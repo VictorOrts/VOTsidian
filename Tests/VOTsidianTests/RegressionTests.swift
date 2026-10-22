@@ -24,7 +24,3 @@ import Testing
     store.undo()
     #expect(!FileManager.default.fileExists(atPath: store.url("Nueva.md").path))
 }
-
-@Test func labParameterWithoutResultsDoesNotExist() {
-    #expect(LabParameter(name: "HbA1c", results: []) == nil)
-}

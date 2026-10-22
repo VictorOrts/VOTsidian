@@ -67,10 +67,9 @@ Escribe una orden y pulsa intro: `peso 105,5` · `peso 105,5 ayer` · `ánimo 4`
 - **Compra**: lista con casillas por secciones (`Cambio físico/Lista de la compra.md`), se genera desde la sección «Lista de la compra» de Menú y compra. No cuenta como tareas.
 - **Casa → Mantenimiento del hogar**: sugerencias según tus aparatos (lavadora, lavavajillas, cafetera…) que se añaden como tareas que se repiten solas.
 
-## Planificar la semana y analíticas
+## Planificar la semana
 
 - **Planificar semana**: tablero de lunes a domingo; arrastra tareas entre días, a «Sin fecha» o desde «Vencidas». Marca los días con más de 5 tareas.
-- **Analíticas** (Cuerpo): cada valor de tus análisis con unidad y referencia en `Organización/Médico/Analíticas.md`; avisa de lo que queda fuera de rango, dibuja la evolución con su banda de referencia y lo añade al resumen para el médico.
 
 ## Avisos del sistema y conflictos de iCloud
 

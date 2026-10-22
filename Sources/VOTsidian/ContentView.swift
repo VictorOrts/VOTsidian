@@ -2,7 +2,7 @@ import SwiftUI
 
 enum Screen: String, CaseIterable, Identifiable {
     case inicio = "Inicio", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
-    case peso = "Peso", nutricion = "Plan nutricional", mounjaro = "Mounjaro", salud = "Salud y médicos", analiticas = "Analíticas", correlaciones = "Correlaciones"
+    case peso = "Peso", nutricion = "Plan nutricional", mounjaro = "Mounjaro", salud = "Salud y médicos", correlaciones = "Correlaciones"
     case casa = "Casa", compra = "Compra", moda = "Moda", nala = "Nala", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas"
     case notas = "Notas", bases = "Bases", grafo = "Grafo", avisos = "Avisos", ajustes = "Ajustes"
     var id: String { rawValue }
@@ -20,7 +20,6 @@ enum Screen: String, CaseIterable, Identifiable {
         case .nutricion: "fork.knife"
         case .mounjaro: "syringe"
         case .salud: "cross.case"
-        case .analiticas: "testtube.2"
         case .correlaciones: "chart.xyaxis.line"
         case .casa: "house.and.flag"
         case .compra: "cart"
@@ -56,7 +55,7 @@ struct ContentView: View {
                 List(selection: $store.screen) {
                     row(.inicio)
                     Section("Día a día") { row(.tareas); row(.calendario); row(.planificar); row(.semana); row(.mes); row(.proyectos); row(.objetivos) }
-                    Section("Cuerpo") { row(.peso); row(.nutricion); row(.mounjaro); row(.salud); row(.analiticas); row(.correlaciones) }
+                    Section("Cuerpo") { row(.peso); row(.nutricion); row(.mounjaro); row(.salud); row(.correlaciones) }
                     Section("Hogar y vida") { row(.casa); row(.compra); row(.moda); row(.nala); row(.personas); row(.documentos); row(.finanzas) }
                     Section("Conocimiento") { row(.notas); row(.bases); row(.grafo) }
                     Section("Sistema") { row(.avisos); row(.ajustes) }
@@ -95,7 +94,6 @@ struct ContentView: View {
         case .nutricion: NutricionView()
         case .mounjaro: MounjaroView()
         case .salud: SaludView()
-        case .analiticas: AnaliticasView()
         case .correlaciones: CorrelacionesView()
         case .casa: CasaView()
         case .compra: CompraView()

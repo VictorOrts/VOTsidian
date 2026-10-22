@@ -32,7 +32,6 @@ import Testing
         case .nutricion: try render("Nutrición", NutricionView())
         case .mounjaro: try render("Mounjaro", MounjaroView())
         case .salud: try render("Salud", SaludView())
-        case .analiticas: try render("Analíticas", AnaliticasView())
         case .correlaciones: try render("Correlaciones", CorrelacionesView())
         case .casa: try render("Casa", CasaView())
         case .compra: try render("Compra", CompraView())

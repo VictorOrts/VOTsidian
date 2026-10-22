@@ -43,12 +43,6 @@ extension Store {
             l.append("ÚLTIMO ANÁLISIS: " + r.cells.prefix(2).joined(separator: " · "))
             l.append("")
         }
-        let outLabs = labsOutOfRange
-        if !outLabs.isEmpty {
-            l.append("ANALÍTICAS FUERA DE RANGO (último resultado)")
-            for r in outLabs { l.append("- \(r.name): \(r.valueText) (\(r.status.label.lowercased())\(r.refText.isEmpty ? "" : ", ref. \(r.refText)")) · \(DayKey.dmy(r.date))") }
-            l.append("")
-        }
         let next = tasks.filter { !$0.done && $0.file == VaultPath.medico && $0.due != nil }.sorted { $0.due! < $1.due! }
         if !next.isEmpty { l.append("PRÓXIMAS CITAS"); next.forEach { l.append("- \(DayKey.dmy($0.due!)): \($0.text)") } }
         return l.joined(separator: "\n")

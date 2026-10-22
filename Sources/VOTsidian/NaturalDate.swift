@@ -21,8 +21,8 @@ enum NaturalDate {
             guard (1...12).contains(m), (1...31).contains(d) else { return nil }
             var year = y ?? todayYear
             if let y, y < 100 { year = 2000 + y }
-            guard var out = cal.date(from: DateComponents(year: year, month: m, day: d)) else { return nil }
-            if y == nil, out < today { out = cal.date(from: DateComponents(year: year + 1, month: m, day: d)) ?? out }
+            guard var out = DayKey.make(year, m, d) ?? (y == nil ? DayKey.make(year + 1, m, d) : nil) else { return nil }
+            if y == nil, out < today { out = DayKey.make(year + 1, m, d) ?? out }
             return out
         }
 
@@ -66,8 +66,14 @@ enum NaturalDate {
             (#"\bel (\d{1,2})\b"#, { m in
                 let d = Int(group(m, 1)!)!
                 let month = cal.component(.month, from: today)
-                guard let this = cal.date(from: DateComponents(year: todayYear, month: month, day: d)) else { return nil }
-                return this >= today ? this : cal.date(byAdding: .month, value: 1, to: this)
+                // El próximo día `d` que exista: «el 31» en noviembre es el 31 de diciembre, no el 1.
+                var c = DateComponents(year: todayYear, month: month)
+                for _ in 0..<12 {
+                    if let this = DayKey.make(c.year!, c.month!, d), this >= today { return this }
+                    c.month! += 1
+                    if c.month! > 12 { c.month = 1; c.year! += 1 }
+                }
+                return nil
             }),
         ]
         for (pattern, resolve) in rules {

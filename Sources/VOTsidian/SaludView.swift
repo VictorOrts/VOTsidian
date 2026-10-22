@@ -44,12 +44,6 @@ struct SaludView: View {
                 }
 
                 Button { showSummary = true } label: { Label("Resumen para la consulta (copiar)", systemImage: "doc.on.clipboard") }
-                Card(title: "Analíticas", icon: "testtube.2", actionTitle: "Abrir", action: { store.screen = .analiticas }) {
-                    let out = store.labsOutOfRange
-                    if !store.labsExist { Text("Aún no sigues tus analíticas. Actívalas para ver cada valor en el tiempo.").foregroundStyle(.secondary) }
-                    else if out.isEmpty { Label("Todos los últimos valores están dentro de rango.", systemImage: "checkmark.seal").foregroundStyle(Brand.accent) }
-                    else { ForEach(out.prefix(4)) { r in HStack { Text(r.name).fontWeight(.medium); Text(r.valueText).monospacedDigit(); Text(r.status.label).font(.caption).foregroundStyle(Brand.warn); Spacer() } } }
-                }
                 Card(title: "Próximas citas", icon: "calendar.badge.clock") {
                     if appointments.isEmpty { Text("Sin citas pendientes.").foregroundStyle(.secondary) }
                     ForEach(appointments) { TaskRow(task: $0) }

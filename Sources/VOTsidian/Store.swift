@@ -123,7 +123,6 @@ final class Store {
     @ObservationIgnored var rescanRequested = false
     private(set) var noteTexts: [String: String] = [:]
     private(set) var people: [Person] = []
-    private(set) var labs: [LabResult] = []
     private(set) var documents: [(name: String, date: Date, section: String)] = []
     private(set) var events: [(name: String, date: Date, path: String)] = []
 
@@ -319,8 +318,6 @@ final class Store {
         notes = files.sorted { ($0.folder, $0.name) < ($1.folder, $1.name) }
         derive(VaultPath.casa) { casa = Parse.casa($0) }
         derive(VaultPath.personas) { people = Parse.people($0).people }
-        let labsText = texts[Labs.file] ?? ""
-        if derivedInputs["#labs"] != labsText { derivedInputs["#labs"] = labsText; labs = Labs.parse(labsText) }
         derive(VaultPath.documentos) { docsText in documents = Parse.tables(docsText).flatMap { t -> [(name: String, date: Date, section: String)] in
             guard let c = t.col("caduca") else { return [] }
             return t.rows.compactMap { r in

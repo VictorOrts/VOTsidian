@@ -31,7 +31,7 @@ enum DayKey {
         let t = text.trimmingCharacters(in: .whitespaces)
         guard t.range(of: #"^\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) != nil else { return nil }
         let p = t.split(separator: "-").compactMap { Int($0) }
-        return calendar().date(from: DateComponents(year: p[0], month: p[1], day: p[2]))
+        return make(p[0], p[1], p[2])
     }
 
     /// Fecha `18/10/2026`.
@@ -39,7 +39,15 @@ enum DayKey {
         let t = text.trimmingCharacters(in: .whitespaces)
         guard t.range(of: #"^\d{1,2}/\d{1,2}/\d{4}$"#, options: .regularExpression) != nil else { return nil }
         let p = t.split(separator: "/").compactMap { Int($0) }
-        return calendar().date(from: DateComponents(year: p[2], month: p[1], day: p[0]))
+        return make(p[2], p[1], p[0])
+    }
+
+    /// Fecha exacta o `nil` si no existe: el calendario convierte 31/02 en 3 de marzo sin avisar, y eso no se quiere.
+    static func make(_ year: Int, _ month: Int, _ day: Int) -> Date? {
+        let cal = calendar()
+        guard let d = cal.date(from: DateComponents(year: year, month: month, day: day)) else { return nil }
+        let c = cal.dateComponents([.year, .month, .day], from: d)
+        return c.year == year && c.month == month && c.day == day ? d : nil
     }
 
     static func today() -> Date { calendar().startOfDay(for: Date()) }

@@ -130,7 +130,7 @@ struct PesoView: View {
                     .interpolationMethod(.monotone)
                 LineMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent)
                     .lineStyle(StrokeStyle(lineWidth: 2.5)).interpolationMethod(.monotone)
-                PointMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent).symbolSize(40)
+                PointMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent).symbolSize(28)
             }
             if smooth && w.records.count > 1 {
                 ForEach(w.smoothed()) { r in
