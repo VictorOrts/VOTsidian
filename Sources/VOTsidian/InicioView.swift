@@ -137,6 +137,7 @@ struct InicioView: View {
                 if customizing { hiddenCards(layout) }
             }
             .padding(28)
+            .readableWidth()
         }
         .navigationTitle("Inicio")
         .onAppear {

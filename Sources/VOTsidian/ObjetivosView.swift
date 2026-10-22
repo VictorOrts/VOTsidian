@@ -27,6 +27,7 @@ struct ObjetivosView: View {
                 Button("Abrir Objetivos como nota") { store.pendingNote = file }.buttonStyle(.accentLink)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Objetivos")
     }

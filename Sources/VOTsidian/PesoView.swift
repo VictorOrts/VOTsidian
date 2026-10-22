@@ -16,7 +16,7 @@ struct PesoView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
-                    Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { DayKey.dmy($0.date) })
+                    Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { dayLabel($0.date) })
                     Tile(title: "Perdidos", value: fmt(w.lostKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
                     Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: "objetivo \(fmt(w.goalKg, 0)) kg")
                     Tile(title: "Ritmo reciente", value: rate.map { fmtDelta($0, unit: " kg/mes") } ?? "–", note: "últimos 4 meses")
@@ -48,9 +48,9 @@ struct PesoView: View {
 
                 if w.records.count > 1 { changeChart(w) }
 
-                Card(title: "Registrar peso", icon: "plus.circle") {
+                Card(title: "Registrar peso", icon: "plus.circle", info: "Se añade una fila a Cambio físico/Peso.md. Pésate una vez al mes, en ayunas.") {
                     HStack {
-                        DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).frame(width: 220)
+                        DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).fixedSize()
                         TextField("kg", text: $kg).frame(width: 80)
                         TextField("Notas / sensaciones", text: $note)
                         Button("Guardar") {
@@ -60,16 +60,14 @@ struct PesoView: View {
                             }
                         }.buttonStyle(.borderedProminent).disabled(MD.number(kg) == nil)
                     }
-                    Text("Se añade una fila a Cambio físico/Peso.md. Pésate una vez al mes, en ayunas.").font(.caption).foregroundStyle(.secondary)
                 }
 
-                Card(title: "Objetivo", icon: "target") {
+                Card(title: "Objetivo", icon: "target", info: "Pulsa intro para guardar.") {
                     HStack(spacing: 18) {
                         field("Peso inicial (kg)", "peso_inicial_kg")
                         field("Objetivo (kg)", "objetivo_peso_kg")
                         field("Inicio (DD/MM/AAAA)", "fecha_inicio")
                     }
-                    Text("Pulsa intro para guardar.").font(.caption).foregroundStyle(.secondary)
                 }
 
                 milestonesCard(w, rate: rate)
@@ -94,6 +92,7 @@ struct PesoView: View {
                 Button("Abrir la nota Peso") { store.pendingNote = VaultPath.peso }.buttonStyle(.accentLink)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Peso")
         .sheet(item: $spec) { RowSheet(spec: $0) }
@@ -180,7 +179,7 @@ struct PesoView: View {
     private func changeChart(_ w: WeightData) -> some View {
         // Solo los últimos 40 pesajes: más barras no se leen y cada una lleva su etiqueta.
         let deltas = Array(w.records.enumerated().dropFirst().map { i, r in (r.date, r.kg - w.records[i - 1].kg) }.suffix(40))
-        return Card(title: "Cambio entre pesajes", icon: "chart.bar") {
+        return Card(title: "Cambio entre pesajes", icon: "chart.bar", info: "Verde: bajaste respecto al pesaje anterior. Naranja: subiste.") {
             Chart {
                 ForEach(Array(deltas.enumerated()), id: \.offset) { _, d in
                     BarMark(x: .value("Día", d.0, unit: .day), y: .value("kg", d.1), width: 22)
@@ -193,7 +192,6 @@ struct PesoView: View {
             .frame(height: 150)
             .accessibilityLabel("Cambio entre pesajes")
             .accessibilityValue(deltas.suffix(5).map { "\(DayKey.dmy($0.0)) \(fmtDelta($0.1))" }.joined(separator: ", "))
-            Text("Verde: bajaste respecto al pesaje anterior. Naranja: subiste.").font(.caption).foregroundStyle(.secondary)
         }
     }
 

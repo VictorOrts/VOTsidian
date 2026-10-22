@@ -85,6 +85,7 @@ struct RemindersView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Avisos")
     }

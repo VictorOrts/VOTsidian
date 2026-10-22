@@ -51,7 +51,7 @@ struct ProyectosView: View {
                             labeled("Estado") { PropertyPicker(file: r.path, key: "estado", options: ["activo", "pausado", "completado"]) }
                             labeled("Prioridad") { PropertyPicker(file: r.path, key: "prioridad", options: ["alta", "media", "baja"], width: 110) }
                             labeled("Área") { PropertyField(file: r.path, key: "area", width: 120) }
-                            labeled("Fecha límite") { PropertyField(file: r.path, key: "fecha_limite", width: 110) }
+                            labeled("Fecha límite") { PropertyDateField(file: r.path, key: "fecha_limite") }
                         }
                         let total = r.open + r.done
                         if total > 0 {
@@ -64,6 +64,7 @@ struct ProyectosView: View {
                 Button { showNew = true } label: { Label("Nuevo proyecto", systemImage: "plus") }.buttonStyle(.borderedProminent)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Proyectos")
         .sheet(isPresented: $showNew) {

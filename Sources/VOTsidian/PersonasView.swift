@@ -44,6 +44,7 @@ struct PersonasView: View {
                 NoteTables(file: file, icon: "person.2", include: { $0.col("persona") != nil })
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Personas")
     }

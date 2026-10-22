@@ -19,34 +19,38 @@ struct MounjaroView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
-                    Tile(title: "Último", value: m.last.map { DayKey.dmy($0.date) } ?? "–", note: m.last?.dose)
-                    Tile(title: "Próximo", value: m.next.map { shortDate($0) } ?? "–", note: d.map(relativeDays), tint: (d ?? 0) < 0 ? Brand.bad : nil)
+                    Tile(title: "Último", value: m.last.map { dayLabel($0.date) } ?? "–", note: m.last?.dose)
+                    Tile(title: "Próximo", value: m.next.map { dayLabel($0) } ?? "–", note: d.map(relativeDays), tint: (d ?? 0) < 0 ? Brand.bad : nil)
                     Tile(title: "Intervalo", value: "\(m.everyDays) días", note: "editable abajo")
-                    Tile(title: "Pinchazos", value: "\(m.doses.count)", note: m.doses.first.map { "desde \(DayKey.dmy($0.date))" })
+                    Tile(title: "Pinchazos", value: "\(m.doses.count)", note: m.doses.first.map { "desde \(dayLabel($0.date))" })
                 }
 
                 let points = m.doses.compactMap { x in x.mg.map { (x.date, $0) } }
                 if points.count > 1 {
                     Chart {
                         ForEach(points, id: \.0) { p in
-                            LineMark(x: .value("Día", p.0), y: .value("mg", p.1)).interpolationMethod(.stepEnd).foregroundStyle(.tint)
-                            PointMark(x: .value("Día", p.0), y: .value("mg", p.1)).foregroundStyle(.tint)
+                            AreaMark(x: .value("Día", p.0), y: .value("mg", p.1)).interpolationMethod(.stepEnd).foregroundStyle(Brand.accent.opacity(0.12))
+                            LineMark(x: .value("Día", p.0), y: .value("mg", p.1)).interpolationMethod(.stepEnd).foregroundStyle(Brand.accent)
+                            PointMark(x: .value("Día", p.0), y: .value("mg", p.1)).foregroundStyle(Brand.accent).symbolSize(20)
                         }
                     }
-                    .chartYScale(domain: 0...(max(15, points.map(\.1).max() ?? 15)))
+                    // El eje llega un escalón (2,5 mg) por encima de la dosis más alta, no a 15 fijos.
+                    .chartYScale(domain: 0...((points.map(\.1).max() ?? 0) / 2.5 + 1).rounded(.down) * 2.5)
+                    .chartYAxis { AxisMarks(values: .stride(by: 2.5)) { v in AxisGridLine(); AxisValueLabel { if let mg = v.as(Double.self) { Text(MD.formatNumber(mg, comma: true)) } } } }
                     .chartYAxisLabel("mg")
-                    .frame(height: 170)
+                    .frame(height: 130)
                     .accessibilityLabel("Gráfica de dosis")
                     .accessibilityValue(points.suffix(5).map { "\(DayKey.dmy($0.0)) \(fmt($0.1, 1)) mg" }.joined(separator: ", "))
                 }
 
                 if periods.count > 0 { periodsCard(periods) }
 
-                Card(title: "Registrar pinchazo", icon: "plus.circle") {
-                    HStack {
-                        DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).frame(width: 220)
-                        Picker("Dosis", selection: $dose) { ForEach(mounjaroDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.frame(width: 160)
-                        Picker("Zona", selection: $site) { ForEach(injectionSites, id: \.self) { Text($0).tag($0) } }.frame(width: 230)
+                Card(title: "Registrar pinchazo", icon: "plus.circle", info: "Se añade una fila a Cambio físico/Mounjaro.md. Zona sugerida para alternar: \(m.suggestedSite).") {
+                    HStack(spacing: 20) {
+                        DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).fixedSize()
+                        Picker("Dosis", selection: $dose) { ForEach(mounjaroDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.fixedSize()
+                        Picker("Zona", selection: $site) { ForEach(injectionSites, id: \.self) { Text($0).tag($0) } }.fixedSize()
+                        Spacer()
                     }
                     HStack {
                         TextField("Notas", text: $note)
@@ -56,15 +60,13 @@ struct MounjaroView: View {
                             site = store.mounjaro.suggestedSite
                         }.buttonStyle(.borderedProminent)
                     }
-                    Text("Se añade una fila a Cambio físico/Mounjaro.md. Zona sugerida para alternar: \(m.suggestedSite).").font(.caption).foregroundStyle(.secondary)
                 }
 
-                Card(title: "Intervalo entre pinchazos", icon: "timer") {
+                Card(title: "Intervalo entre pinchazos", icon: "timer", info: "Lo decide tu médico. Cambiarlo recalcula el próximo pinchazo y el aviso de Calendar.") {
                     HStack {
                         Stepper("Cada \(m.everyDays) días", value: Binding(get: { m.everyDays }, set: { store.setProperty(VaultPath.mounjaro, key: "cada_dias", value: String($0)) }), in: 1...30)
                         Spacer()
                     }
-                    Text("Lo decide tu médico. Cambiarlo recalcula el próximo pinchazo y el aviso de Calendar.").font(.caption).foregroundStyle(.secondary)
                 }
 
                 Text("Registro").font(.headline)
@@ -82,6 +84,7 @@ struct MounjaroView: View {
                 Text("La dosis y los cambios los decide tu médico. Esta sección solo registra, calcula y recuerda.").font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Mounjaro")
         .sheet(item: $spec) { RowSheet(spec: $0) }
@@ -92,7 +95,7 @@ struct MounjaroView: View {
     }
 
     private func periodsCard(_ periods: [DosePeriod]) -> some View {
-        Card(title: "Peso por dosis", icon: "chart.bar.xaxis") {
+        Card(title: "Peso por dosis", icon: "chart.bar.xaxis", info: "Peso al empezar y al terminar cada tramo de dosis, con el pesaje más cercano. Orientativo: pesas una vez al mes.") {
             Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 7) {
                 GridRow { Text("Dosis"); Text("Desde"); Text("Pinchazos"); Text("Peso inicial"); Text("Peso final"); Text("Perdidos"); Text("Ritmo") }
                     .font(.caption).foregroundStyle(.secondary)
@@ -109,7 +112,6 @@ struct MounjaroView: View {
                     }
                 }
             }
-            Text("Peso al empezar y al terminar cada tramo de dosis, con el pesaje más cercano. Orientativo: pesas una vez al mes.").font(.caption).foregroundStyle(.secondary)
         }
     }
 }

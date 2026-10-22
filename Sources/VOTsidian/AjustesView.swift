@@ -34,11 +34,10 @@ struct AjustesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Card(title: "Apariencia", icon: "paintbrush") {
+                Card(title: "Apariencia", icon: "paintbrush", info: "Sistema sigue el modo claro u oscuro de macOS.") {
                     Picker("", selection: $appearance) {
                         ForEach(Appearance.allCases) { Label($0.title, systemImage: $0.icon).tag($0.rawValue) }
                     }.pickerStyle(.segmented).labelsHidden().frame(width: 340)
-                    Text("Sistema sigue el modo claro u oscuro de macOS.").font(.caption).foregroundStyle(.secondary)
                 }
                 Card(title: "Tus datos", icon: "externaldrive") {
                     Text(store.root.path).font(.callout.monospaced()).textSelection(.enabled)
@@ -49,7 +48,7 @@ struct AjustesView: View {
                         Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([store.root]) }
                     }
                 }
-                Card(title: "Copias de seguridad", icon: "clock.arrow.circlepath") {
+                Card(title: "Copias de seguridad", icon: "clock.arrow.circlepath", info: "Cada cambio también se puede deshacer con el botón del aviso o con ⌥⌘Z. El historial de una sola nota está en Notas → ⋯ → Historial.") {
                     Text("Antes del primer cambio de cada día la app copia tus notas a una sola carpeta (Documentos/Copias VOTsidian). Guarda las últimas \(Store.keepAutoBackups) copias automáticas y borra las más viejas. Las copias manuales no se borran solas.")
                         .font(.callout).foregroundStyle(.secondary)
                     HStack {
@@ -60,10 +59,8 @@ struct AjustesView: View {
                         Text(backupMessage).foregroundStyle(.secondary)
                     }
                     Text("\(store.allBackups().count) copias guardadas (\(store.autoBackups().count) automáticas).").font(.caption).foregroundStyle(.secondary)
-                    Text("Cada cambio también se puede deshacer con el botón del aviso o con ⌥⌘Z.").font(.caption).foregroundStyle(.secondary)
                     Divider()
                     BackupsList()
-                    Text("El historial de una sola nota está en Notas → ⋯ → Historial.").font(.caption).foregroundStyle(.secondary)
                     Divider()
                     encryptionControls
                 }
@@ -75,7 +72,7 @@ struct AjustesView: View {
                     }
                 }
                 brokenLinksCard
-                Card(title: "Exportar", icon: "square.and.arrow.up") {
+                Card(title: "Exportar", icon: "square.and.arrow.up", info: "El CSV incluye peso, pinchazos, medidas, hábitos, tareas y ánimo y sueño; se abre con Numbers o Excel. El resumen sirve para enseñarlo en una consulta.") {
                     HStack {
                         Picker("Año", selection: $exportYear) { ForEach(Array((exportYear - 4)...(Calendar.current.component(.year, from: Date()) + 0)), id: \.self) { Text(String($0)).tag($0) } }.frame(width: 140)
                         Button("Resumen del año (PDF)…") { exportYearPDF() }
@@ -85,7 +82,6 @@ struct AjustesView: View {
                         Button("Todas las notas (.zip)…") { exportZip() }
                     }
                     if !exportMessage.isEmpty { Text(exportMessage).font(.callout).foregroundStyle(.secondary) }
-                    Text("El CSV incluye peso, pinchazos, medidas, hábitos, tareas y ánimo y sueño; se abre con Numbers o Excel. El resumen sirve para enseñarlo en una consulta.").font(.caption).foregroundStyle(.secondary)
                 }
                 Card(title: "Barra de menús", icon: "menubar.rectangle") {
                     Toggle("Mostrar peso y próximo pinchazo en la barra de menús", isOn: $menuBar)
@@ -101,6 +97,7 @@ struct AjustesView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Ajustes")
     }

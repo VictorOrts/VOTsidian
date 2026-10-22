@@ -70,6 +70,7 @@ struct SemanaView: View {
                 heatmap
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Revisión semanal")
         .onAppear { autoCreate(); load() }
@@ -263,7 +264,7 @@ struct HabitsSheet: View {
             }
             HStack {
                 TextField("Nuevo hábito", text: $newName).frame(width: 150).onSubmit(add)
-                Button("Añadir", action: add).disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             Text("Se aplica a la revisión de esta semana y a las que crees después. Las semanas pasadas no cambian.").font(.caption).foregroundStyle(.secondary)
             HStack {

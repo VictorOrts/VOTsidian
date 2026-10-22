@@ -44,7 +44,7 @@ struct CierreSheet: View {
             Text("Preparar mañana").font(.headline)
             HStack {
                 TextField("Una tarea para mañana (puedes escribir «el viernes», «urgente»…)", text: $tomorrow).onSubmit(add)
-                Button("Añadir", action: add).disabled(tomorrow.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(tomorrow.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             if !message.isEmpty { Label(message, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
             HStack {

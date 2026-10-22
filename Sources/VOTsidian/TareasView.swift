@@ -76,6 +76,7 @@ struct TareasView: View {
                 Text("Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). Pasa el ratón por una tarea para aplazarla o editarla; el nombre de la nota abre esa nota.").font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Tareas")
     }

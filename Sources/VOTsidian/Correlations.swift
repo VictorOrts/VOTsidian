@@ -158,6 +158,7 @@ struct CorrelacionesView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Correlaciones")
     }

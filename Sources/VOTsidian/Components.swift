@@ -12,6 +12,11 @@ func fmtDelta(_ v: Double?, unit: String = " kg") -> String {
 }
 
 func shortDate(_ d: Date) -> String { DayKey.esLong(d, .dateTime.day().month(.abbreviated)) }
+/// Fecha para tarjetas y textos: «18 oct», y «18 oct 2025» si no es de este año.
+func dayLabel(_ d: Date) -> String {
+    let cal = DayKey.calendar()
+    return cal.component(.year, from: d) == cal.component(.year, from: Date()) ? shortDate(d) : DayKey.esLong(d, .dateTime.day().month(.abbreviated).year())
+}
 func longDate(_ d: Date) -> String { DayKey.esLong(d, .dateTime.weekday(.wide).day().month(.wide)) }
 
 func relativeDays(_ n: Int) -> String {
@@ -33,12 +38,14 @@ struct Tile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased()).font(.caption2.weight(.semibold)).tracking(0.6).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 26, weight: .bold, design: .rounded)).monospacedDigit()
-                .foregroundStyle(tint ?? .primary).lineLimit(1).minimumScaleFactor(0.7)
+            // Un cero o un «–» no dicen nada: van atenuados y sin color, para que destaque lo que sí importa.
+            let empty = value == "0" || value == "–"
+            Text(value).font(.system(size: 24, weight: .bold, design: .rounded)).monospacedDigit()
+                .foregroundStyle(empty ? AnyShapeStyle(.tertiary) : AnyShapeStyle(tint ?? .primary)).lineLimit(1).minimumScaleFactor(0.7)
             if let note { Text(note).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
         }
-        .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
-        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+        .padding(.horizontal, 14).padding(.vertical, 12)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
     }
@@ -47,6 +54,8 @@ struct Tile: View {
 struct Card<Content: View>: View {
     let title: String
     var icon: String? = nil
+    /// Explicación de la tarjeta: sale en un ⓘ de la cabecera en vez de ocupar una línea al final.
+    var info: String? = nil
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
     @ViewBuilder var content: Content
@@ -56,6 +65,7 @@ struct Card<Content: View>: View {
             HStack {
                 Label { Text(title) } icon: { Image(systemName: icon ?? "circle").foregroundStyle(Brand.accent) }
                     .labelStyle(.titleAndIcon).font(.headline)
+                if let info { InfoButton(text: info) }
                 Spacer()
                 if let actionTitle, let action {
                     Button(action: action) { Text("\(actionTitle) ›") }.buttonStyle(.accentLink).font(.callout)
@@ -67,6 +77,20 @@ struct Card<Content: View>: View {
         .padding(18)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
+    }
+}
+
+/// ⓘ que enseña una explicación al pasar el ratón o al pulsarlo.
+struct InfoButton: View {
+    let text: String
+    @State private var shown = false
+
+    var body: some View {
+        Button { shown.toggle() } label: { Image(systemName: "info.circle").accessibilityLabel("Más información") }
+            .buttonStyle(.plain).foregroundStyle(.tertiary).help(text)
+            .popover(isPresented: $shown, arrowEdge: .bottom) {
+                Text(text).font(.callout).fixedSize(horizontal: false, vertical: true).frame(width: 300).padding(12)
+            }
     }
 }
 
@@ -138,6 +162,11 @@ struct TaskRow: View {
     }
 }
 
+extension View {
+    /// Limita el contenido a `Brand.contentWidth` y lo centra en ventanas grandes.
+    func readableWidth() -> some View { frame(maxWidth: Brand.contentWidth).frame(maxWidth: .infinity) }
+}
+
 /// Enlace con el color de la app: el `.link` del sistema siempre es azul. Se subraya al pasar el ratón.
 struct AccentLinkStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View { LinkLabel(configuration: configuration) }
@@ -185,6 +214,8 @@ enum Brand {
     static let radiusSmall: CGFloat = 6
     static let radius: CGFloat = 10
     static let radiusLarge: CGFloat = 16
+    /// Ancho máximo del contenido de las pantallas de tarjetas: más ancho, las líneas se leen mal.
+    static let contentWidth: CGFloat = 1100
 
     /// Para series sin significado propio (carpetas del grafo…).
     static let series: [Color] = [accent, amber, info, violet, clay, sky, rose, lime, slate, bad]
@@ -343,7 +374,13 @@ struct NoteTables: View {
                             Divider()
                             ForEach(rows) { r in
                                 GridRow {
-                                    ForEach(0..<t.header.count, id: \.self) { i in Text(MDParser.inline(i < r.cells.count ? r.cells[i] : "")).lineLimit(4).frame(maxWidth: 340, alignment: .leading) }
+                                    // Dentro del scroll horizontal el texto no se partía y salía cortado: se deja crecer hacia abajo.
+                                    // La última columna (resultado, notas…) suele ser la larga y tiene más sitio.
+                                    ForEach(0..<t.header.count, id: \.self) { i in
+                                        let cell = i < r.cells.count ? r.cells[i] : ""
+                                        Text(MDParser.inline(cell)).lineLimit(4).fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: i == t.header.count - 1 ? 520 : 340, alignment: .leading).help(cell)
+                                    }
                                     EditButton { spec = RowSpec(file: file, mode: .edit(line: r.line), title: "fila") }
                                 }
                             }
@@ -358,6 +395,29 @@ struct NoteTables: View {
         }
         .sheet(item: $spec) { RowSheet(spec: $0) }
         .environment(\.openURL, OpenURLAction { url in store.open(link: url) })
+    }
+}
+
+/// Propiedad de fecha (`AAAA-MM-DD`) con selector en vez de texto libre. La cruz la deja vacía.
+struct PropertyDateField: View {
+    @Environment(Store.self) private var store
+    let file: String
+    let key: String
+
+    private var current: Date? { store.noteMeta[file]?[key].flatMap(DayKey.date) }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if let d = current {
+                // Cada clic del selector guarda en silencio: los cambios seguidos se deshacen de una vez.
+                DatePicker("", selection: Binding(get: { d }, set: { store.setProperty(file, key: key, value: DayKey.string($0), quiet: true) }),
+                           displayedComponents: .date).labelsHidden().fixedSize()
+                Button { store.setProperty(file, key: key, value: "") } label: { Image(systemName: "xmark.circle.fill").accessibilityLabel("Quitar fecha") }
+                    .buttonStyle(.plain).foregroundStyle(.tertiary).help("Quitar fecha")
+            } else {
+                Button("Poner fecha") { store.setProperty(file, key: key, value: DayKey.string(DayKey.today())) }.controlSize(.small)
+            }
+        }
     }
 }
 
@@ -471,7 +531,7 @@ struct ListCard: View {
             }
             HStack {
                 TextField(placeholder, text: $new).onSubmit(add)
-                Button("Añadir", action: add).disabled(new.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(new.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
     }

@@ -16,7 +16,7 @@ struct NalaView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
-                    Tile(title: "Edad", value: n.ageText ?? "–", note: n.birth.map { "nació el \(DayKey.dmy($0))" })
+                    Tile(title: "Edad", value: n.ageText ?? "–", note: n.birth.map { "nació el \(dayLabel($0))" })
                     Tile(title: "Comida", value: n.food.isEmpty ? "–" : n.food)
                 }
                 Card(title: "Avisos", icon: "bell") {
@@ -47,7 +47,7 @@ struct NalaView: View {
                         }.buttonStyle(.borderedProminent).disabled(tipo.isEmpty)
                     }
                 }
-                Card(title: "Ficha", icon: "pawprint") {
+                Card(title: "Ficha", icon: "pawprint", info: "Pulsa intro para guardar cada campo.") {
                     Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
                         ficha("Nacimiento (DD/MM/AAAA)", "nacimiento")
                         ficha("Comida", "comida")
@@ -55,7 +55,6 @@ struct NalaView: View {
                         ficha("Teléfono del veterinario", "telefono_veterinario")
                         ficha("Chip", "chip")
                     }
-                    Text("Pulsa intro para guardar cada campo.").font(.caption).foregroundStyle(.secondary)
                 }
                 Text("Salud").font(.headline)
                 Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
@@ -72,6 +71,7 @@ struct NalaView: View {
                 Button("Abrir la nota Nala") { store.pendingNote = VaultPath.nala }.buttonStyle(.accentLink)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle(n.name)
         .sheet(item: $spec) { RowSheet(spec: $0) }

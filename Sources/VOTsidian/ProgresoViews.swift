@@ -144,11 +144,10 @@ struct FotosCard: View {
 
     var body: some View {
         let list = photos
-        Card(title: "Fotos de progreso", icon: "camera") {
+        Card(title: "Fotos de progreso", icon: "camera", info: "Se copian a Cambio físico/Fotos con la fecha en el nombre.") {
             HStack {
                 DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).frame(width: 200)
                 Button { add() } label: { Label("Añadir fotos…", systemImage: "plus") }
-                Text("Se copian a Cambio físico/Fotos con la fecha en el nombre.").font(.caption).foregroundStyle(.secondary)
             }
             if list.isEmpty { Text("Todavía no hay fotos. Hazlas siempre con la misma luz, ropa y postura.").foregroundStyle(.secondary) }
             if list.count > 1 { compare(list) }

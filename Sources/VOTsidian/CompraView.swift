@@ -22,7 +22,7 @@ struct CompraView: View {
                 }
                 if !items.isEmpty { ProgressView(value: Double(items.count - pending), total: Double(items.count)).tint(Brand.accent) }
 
-                Card(title: "Añadir", icon: "plus.circle") {
+                Card(title: "Añadir", icon: "plus.circle", info: "También desde ⌘K: «compra leche, huevos». Los artículos no cuentan como tareas.") {
                     HStack {
                         TextField("Qué hace falta (varios separados por comas)", text: $text).onSubmit(add)
                         ChoiceMenu(options: categories, current: category, width: 150) { category = $0 }
@@ -36,7 +36,6 @@ struct CompraView: View {
                         Button("Desmarcar todo") { store.uncheckShopping() }.disabled(items.allSatisfy { !$0.done })
                         if !message.isEmpty { Text(message).font(.callout).foregroundStyle(.secondary) }
                     }.controlSize(.small)
-                    Text("También desde ⌘K: «compra leche, huevos». Los artículos no cuentan como tareas.").font(.caption).foregroundStyle(.secondary)
                 }
 
                 if items.isEmpty {
@@ -60,6 +59,7 @@ struct CompraView: View {
                 if store.shoppingExists { Button("Editar la nota completa") { store.pendingNote = Shopping.file }.buttonStyle(.accentLink) }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Compra")
     }

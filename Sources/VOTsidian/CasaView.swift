@@ -106,6 +106,7 @@ struct CasaView: View {
                 Button("Abrir la nota Casa") { store.pendingNote = VaultPath.casa }.buttonStyle(.accentLink)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Casa")
         .sheet(item: $spec) { RowSheet(spec: $0) }

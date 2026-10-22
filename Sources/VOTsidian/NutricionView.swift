@@ -52,14 +52,13 @@ struct NutricionView: View {
                               systemImage: "info.circle").font(.callout)
                     }
                 }
-                Card(title: "Objetivos diarios", icon: "slider.horizontal.3") {
+                Card(title: "Objetivos diarios", icon: "slider.horizontal.3", info: "Pulsa intro para guardar. Consúltalo con tu médico o dietista.") {
                     HStack(spacing: 18) {
                         goal("Calorías", "kcal_objetivo")
                         goal("Proteína (g)", "proteina_g")
                         goal("Carbohidratos (g)", "carbohidratos_g")
                         goal("Grasas (g)", "grasas_g")
                     }
-                    Text("Pulsa intro para guardar. Consúltalo con tu médico o dietista.").font(.caption).foregroundStyle(.secondary)
                 }
                 if !p.meals.isEmpty {
                     Card(title: "Detalle", icon: "list.bullet") {
@@ -86,6 +85,7 @@ struct NutricionView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Plan nutricional")
         .sheet(item: $spec) { RowSheet(spec: $0) }

@@ -159,7 +159,7 @@ struct CalendarioView: View {
                     Text("Nota del día").font(.headline)
                     Spacer()
                     if noteDraft != noteBase { Circle().fill(Brand.warn).frame(width: 8, height: 8) }
-                    Button("Guardar") { saveNote() }.controlSize(.small).disabled(noteDraft == noteBase)
+                    Button("Guardar") { saveNote() }.controlSize(.small).buttonStyle(.borderedProminent).disabled(noteDraft == noteBase)
                 }
                 TextEditor(text: $noteDraft)
                     .font(.body).frame(minHeight: 140)

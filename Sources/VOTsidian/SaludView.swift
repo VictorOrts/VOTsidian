@@ -36,15 +36,15 @@ struct SaludView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
-                    Tile(title: "Próxima cita", value: next?.due.map { shortDate($0) } ?? "–",
+                    Tile(title: "Próxima cita", value: next?.due.map { dayLabel($0) } ?? "–",
                          note: next.map { "\($0.text) · \(relativeDays(DayKey.days(from: today, to: $0.due!)))" }, tint: (next?.due.map { DayKey.days(from: today, to: $0) <= 7 } ?? false) ? Brand.warn : nil)
                     Tile(title: "Citas pendientes", value: "\(appointments.count)")
-                    Tile(title: "Último análisis", value: lastAnalysis.map { DayKey.dmy($0.0) } ?? "–", note: lastAnalysis?.1)
+                    Tile(title: "Último análisis", value: lastAnalysis.map { dayLabel($0.0) } ?? "–", note: lastAnalysis?.1)
                     Tile(title: "Tratamientos", value: "\(meds.count + (store.mounjaro.last != nil ? 1 : 0))")
                 }
 
                 Button { showSummary = true } label: { Label("Resumen para la consulta (copiar)", systemImage: "doc.on.clipboard") }
-                Card(title: "Próximas citas", icon: "calendar.badge.clock") {
+                Card(title: "Próximas citas", icon: "calendar.badge.clock", info: "Se guarda con fecha en Médico y aparece en Tareas y en los avisos de Calendar.") {
                     if appointments.isEmpty { Text("Sin citas pendientes.").foregroundStyle(.secondary) }
                     ForEach(appointments) { TaskRow(task: $0) }
                     Divider()
@@ -53,10 +53,9 @@ struct SaludView: View {
                         DatePicker("", selection: $date, displayedComponents: .date).labelsHidden()
                         Button("Añadir cita", action: addAppointment).buttonStyle(.borderedProminent).disabled(reason.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
-                    Text("Se guarda con fecha en Médico y aparece en Tareas y en los avisos de Calendar.").font(.caption).foregroundStyle(.secondary)
                 }
 
-                Card(title: "Tratamientos y medicación", icon: "pills") {
+                Card(title: "Tratamientos y medicación", icon: "pills", info: "La medicación la decide tu médico. Aquí solo queda anotada.") {
                     if let m = store.mounjaro.last {
                         Button { store.screen = .mounjaro } label: {
                             HStack {
@@ -80,9 +79,8 @@ struct SaludView: View {
                     }
                     HStack {
                         TextField("Añadir tratamiento o suplemento (nombre, dosis, pauta)", text: $medication).onSubmit(addMedication)
-                        Button("Añadir", action: addMedication).disabled(medication.trimmingCharacters(in: .whitespaces).isEmpty)
+                        Button("Añadir", action: addMedication).buttonStyle(.borderedProminent).disabled(medication.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
-                    Text("La medicación la decide tu médico. Aquí solo queda anotada.").font(.caption).foregroundStyle(.secondary)
                 }
 
                 Card(title: "Citas y visitas anotadas", icon: "stethoscope") {
@@ -104,11 +102,11 @@ struct SaludView: View {
                 if analyses != nil {
                     NoteTables(file: file, icon: "doc.text.magnifyingglass", include: { $0.title.localizedCaseInsensitiveContains("nálisis") })
                     Button { addAnalysis(analyses!) } label: { Label("Añadir análisis (PDF)…", systemImage: "doc.badge.plus") }
+                        .help("Los PDF se copian a Organización/Médico/Análisis y se abren desde el enlace de la tabla.")
                 }
-
-                Text("Los PDF se copian a Organización/Médico/Análisis y se abren desde el enlace de la tabla.").font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Salud y médicos")
         .sheet(item: $spec) { RowSheet(spec: $0) }

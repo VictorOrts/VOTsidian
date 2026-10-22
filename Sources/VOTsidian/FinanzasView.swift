@@ -19,17 +19,16 @@ struct FinanzasView: View {
                     Tile(title: "Aportaciones", value: Money.format(total))
                     Tile(title: "Por pagar", value: Money.format(pending), tint: pending > 0 ? Brand.warn : Brand.accent)
                 }
-                Card(title: "Hoja de cuentas", icon: "tablecells.badge.ellipsis") {
+                Card(title: "Hoja de cuentas", icon: "tablecells.badge.ellipsis", info: "Las cuentas siguen en Numbers: la app no puede leer ni editar ese formato.") {
                     if let u = store.attachmentURL("Simple.numbers") {
                         Button { NSWorkspace.shared.open(u) } label: { Label("Abrir Simple.numbers en Numbers", systemImage: "arrow.up.forward.app") }
                     } else { Text("No encuentro Simple.numbers en tu vault.").foregroundStyle(.secondary) }
-                    Text("Las cuentas siguen en Numbers: la app no puede leer ni editar ese formato.").font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(eventos, id: \.path) { e in
                     Card(title: ((e.path as NSString).lastPathComponent as NSString).deletingPathExtension, icon: "party.popper", actionTitle: "Abrir nota", action: { store.pendingNote = e.path }) {
                         HStack(spacing: 18) {
                             VStack(alignment: .leading, spacing: 3) { Text("Estado").font(.caption).foregroundStyle(.secondary); PropertyPicker(file: e.path, key: "estado", options: ["pendiente", "pagado", "cancelado"]) }
-                            VStack(alignment: .leading, spacing: 3) { Text("Fecha (AAAA-MM-DD)").font(.caption).foregroundStyle(.secondary); PropertyField(file: e.path, key: "fecha_evento", width: 130) }
+                            VStack(alignment: .leading, spacing: 3) { Text("Fecha").font(.caption).foregroundStyle(.secondary); PropertyDateField(file: e.path, key: "fecha_evento") }
                             VStack(alignment: .leading, spacing: 3) { Text("Aportación (€)").font(.caption).foregroundStyle(.secondary); PropertyField(file: e.path, key: "aportacion_eur", width: 100) }
                         }
                         ForEach(store.tasks.filter { $0.file == e.path && !$0.done }) { TaskRow(task: $0) }
@@ -42,6 +41,7 @@ struct FinanzasView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Finanzas")
         .sheet(isPresented: $showNew) {

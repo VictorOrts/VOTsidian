@@ -14,7 +14,7 @@ struct EnlacesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Card(title: "Enlaces rotos", icon: "link") {
+                Card(title: "Enlaces rotos", icon: "link", info: "Los enlaces a pantallas de la app (Tareas, Calendario, Hábitos…) funcionan y no cuentan como rotos.") {
                     if broken.isEmpty {
                         Label("Todos los enlaces funcionan.", systemImage: "checkmark.seal").foregroundStyle(Brand.accent)
                     } else {
@@ -26,7 +26,6 @@ struct EnlacesView: View {
                             Text(repairMessage).foregroundStyle(.secondary)
                         }
                     }
-                    Text("Los enlaces a pantallas de la app (Tareas, Calendario, Hábitos…) funcionan y no cuentan como rotos.").font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(groups, id: \.path) { g in
                     Card(title: ((g.path as NSString).lastPathComponent as NSString).deletingPathExtension, icon: "doc.text",
@@ -44,6 +43,7 @@ struct EnlacesView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Enlaces rotos")
         .task(id: store.revision) {

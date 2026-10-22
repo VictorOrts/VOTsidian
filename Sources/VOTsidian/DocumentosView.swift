@@ -30,6 +30,7 @@ struct DocumentosView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Documentos")
     }

@@ -54,7 +54,7 @@ struct MesView: View {
                 let moods = store.diarySeries("animo", from: start, to: end)
                 let sleeps = store.diarySeries("sueno_h", from: start, to: end)
                 if !moods.isEmpty || !sleeps.isEmpty {
-                    Card(title: "Ánimo y sueño", icon: "face.smiling") {
+                    Card(title: "Ánimo y sueño", icon: "face.smiling", info: "Se anotan en el calendario (panel de cada día) o en Inicio, y se guardan en la nota del día.") {
                         HStack(spacing: 12) {
                             Tile(title: "Ánimo medio", value: moods.isEmpty ? "–" : fmt(moods.reduce(0) { $0 + $1.1 } / Double(moods.count), unit: " / 5"), note: "\(moods.count) días anotados")
                             Tile(title: "Sueño medio", value: sleeps.isEmpty ? "–" : fmt(sleeps.reduce(0) { $0 + $1.1 } / Double(sleeps.count), unit: " h"), note: "\(sleeps.count) días anotados")
@@ -65,7 +65,6 @@ struct MesView: View {
                             }
                             .chartYScale(domain: 0...5).frame(height: 110)
                         }
-                        Text("Se anotan en el calendario (panel de cada día) o en Inicio, y se guardan en la nota del día.").font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 if weekPct.count > 1 {
@@ -115,6 +114,7 @@ struct MesView: View {
                 }
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Revisión mensual")
         .onAppear { if offset == 0, store.monthReview(key) == nil { store.createMonthReview(key: key, monthStart: start) }; load() }

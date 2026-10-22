@@ -67,7 +67,7 @@ struct ModaView: View {
                             }
                         }
                     }
-                    Card(title: "Añadir a la lista", icon: "plus.circle") {
+                    Card(title: "Añadir a la lista", icon: "plus.circle", info: "Con fecha objetivo se crea un evento en Calendar al activar los avisos.") {
                         HStack {
                             TextField("Prenda", text: $prenda)
                             TextField("Modelo sugerido", text: $modelo)
@@ -79,7 +79,6 @@ struct ModaView: View {
                             Spacer()
                             Button("Añadir") { add(buy) }.buttonStyle(.borderedProminent).disabled(prenda.trimmingCharacters(in: .whitespaces).isEmpty)
                         }
-                        Text("Con fecha objetivo se crea un evento en Calendar al activar los avisos.").font(.caption).foregroundStyle(.secondary)
                     }
                 }
 
@@ -90,6 +89,7 @@ struct ModaView: View {
                 Button("Editar la nota completa") { store.pendingNote = file }.buttonStyle(.accentLink)
             }
             .padding(24)
+            .readableWidth()
         }
         .navigationTitle("Moda")
         .sheet(item: $spec) { RowSheet(spec: $0) }
