@@ -17,6 +17,7 @@ enum MDBlock {
     case quote(String)
     case code(String)
     case dataview
+    case chart(String)
     case table(TableBlock)
     case rule
     case properties([(String, String)])
@@ -44,7 +45,8 @@ enum MDParser {
                 var body: [String] = []
                 i += 1
                 while i < lines.count, !lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") { body.append(lines[i]); i += 1 }
-                out.append(lang.hasPrefix("dataview") ? .dataview : .code(body.joined(separator: "\n")))
+                let code = body.joined(separator: "\n")
+                out.append(lang.hasPrefix("dataview") ? .dataview : NoteChart.isChartBlock(lang) ? .chart(code) : .code(code))
                 i += 1
                 continue
             }
@@ -201,6 +203,7 @@ struct NoteBody: View {
                 .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Brand.radius)).textSelection(.enabled)
         case .embed(let raw): EmbedView(raw: raw, depth: depth)
         case .dataview: EmptyView()   // consultas de Obsidian: la app muestra esos datos en sus pantallas
+        case .chart(let spec): NoteChartView(spec: NoteChart.spec(spec), tables: Parse.tables(text))
         case .table(let tb):
             VStack(alignment: .leading, spacing: 6) {
                 ScrollView(.horizontal) {

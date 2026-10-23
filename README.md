@@ -68,6 +68,27 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 - **Gastos → Año** (acabado): tasa de ahorro por mes y del año (lo que queda sobre lo que entró) y lo apartado en partidas de ahorro; «Gastos frente a 2025» compara los meses acabados con los mismos del año anterior; línea discontinua con el gasto medio en la gráfica; tarjeta «Por partida» con previsto, gastado, diferencia y peso de cada partida en el año (las 8 principales o todas). La nota del resumen incluye la columna «% ahorro» y la sección «## Por partida», y la exportación añade `resumen_partidas.csv`.
 - **Detalles visuales**: fechas con año cuando no son de este año (tareas, avisos, notas, Bases); «1 día», «1 pinchazo», «1 evento» en singular; la leyenda del Calendario ya no parte «pinchazo» y baja de línea si no cabe; los selectores Tablas/Tablero y Lista/Tablero quedan alineados.
 
+## Gráficas en una nota
+
+Un bloque de código `grafica` dibuja una tabla de la misma nota (en Obsidian se sigue viendo como código):
+
+````markdown
+```grafica
+tabla: Sueño
+x: Fecha
+y: Horas, Ánimo
+tipo: linea
+titulo: Cómo duermo
+```
+````
+
+- `tipo`: `linea` (por defecto), `barras`, `area`, `puntos` o `tarta`.
+- `tabla`: título de la sección donde está la tabla; sin él, la primera tabla de la nota.
+- `x`: columna del eje horizontal; sin ella, la primera. Si son fechas (`01/10/2026` o `2026-10-01`), el eje es de tiempo y se ordena.
+- `y`: columnas a dibujar, separadas por comas; sin ellas, todas las que tienen números (hasta 8). Se entienden «7,5», «1.234,5» y unidades detrás («12,50 €», «7,5 h»), que salen en la gráfica.
+- En barras y tartas por categoría, las filas con la misma categoría se suman (p. ej. varios gastos de «Comida»). La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
+- Al pasar el ratón salen los valores de ese punto. Si algo no cuadra (no hay tabla, falta una columna), la nota lo dice en lugar de la gráfica.
+
 ## Recuperar versiones y enlaces rotos
 
 - **Historial de una nota** (Notas → ⋯ → Historial…): cada versión distinta de la nota en las copias de seguridad, comparada línea a línea con la actual (rojo: estaba y ya no; verde: añadido después). «Restaurar esta versión» se deshace con ⌥⌘Z. Las copias cifradas se abren con la contraseña del Llavero; las de otra contraseña se cuentan aparte.
