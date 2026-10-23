@@ -19,10 +19,10 @@ enum Parse {
         return d
     }
 
-    static func mounjaro(_ text: String) -> MounjaroData {
-        var d = MounjaroData()
-        // Las notas de antes de poder elegir el nombre no lo llevan: eran de Mounjaro. Sin nota, el nombre genérico.
-        d.name = MD.frontmatter(text)["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : "Mounjaro")
+    static func medicacion(_ text: String) -> MedicacionData {
+        var d = MedicacionData()
+        // Las notas de antes de poder elegir el nombre no lo llevan: se llamaban así. Sin nota, el nombre genérico.
+        d.name = MD.frontmatter(text)["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : MedicacionData.legacyName)
         d.everyDays = MD.frontmatter(text)["cada_dias"].flatMap { Int($0) } ?? 9
         for (i, c) in MD.tableRows(MD.lines(text)) where c.count >= 3 {
             guard let date = DayKey.date(c[0]) else { continue }
@@ -32,16 +32,16 @@ enum Parse {
         return d
     }
 
-    static func nala(_ text: String) -> NalaData {
+    static func mascota(_ text: String) -> MascotaData {
         let fm = MD.frontmatter(text)
-        var d = NalaData()
-        d.name = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : "Nala")   // como en `mounjaro`
+        var d = MascotaData()
+        d.name = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : MascotaData.legacyName)   // como en `medicacion`
         d.birth = fm["nacimiento"].flatMap(DayKey.dmyDate)
         d.food = fm["comida"] ?? ""
         for (line, c) in MD.tableRows(MD.lines(text)) where c.count >= 2 {
             guard let date = DayKey.date(c[0]) else { continue }
             func at(_ i: Int) -> String { i < c.count ? c[i] : "" }
-            d.visits.append(NalaVisit(date: date, tipo: at(1), detalle: at(2), proxima: DayKey.date(at(3)), coste: at(4), line: line))
+            d.visits.append(MascotaVisit(date: date, tipo: at(1), detalle: at(2), proxima: DayKey.date(at(3)), coste: at(4), line: line))
         }
         d.visits.sort { $0.date < $1.date }
         return d

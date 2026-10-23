@@ -52,8 +52,8 @@ struct CommandPalette: View {
             PaletteItem(icon: "arrow.uturn.backward", title: "Deshacer último cambio", tag: "Acción") { store.undo(); dismiss() },
         ]
         if store.isVisible(.peso) { actions.insert(PaletteItem(icon: "scalemass", title: "Registrar peso", subtitle: "Ir a Peso", tag: "Acción", run: go(.peso)), at: 3) }
-        if store.isVisible(.mounjaro) {
-            actions.insert(PaletteItem(icon: "syringe", title: "Registrar pinchazo", subtitle: "Ir a \(store.mounjaro.name)", tag: "Acción", run: go(.mounjaro)), at: 3)
+        if store.isVisible(.medicacion) {
+            actions.insert(PaletteItem(icon: "syringe", title: "Registrar pinchazo", subtitle: "Ir a \(store.medicacion.name)", tag: "Acción", run: go(.medicacion)), at: 3)
         }
         let screens = Screen.allCases.filter(store.isVisible).map { s in PaletteItem(icon: s.icon, title: store.title(s), subtitle: "Pantalla", tag: "Pantalla", run: go(s)) }
         let hasText = !q.tokens.isEmpty
@@ -213,7 +213,7 @@ struct QuickAddSheet: View {
             case .pinchazo:
                 HStack {
                     DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date).labelsHidden()
-                    Picker("", selection: $dose) { ForEach(mounjaroDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.labelsHidden().frame(width: 110)
+                    Picker("", selection: $dose) { ForEach(medicacionDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.labelsHidden().frame(width: 110)
                     Picker("", selection: $site) { ForEach(injectionSites, id: \.self) { Text($0).tag($0) } }.labelsHidden().frame(width: 170)
                 }
                 TextField("Notas (opcional)", text: $text)
@@ -225,7 +225,7 @@ struct QuickAddSheet: View {
             }
         }
         .padding(22).frame(width: 460)
-        .onAppear { focused = true; if let mg = store.mounjaro.last?.mg { dose = mg }; site = store.mounjaro.suggestedSite }
+        .onAppear { focused = true; if let mg = store.medicacion.last?.mg { dose = mg }; site = store.medicacion.suggestedSite }
         .onChange(of: kind) { focused = true }
     }
 

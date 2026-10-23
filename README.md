@@ -131,7 +131,7 @@ Las rutas de los archivos que usa cada pantalla (peso, Mounjaro, Inbox…) está
 defaults write com.victor.votsidian vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"
 ```
 
-Claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas. Una carpeta es válida si tiene el archivo de peso o cualquier nota; las pantallas sin su archivo salen vacías.
+Claves: peso, medicacion, plan, proyecto, mascota, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas. Una carpeta es válida si tiene el archivo de peso o cualquier nota; las pantallas sin su archivo salen vacías.
 
 ## Estructura del código
 

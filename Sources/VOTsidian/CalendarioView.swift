@@ -279,7 +279,7 @@ struct CalendarioView: View {
             store.addWeight(date: selected, kg: kg, note: "")
             feedback = "Peso guardado"
         case .pinchazo:
-            store.addDose(date: selected, dose: store.mounjaro.last?.mg ?? 7.5, site: store.mounjaro.suggestedSite, note: raw)
+            store.addDose(date: selected, dose: store.medicacion.last?.mg ?? 7.5, site: store.medicacion.suggestedSite, note: raw)
             feedback = "Pinchazo registrado"
         }
         text = ""

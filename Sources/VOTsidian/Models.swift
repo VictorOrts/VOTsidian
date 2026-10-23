@@ -80,7 +80,7 @@ struct WeightData: Equatable {
     }
 }
 
-// MARK: - Mounjaro
+// MARK: - Medicación
 
 struct Dose: Identifiable, Equatable {
     var date: Date
@@ -92,9 +92,11 @@ struct Dose: Identifiable, Equatable {
     var mg: Double? { MD.number(dose) }
 }
 
-struct MounjaroData: Equatable {
+struct MedicacionData: Equatable {
     /// Nombre del medicamento («nombre:» en la nota); da nombre a la pantalla y a los avisos.
     var name = "Medicación"
+    /// Nombre de las notas de la primera versión, que no llevan «nombre:».
+    static let legacyName = "Mounjaro"
     var everyDays = 9
     var doses: [Dose] = []
 
@@ -112,9 +114,9 @@ struct MounjaroData: Equatable {
     }
 }
 
-// MARK: - Nala
+// MARK: - Mascota
 
-struct NalaVisit: Identifiable, Equatable {
+struct MascotaVisit: Identifiable, Equatable {
     var date: Date
     var tipo: String
     var detalle: String
@@ -124,11 +126,13 @@ struct NalaVisit: Identifiable, Equatable {
     var id: String { DayKey.string(date) + tipo + String(line) }
 }
 
-struct NalaData: Equatable {
+struct MascotaData: Equatable {
     var name = "Mascota"
+    /// Como `MedicacionData.legacyName`.
+    static let legacyName = "Nala"
     var birth: Date?
     var food = ""
-    var visits: [NalaVisit] = []
+    var visits: [MascotaVisit] = []
 
     var upcoming: [(date: Date, title: String)] {
         visits.compactMap { v in v.proxima.map { ($0, v.tipo.isEmpty ? (v.detalle.isEmpty ? "Revisión" : v.detalle) : v.tipo) } }

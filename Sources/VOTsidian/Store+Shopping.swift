@@ -44,7 +44,7 @@ extension Store {
         case .weight(let kg, let d): addWeight(date: d, kg: kg, note: "")
         case .mood(let n, let d): setDiaryValue(d, "animo", Double(n))
         case .sleep(let h, let d): setDiaryValue(d, "sueno_h", h)
-        case .injection(let d): addDose(date: d, dose: mounjaro.last?.mg ?? 7.5, site: mounjaro.suggestedSite, note: "")
+        case .injection(let d): addDose(date: d, dose: medicacion.last?.mg ?? 7.5, site: medicacion.suggestedSite, note: "")
         case .task(let t, let d, let r, let p): addTask(t, due: d, recurrence: r, priority: p)
         case .idea(let t): addIdea(t)
         case .diary(let t): appendToDiary(DayKey.today(), text: t)

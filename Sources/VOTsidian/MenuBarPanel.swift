@@ -46,14 +46,14 @@ struct MenuBarPanel: View {
             Divider().frame(height: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text("PINCHAZO").font(.caption2).foregroundStyle(.secondary)
-                if let n = store.mounjaro.next, let d = store.mounjaro.daysUntilNext {
+                if let n = store.medicacion.next, let d = store.medicacion.daysUntilNext {
                     Text(shortDate(n)).font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(d < 0 ? Brand.bad : d == 0 ? Brand.warn : Color.primary)
                     Text(relativeDays(d)).font(.caption).foregroundStyle(.secondary)
                 } else { Text("–").font(.title2) }
             }
             Spacer()
-            if let d = store.mounjaro.daysUntilNext, d <= 1, store.mounjaro.last?.date != today {
+            if let d = store.medicacion.daysUntilNext, d <= 1, store.medicacion.last?.date != today {
                 Button("Me pinché hoy") { store.injectToday(); message = "Pinchazo registrado" }.controlSize(.small).buttonStyle(.borderedProminent)
             }
         }

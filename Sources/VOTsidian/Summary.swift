@@ -17,9 +17,9 @@ extension Store {
             l.append("- Últimos pesajes: \(recent)")
             l.append("")
         }
-        let m = mounjaro
+        let m = medicacion
         if let last = m.last {
-            l.append("MOUNJARO")
+            l.append("MEDICACIÓN · \(m.name)")
             l.append("- Dosis actual: \(last.dose) cada \(m.everyDays) días. Último pinchazo: \(DayKey.dmy(last.date)) (\(last.site))")
             if let first = m.doses.first { l.append("- \(plural(m.doses.count, "pinchazo", "pinchazos")) desde \(DayKey.dmy(first.date))") }
             for p in m.periods(weights: w.records) {

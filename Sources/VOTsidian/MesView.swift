@@ -19,7 +19,7 @@ struct MesView: View {
         let before = store.weight.records.last { $0.date < start }
         let from = before?.kg ?? weights.first?.kg
         let to = weights.last?.kg
-        let doses = store.mounjaro.doses.filter { inMonth($0.date) }
+        let doses = store.medicacion.doses.filter { inMonth($0.date) }
         let done = store.tasks.filter { $0.done && ($0.completed.map(inMonth) ?? false) }
         let weekKeys = store.reviews.keys.sorted().filter { k in
             guard let m = k.firstMatch(of: /(\d{4})-W(\d{2})/), let y = Int(m.1), let w = Int(m.2) else { return false }

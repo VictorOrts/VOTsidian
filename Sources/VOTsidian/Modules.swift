@@ -66,13 +66,13 @@ enum Module: String, CaseIterable, Identifiable {
         switch self {
         case .peso: [.peso, .correlaciones]
         case .nutricion: [.nutricion]
-        case .medicacion: [.mounjaro]
+        case .medicacion: [.medicacion]
         case .salud: [.salud]
         case .finanzas: [.finanzas, .gastos]
         case .casa: [.casa]
         case .compra: [.compra]
         case .moda: [.moda]
-        case .mascota: [.nala]
+        case .mascota: [.mascota]
         case .personas: [.personas]
         case .documentos: [.documentos]
         case .objetivos: [.objetivos]
@@ -84,13 +84,13 @@ enum Module: String, CaseIterable, Identifiable {
         switch self {
         case .peso: ["peso"]
         case .nutricion: ["plan"]
-        case .medicacion: ["mounjaro"]
+        case .medicacion: ["medicacion"]
         case .salud: ["medico"]
         case .finanzas: ["finanzas"]
         case .casa: ["casa"]
         case .compra: ["compra"]
         case .moda: ["moda"]
-        case .mascota: ["nala"]
+        case .mascota: ["mascota"]
         case .personas: ["personas"]
         case .documentos: ["documentos"]
         case .objetivos: ["objetivos"]
@@ -110,7 +110,7 @@ enum Starter {
     /// Nombre de cada ruta configurable, para Ajustes.
     static let labels: [String: String] = [
         "peso": "Peso", "medidas": "Medidas", "plan": "Plan nutricional", "proyecto": "Proyecto con hitos de peso",
-        "mounjaro": "Medicación", "medico": "Salud y médicos", "nala": "Mascota", "casa": "Casa", "moda": "Ropa",
+        "medicacion": "Medicación", "medico": "Salud y médicos", "mascota": "Mascota", "casa": "Casa", "moda": "Ropa",
         "inbox": "Bandeja de tareas", "documentos": "Documentos", "personas": "Personas", "objetivos": "Objetivos",
         "finanzas": "Finanzas", "gastos": "Carpeta de gastos (una nota por mes)", "revisiones": "Carpeta de revisiones", "compra": "Lista de la compra",
     ]
@@ -145,7 +145,7 @@ enum Starter {
 
             """
         case "medidas": return Measures.template
-        case "mounjaro":
+        case "medicacion":
             let n = name ?? "Medicación"
             return """
             ---
@@ -162,7 +162,7 @@ enum Starter {
             | ----- | ----- | ---- | ----- |
 
             """
-        case "nala":
+        case "mascota":
             let n = name ?? "Mascota"
             return """
             ---
@@ -372,8 +372,8 @@ extension Store {
     func starterText(for rel: String) -> String? {
         guard let key = VaultPath.defaults.keys.sorted().first(where: { VaultPath.path($0) == rel }) else { return nil }
         let name: String? = switch key {
-        case "mounjaro": UserDefaults.standard.string(forKey: "starterMedication")
-        case "nala": UserDefaults.standard.string(forKey: "starterPet")
+        case "medicacion": UserDefaults.standard.string(forKey: "starterMedication")
+        case "mascota": UserDefaults.standard.string(forKey: "starterPet")
         default: nil
         }
         return Starter.text(forKey: key, name: name)
@@ -430,8 +430,8 @@ extension Store {
     /// Nombre de la pantalla. Medicación y mascota toman el de su nota («nombre:»).
     func title(_ s: Screen) -> String {
         switch s {
-        case .mounjaro: mounjaro.name
-        case .nala: nala.name
+        case .medicacion: medicacion.name
+        case .mascota: mascota.name
         default: s.rawValue
         }
     }

@@ -41,7 +41,7 @@ import Testing
 
     let summary = store.doctorSummary()
     print("SUMMARY\n" + summary)
-    #expect(summary.contains("PESO") && summary.contains("MOUNJARO") && summary.contains("HÁBITOS"))
+    #expect(summary.contains("PESO") && summary.contains("MEDICACIÓN") && summary.contains("HÁBITOS"))
 
     // archivo de iCloud sin descargar
     let dir = store.url("Casa")
@@ -85,8 +85,8 @@ import Testing
 @Test func relatedLinks() throws {
     let a = try #require(Edit.addRelated("# Nota\ntexto", links: ["Peso", "Casa"]))
     #expect(a == "# Nota\ntexto\n\n---\nRelacionado: [[Peso]] · [[Casa]]\n")
-    let b = try #require(Edit.addRelated(a, links: ["Casa", "Nala"]))      // no repite Casa
-    #expect(b.hasSuffix("Relacionado: [[Peso]] · [[Casa]] · [[Nala]]\n"))
+    let b = try #require(Edit.addRelated(a, links: ["Casa", "Luna"]))      // no repite Casa
+    #expect(b.hasSuffix("Relacionado: [[Peso]] · [[Casa]] · [[Luna]]\n"))
     let c = try #require(Edit.addRelated("# X\n\n---\n[[Inbox]]\n", links: ["Peso"]))   // extiende el pie de enlaces
     #expect(c == "# X\n\n---\n[[Inbox]] · [[Peso]]\n")
     let d = try #require(Edit.addRelated("# X\n---\n", links: ["Peso"]))

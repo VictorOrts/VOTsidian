@@ -168,7 +168,7 @@ struct ModulesCard: View {
 
     /// «Medicación (Ozempic)», «Mascota (Luna)»; sin repetir si la nota aún no tiene nombre.
     private func label(_ m: Module) -> String {
-        let name = m == .medicacion ? store.mounjaro.name : m == .mascota ? store.nala.name : nil
+        let name = m == .medicacion ? store.medicacion.name : m == .mascota ? store.mascota.name : nil
         return name.map { $0 == "Medicación" || $0 == "Mascota" ? m.title : "\(m.title) (\($0))" } ?? m.title
     }
 

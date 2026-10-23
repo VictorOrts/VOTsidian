@@ -26,9 +26,9 @@ const x = "| 01/01/2020 | 999 |";
 ---
 """
 
-let mounjaroFixture = """
+let medicacionFixture = """
 ---
-tipo: mounjaro
+tipo: medicacion
 cada_dias: 9
 ---
 ## Registro
@@ -68,7 +68,7 @@ tipo: revision_semanal
 
 
 func tempVaultCopy(_ path: String) throws -> URL {
-    let dest = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/VictorBrain")
+    let dest = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/Vault")
     try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
     try FileManager.default.copyItem(at: URL(fileURLWithPath: path), to: dest)
     return dest
@@ -107,10 +107,10 @@ let casaFixture = """
 }
 
 
-/// Vault mínimo con peso, Mounjaro, Casa y una revisión, para probar pantallas sin depender de notas reales.
+/// Vault mínimo con peso, medicación, Casa y una revisión, para probar pantallas sin depender de notas reales.
 func syntheticVault() throws -> URL {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
-    let files = [VaultPath.peso: pesoFixture, VaultPath.mounjaro: mounjaroFixture, VaultPath.casa: casaFixture,
+    let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture,
                  "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture,
                  "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n",
                  "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),

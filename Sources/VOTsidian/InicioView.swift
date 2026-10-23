@@ -3,17 +3,17 @@ import SwiftUI
 
 /// Orden y visibilidad de las tarjetas de Inicio. Se guarda como «id:1,id:0,…» (1 visible, 0 oculta).
 enum HomeCard: String, CaseIterable, Identifiable {
-    case atencion, hoy, peso, mounjaro, tareas, habitos, nala, nutricion, gastos
+    case atencion, hoy, peso, medicacion, tareas, habitos, mascota, nutricion, gastos
     var id: String { rawValue }
     var title: String {
         switch self {
         case .atencion: "Atención"
         case .hoy: "Hoy"
         case .peso: "Peso"
-        case .mounjaro: "Mounjaro"
+        case .medicacion: "Medicación"
         case .tareas: "Tareas de la semana"
         case .habitos: "Hábitos"
-        case .nala: "Nala"
+        case .mascota: "Mascota"
         case .nutricion: "Plan nutricional"
         case .gastos: "Gastos"
         }
@@ -23,8 +23,8 @@ enum HomeCard: String, CaseIterable, Identifiable {
     var module: Module? {
         switch self {
         case .peso: .peso
-        case .mounjaro: .medicacion
-        case .nala: .mascota
+        case .medicacion: .medicacion
+        case .mascota: .mascota
         case .nutricion: .nutricion
         case .gastos: .finanzas
         default: nil
@@ -42,11 +42,14 @@ struct HomeLayout: Equatable {
     init(items: [(card: HomeCard, visible: Bool)]) { self.items = items }
 
     /// Lee lo guardado; ignora ids desconocidos y añade al final las tarjetas nuevas.
+    /// Ids con que se guardaban antes algunas tarjetas.
+    static let legacyIds = ["mounjaro": "medicacion", "nala": "mascota"]
+
     init(raw: String) {
         var out: [(HomeCard, Bool)] = []
         for part in raw.split(separator: ",") {
             let kv = part.split(separator: ":")
-            guard kv.count == 2, let c = HomeCard(rawValue: String(kv[0])), !out.contains(where: { $0.0 == c }) else { continue }
+            guard kv.count == 2, let c = HomeCard(rawValue: HomeLayout.legacyIds[String(kv[0])] ?? String(kv[0])), !out.contains(where: { $0.0 == c }) else { continue }
             out.append((c, kv[1] != "0"))
         }
         for c in HomeCard.allCases where !out.contains(where: { $0.0 == c }) { out.append((c, true)) }
@@ -113,7 +116,7 @@ struct InicioView: View {
     private var summary: String {
         var parts: [String] = []
         if let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
-        if let d = store.mounjaro.daysUntilNext { parts.append("pinchazo \(relativeDays(d))") }
+        if let d = store.medicacion.daysUntilNext { parts.append("pinchazo \(relativeDays(d))") }
         let n = upcomingCount
         if n > 0 { parts.append("\(n) \(n == 1 ? "tarea" : "tareas") esta semana") }
         return parts.joined(separator: " · ")
@@ -211,10 +214,10 @@ struct InicioView: View {
             case .atencion: attention
             case .hoy: todayCard
             case .peso: pesoCard
-            case .mounjaro: mounjaroCard
+            case .medicacion: medicacionCard
             case .tareas: tasksCard
             case .habitos: weekCard
-            case .nala: nalaCard
+            case .mascota: mascotaCard
             case .nutricion: nutritionCard
             case .gastos: gastosCard
             }
@@ -238,7 +241,7 @@ struct InicioView: View {
             Text("Ocultas:").foregroundStyle(.secondary)
             if hidden.isEmpty { Text("ninguna").foregroundStyle(.secondary) }
             ForEach(hidden) { c in
-                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c == .mounjaro ? store.mounjaro.name : c == .nala ? store.nala.name : c.title, systemImage: "eye") }.controlSize(.small)
+                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c == .medicacion ? store.medicacion.name : c == .mascota ? store.mascota.name : c.title, systemImage: "eye") }.controlSize(.small)
             }
             Spacer()
             Button("Restablecer orden") { layoutRaw = "" }.controlSize(.small)
@@ -287,11 +290,11 @@ struct InicioView: View {
         }
     }
 
-    // MARK: Mounjaro
+    // MARK: Medicación
 
-    private var mounjaroCard: some View {
-        let m = store.mounjaro
-        return Card(title: m.name, icon: "syringe", actionTitle: "Registrar", action: { go(.mounjaro) }) {
+    private var medicacionCard: some View {
+        let m = store.medicacion
+        return Card(title: m.name, icon: "syringe", actionTitle: "Registrar", action: { go(.medicacion) }) {
             if let last = m.last, let next = m.next, let d = m.daysUntilNext {
                 let color: Color = d < 0 ? Brand.bad : d == 0 ? Brand.warn : Brand.accent
                 HStack(spacing: 20) {
@@ -368,11 +371,11 @@ struct InicioView: View {
         }
     }
 
-    // MARK: Nala, nutrición
+    // MARK: Mascota, nutrición
 
-    private var nalaCard: some View {
-        let n = store.nala
-        return Card(title: n.name, icon: "pawprint", actionTitle: "Abrir", action: { go(.nala) }) {
+    private var mascotaCard: some View {
+        let n = store.mascota
+        return Card(title: n.name, icon: "pawprint", actionTitle: "Abrir", action: { go(.mascota) }) {
             ForEach(Array(n.overdue.enumerated()), id: \.offset) { _, o in
                 Label("\(o.title) vencida el \(DayKey.dmy(o.date))", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.warn)
             }

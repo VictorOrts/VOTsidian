@@ -105,7 +105,7 @@ extension Store {
                 return v.isEmpty ? nil : v.reduce(0, +) / Double(v.count)
             }
         }
-        return Correlations.weeks(weights: weight.records, doses: mounjaro.doses, today: today, mood: avg("animo"), sleep: avg("sueno_h"))
+        return Correlations.weeks(weights: weight.records, doses: medicacion.doses, today: today, mood: avg("animo"), sleep: avg("sueno_h"))
     }
 }
 
@@ -115,7 +115,7 @@ struct CorrelacionesView: View {
     var body: some View {
         let points = store.weekPoints()
         let pairs = Correlations.pairs(points)
-        let doses = store.mounjaro.doses.sorted { $0.date < $1.date }
+        let doses = store.medicacion.doses.sorted { $0.date < $1.date }
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Aquí se cruzan peso, dosis, ánimo y sueño por semanas. Una relación no prueba que una cosa cause la otra: sirve para sospechar y comentarlo con tu médico.")
@@ -142,7 +142,7 @@ struct CorrelacionesView: View {
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .frame(height: 220)
-                        .accessibilityLabel("Gráfica de peso con las dosis de \(store.mounjaro.name) como bandas")
+                        .accessibilityLabel("Gráfica de peso con las dosis de \(store.medicacion.name) como bandas")
                     }
                 }
 

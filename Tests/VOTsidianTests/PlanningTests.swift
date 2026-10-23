@@ -48,11 +48,11 @@ import Testing
 @Test func notifierExpandsRecurrencesAndOffsets() {
     let today = DayKey.date("2026-10-19")!
     let now = DayKey.calendar().date(bySettingHour: 8, minute: 0, second: 0, of: today)!
-    let shot = ICSEvent(uid: "mounjaro", title: "Pinchazo", notes: "", start: DayKey.date("2026-10-20")!, minutes: 540, rule: "FREQ=DAILY;INTERVAL=9")
+    let shot = ICSEvent(uid: "medicacion", title: "Pinchazo", notes: "", start: DayKey.date("2026-10-20")!, minutes: 540, rule: "FREQ=DAILY;INTERVAL=9")
     let doc = ICSEvent(uid: "doc", title: "Caduca", notes: "", start: DayKey.date("2026-11-10")!, minutes: nil, rule: nil, extraTriggers: ["-P7D"])
     let past = ICSEvent(uid: "old", title: "Viejo", notes: "", start: DayKey.date("2026-10-01")!, minutes: nil, rule: nil)
     let plan = Notifier.plan([shot, doc, past], now: now, today: today)
-    let shots = plan.filter { $0.id.hasPrefix("mounjaro") }
+    let shots = plan.filter { $0.id.hasPrefix("medicacion") }
     #expect(shots.map { DayKey.string($0.fire) } == ["2026-10-20", "2026-10-29", "2026-11-07", "2026-11-16"])
     #expect(plan.contains { $0.id == "doc-2026-11-10--P7D" && DayKey.string($0.fire) == "2026-11-03" })
     #expect(!plan.contains { $0.id.hasPrefix("old") })

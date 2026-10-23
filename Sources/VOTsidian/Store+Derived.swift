@@ -18,7 +18,7 @@ extension Store {
                 if let d = DayKey.date(t.value(r, "fecha objetivo")), let n = r.cells.first, !n.isEmpty { casaDates.append(("Comprar: " + n, d)) }
             }
         }
-        return ReminderSources(mounjaro: mounjaro, tasks: tasks, nala: nala, people: people,
+        return ReminderSources(medicacion: medicacion, tasks: tasks, mascota: mascota, people: people,
                                documents: documents.map { ($0.name, $0.date) },
                                events: events.map { ($0.name, $0.date) } + casaDates, payments: upcomingPayments())
     }
@@ -28,8 +28,8 @@ extension Store {
         guard url.scheme == "votsidian", let target = url.lastPathComponent.removingPercentEncoding else { return .systemAction }
         if let p = fuzzyResolve(target) {
             // Las notas que tienen pantalla propia abren esa pantalla; el resto, el lector de notas.
-            let screens: [String: Screen] = [VaultPath.peso: .peso, VaultPath.mounjaro: .mounjaro, VaultPath.plan: .nutricion, VaultPath.casa: .casa,
-                                             VaultPath.nala: .nala, VaultPath.moda: .moda, VaultPath.medico: .salud, VaultPath.inbox: .tareas,
+            let screens: [String: Screen] = [VaultPath.peso: .peso, VaultPath.medicacion: .medicacion, VaultPath.plan: .nutricion, VaultPath.casa: .casa,
+                                             VaultPath.mascota: .mascota, VaultPath.moda: .moda, VaultPath.medico: .salud, VaultPath.inbox: .tareas,
                                              VaultPath.personas: .personas, VaultPath.documentos: .documentos,
                                              VaultPath.objetivos: .objetivos, VaultPath.finanzas: .finanzas]
             if let sc = screens[p] { screen = sc } else { pendingNote = p }
@@ -47,11 +47,11 @@ extension Store {
     }
 
     func addDose(date: Date, dose: Double, site: String, note: String) {
-        edit(VaultPath.mounjaro) { Edit.addDose($0, date: date, dose: dose, site: site, note: note) }
+        edit(VaultPath.medicacion) { Edit.addDose($0, date: date, dose: dose, site: site, note: note) }
     }
 
-    func addNalaVisit(date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) {
-        edit(VaultPath.nala) { Edit.addNalaVisit($0, date: date, tipo: tipo, detalle: detalle, proxima: proxima, coste: coste) }
+    func addMascotaVisit(date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) {
+        edit(VaultPath.mascota) { Edit.addMascotaVisit($0, date: date, tipo: tipo, detalle: detalle, proxima: proxima, coste: coste) }
     }
 
     func setTask(_ task: TaskItem, done: Bool) {
@@ -75,7 +75,7 @@ extension Store {
 
     /// Registra el pinchazo de hoy con la última dosis y el lado contrario al anterior.
     func injectToday() {
-        addDose(date: DayKey.today(), dose: mounjaro.last?.mg ?? 7.5, site: mounjaro.suggestedSite, note: "")
+        addDose(date: DayKey.today(), dose: medicacion.last?.mg ?? 7.5, site: medicacion.suggestedSite, note: "")
     }
 
     /// Modo "añadir fila" detrás de la fila `last` de una tabla.

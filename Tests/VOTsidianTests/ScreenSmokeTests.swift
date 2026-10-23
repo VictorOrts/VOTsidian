@@ -12,7 +12,7 @@ import Testing
     store.setDiaryValue(DayKey.today(), "animo", 4)
     store.appendToDiary(DayKey.today(), text: "prueba")
     _ = store.createNote(folder: "Casa", name: "Con incrustados", template: "En blanco")
-    store.edit("Casa/Con incrustados.md") { $0 + "![[Peso#Registro]]\n\n![[Nala]]\n" }
+    store.edit("Casa/Con incrustados.md") { $0 + "![[Peso#Registro]]\n\n![[Mascota]]\n" }
     func render<V: View>(_ name: String, _ view: V, size: CGSize = CGSize(width: 1000, height: 800)) throws {
         let r = ImageRenderer(content: view.environment(store).frame(width: size.width, height: size.height))
         r.scale = 1
@@ -30,13 +30,13 @@ import Testing
         case .objetivos: try render("Objetivos", ObjetivosView())
         case .peso: try render("Peso", PesoView())
         case .nutricion: try render("Nutrición", NutricionView())
-        case .mounjaro: try render("Mounjaro", MounjaroView())
+        case .medicacion: try render("Medicacion", MedicacionView())
         case .salud: try render("Salud", SaludView())
         case .correlaciones: try render("Correlaciones", CorrelacionesView())
         case .casa: try render("Casa", CasaView())
         case .compra: try render("Compra", CompraView())
         case .moda: try render("Moda", ModaView())
-        case .nala: try render("Nala", NalaView())
+        case .mascota: try render("Mascota", MascotaView())
         case .personas: try render("Personas", PersonasView())
         case .documentos: try render("Documentos", DocumentosView())
         case .finanzas: try render("Finanzas", FinanzasView())

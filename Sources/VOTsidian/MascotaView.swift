@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct NalaView: View {
+struct MascotaView: View {
     @Environment(Store.self) private var store
     @State private var date = Date()
     @State private var tipo = ""
@@ -11,8 +11,8 @@ struct NalaView: View {
     @State private var spec: RowSpec?
 
     var body: some View {
-        let n = store.nala
-        let tasks = store.tasks.filter { $0.file == VaultPath.nala && !$0.done }
+        let n = store.mascota
+        let tasks = store.tasks.filter { $0.file == VaultPath.mascota && !$0.done }
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .mascota)
@@ -42,7 +42,7 @@ struct NalaView: View {
                         TextField("Coste", text: $coste).frame(width: 90)
                         Spacer()
                         Button("Guardar") {
-                            store.addNalaVisit(date: DayKey.calendar().startOfDay(for: date), tipo: tipo, detalle: detalle,
+                            store.addMascotaVisit(date: DayKey.calendar().startOfDay(for: date), tipo: tipo, detalle: detalle,
                                                proxima: hasNext ? DayKey.calendar().startOfDay(for: next) : nil, coste: coste)
                             tipo = ""; detalle = ""; coste = ""; hasNext = false
                         }.buttonStyle(.borderedProminent).disabled(tipo.isEmpty)
@@ -65,11 +65,11 @@ struct NalaView: View {
                         GridRow {
                             Text(DayKey.string(v.date)).monospacedDigit(); Text(v.tipo); Text(v.detalle).foregroundStyle(.secondary)
                             Text(v.proxima.map(DayKey.string) ?? ""); Text(v.coste)
-                            EditButton { spec = RowSpec(file: VaultPath.nala, mode: .edit(line: v.line), title: "visita") }
+                            EditButton { spec = RowSpec(file: VaultPath.mascota, mode: .edit(line: v.line), title: "visita") }
                         }
                     }
                 }
-                Button("Abrir la nota Nala") { store.pendingNote = VaultPath.nala }.buttonStyle(.accentLink)
+                Button("Abrir la nota") { store.pendingNote = VaultPath.mascota }.buttonStyle(.accentLink)
             }
             .padding(24)
             .readableWidth()
@@ -79,6 +79,6 @@ struct NalaView: View {
     }
 
     private func ficha(_ label: String, _ key: String) -> some View {
-        GridRow { Text(label).foregroundStyle(.secondary).gridColumnAlignment(.trailing); PropertyField(file: VaultPath.nala, key: key, width: 320) }
+        GridRow { Text(label).foregroundStyle(.secondary).gridColumnAlignment(.trailing); PropertyField(file: VaultPath.mascota, key: key, width: 320) }
     }
 }

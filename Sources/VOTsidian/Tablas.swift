@@ -102,7 +102,7 @@ struct DosePeriod: Identifiable, Equatable {
 
 private func zip(_ a: Double?, _ b: Double?) -> (Double, Double)? { a.flatMap { x in b.map { (x, $0) } } }
 
-extension MounjaroData {
+extension MedicacionData {
     /// Tramos consecutivos con la misma dosis y el peso al inicio y al final de cada uno.
     func periods(weights: [WeightRecord]) -> [DosePeriod] {
         var groups: [[Dose]] = []

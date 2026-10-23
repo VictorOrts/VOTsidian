@@ -15,7 +15,7 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     // cada pantalla está en un solo módulo; las de la base no tienen módulo
     let screens = Module.allCases.flatMap(\.screens)
     #expect(Set(screens).count == screens.count)
-    #expect(Module.of(.tareas) == nil && Module.of(.gastos) == .finanzas && Module.of(.nala) == .mascota)
+    #expect(Module.of(.tareas) == nil && Module.of(.gastos) == .finanzas && Module.of(.mascota) == .mascota)
 }
 
 @Test func emptyTemplatesTakeTheFirstEntry() throws {
@@ -26,12 +26,12 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     #expect(w.records.count == 1 && w.records[0].kg == 92.4 && w.initialKg == 92.4 && w.goalKg == 0)
     #expect(Edit.addWeight(peso, date: DayKey.adding(days: 1, to: day), kg: 92, note: "").map { Parse.weight($0).records.count } == 2)
     // medicación, con su nombre
-    let med = try #require(Edit.addDose(try starter("mounjaro", name: "Ozempic"), date: day, dose: 0.5, site: "Abdomen", note: ""))
-    let m = Parse.mounjaro(med)
+    let med = try #require(Edit.addDose(try starter("medicacion", name: "Ozempic"), date: day, dose: 0.5, site: "Abdomen", note: ""))
+    let m = Parse.medicacion(med)
     #expect(m.name == "Ozempic" && m.everyDays == 7 && m.doses.count == 1 && m.doses[0].site == "Abdomen")
     // mascota
-    let pet = try #require(Edit.addNalaVisit(try starter("nala", name: "Luna"), date: day, tipo: "Vacuna", detalle: "Rabia", proxima: DayKey.adding(days: 365, to: day), coste: "40"))
-    let n = Parse.nala(pet)
+    let pet = try #require(Edit.addMascotaVisit(try starter("mascota", name: "Luna"), date: day, tipo: "Vacuna", detalle: "Rabia", proxima: DayKey.adding(days: 365, to: day), coste: "40"))
+    let n = Parse.mascota(pet)
     #expect(n.name == "Luna" && n.visits.count == 1 && n.visits[0].proxima != nil)
     // casa: las cuatro tablas y añadir filas en reformas y compras
     let casa = try starter("casa")
@@ -69,10 +69,10 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
 }
 
 @Test func namesKeepTheOldNotesAndAreGenericWithoutOne() {
-    #expect(Parse.mounjaro(mounjaroFixture).name == "Mounjaro")   // notas de antes, sin «nombre:»
-    #expect(Parse.mounjaro("").name == "Medicación" && Parse.nala("").name == "Mascota")
-    #expect(Parse.nala("---\nnacimiento: 01/01/2020\n---\n").name == "Nala")
-    #expect(Parse.nala("---\nnombre: \"Luna: la gata\"\n---\n").name == "Luna: la gata")
+    #expect(Parse.medicacion(medicacionFixture).name == "Mounjaro")   // notas de antes, sin «nombre:»
+    #expect(Parse.medicacion("").name == "Medicación" && Parse.mascota("").name == "Mascota")
+    #expect(Parse.mascota("---\nnacimiento: 01/01/2020\n---\n").name == "Nala")
+    #expect(Parse.mascota("---\nnombre: \"Luna: la gata\"\n---\n").name == "Luna: la gata")
     #expect(Starter.yaml("Luna: la gata") == "\"Luna: la gata\"" && Starter.yaml("Ozempic") == "Ozempic")
 }
 
@@ -84,10 +84,10 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     store.setUp(modules: [.peso, .mascota, .finanzas], petName: "Luna", medication: nil)
     defer { UserDefaults.standard.removeObject(forKey: "starterPet") }
     #expect(store.isValid && store.modulesConfigured && !store.looksNew)
-    #expect(store.exists(VaultPath.peso) && store.exists(VaultPath.nala) && store.exists(VaultPath.finanzas) && store.exists(VaultPath.inbox))
-    #expect(!store.exists(VaultPath.casa) && !store.exists(VaultPath.mounjaro))
+    #expect(store.exists(VaultPath.peso) && store.exists(VaultPath.mascota) && store.exists(VaultPath.finanzas) && store.exists(VaultPath.inbox))
+    #expect(!store.exists(VaultPath.casa) && !store.exists(VaultPath.medicacion))
     #expect(store.hiddenModules == Set(Module.allCases).subtracting([.peso, .mascota, .finanzas]))
-    #expect(store.title(.nala) == "Luna" && store.title(.mounjaro) == "Medicación" && store.title(.tareas) == "Tareas")
+    #expect(store.title(.mascota) == "Luna" && store.title(.medicacion) == "Medicación" && store.title(.tareas) == "Tareas")
     #expect(store.isVisible(.peso) && store.isVisible(.gastos) && !store.isVisible(.casa) && store.isVisible(.notas))
     #expect(store.undoStack.isEmpty)   // crear las notas del principio no es un cambio que deshacer
     // volver a pasar por el asistente no pisa lo que ya hay
@@ -106,11 +106,11 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     store.addWeight(date: DayKey.today(), kg: 101.5, note: "")
     #expect(store.message == nil && store.weight.last?.kg == 101.5 && store.missingFiles(.peso).isEmpty)
     store.addDose(date: DayKey.today(), dose: 2.5, site: "Muslo", note: "")
-    #expect(store.mounjaro.doses.count == 1 && store.mounjaro.name == "Medicación")
+    #expect(store.medicacion.doses.count == 1 && store.medicacion.name == "Medicación")
     store.addCasaRow(section: "Compras", cells: ["Sofá", "Salón", "Alta", "900", "", ""])
     #expect(store.casa.compras.rows.contains { $0.cells.first == "Sofá" })
     store.undo(); store.undo(); store.undo()
-    #expect(!store.exists(VaultPath.peso) && !store.exists(VaultPath.mounjaro) && !store.exists(VaultPath.casa))
+    #expect(!store.exists(VaultPath.peso) && !store.exists(VaultPath.medicacion) && !store.exists(VaultPath.casa))
     // una nota que no es de ningún módulo sigue sin crearse sola
     #expect(!store.edit("Otra.md") { $0 + "x" } && store.message == "No se pudo leer Otra.md.")
 }
@@ -118,10 +118,10 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
 @MainActor @Test func hiddenModulesDropTheirAlerts() throws {
     let store = Store(root: try syntheticVault())
     let today = try #require(DayKey.date("2026-10-30"))   // el pinchazo del 09/10 va tarde
-    #expect(store.alerts(today: today).contains { $0.screen == .mounjaro })
+    #expect(store.alerts(today: today).contains { $0.screen == .medicacion })
     store.hiddenModules = [.medicacion]
-    #expect(!store.alerts(today: today).contains { $0.screen == .mounjaro })
-    #expect(!store.isVisible(.mounjaro) && store.isVisible(.peso))
+    #expect(!store.alerts(today: today).contains { $0.screen == .medicacion })
+    #expect(!store.isVisible(.medicacion) && store.isVisible(.peso))
 }
 
 @MainActor @Test func pathOverridesMoveAModule() throws {
@@ -148,7 +148,7 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
 @Test func newFoldersGetNeutralPathsButOldNotesKeepTheirs() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("rutas-\(UUID().uuidString)")
     let fresh = VaultPath.freshOverrides(root: root)   // la carpeta ni existe
-    #expect(fresh["peso"] == "Salud/Peso.md" && fresh["nala"] == "Mascota/Mascota.md" && fresh["mounjaro"] == "Salud/Medicación.md")
+    #expect(fresh["peso"] == "Salud/Peso.md" && fresh["mascota"] == "Mascota/Mascota.md" && fresh["medicacion"] == "Salud/Medicación.md")
     #expect(fresh["casa"] == nil && fresh["inbox"] == nil)   // las que no eran personales no cambian
     #expect(fresh.values.allSatisfy { !$0.contains("Cambio físico") && !$0.contains("Nala") })
     // una carpeta con notas de antes conserva esas rutas, también si iCloud aún no las ha descargado
@@ -157,7 +157,17 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     try "x".write(to: root.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
     try "x".write(to: root.appendingPathComponent("Nala/.Nala.md.icloud"), atomically: true, encoding: .utf8)
     let mixed = VaultPath.freshOverrides(root: root)
-    #expect(mixed["peso"] == nil && mixed["nala"] == nil && mixed["mounjaro"] == "Salud/Medicación.md")
+    #expect(mixed["peso"] == nil && mixed["mascota"] == nil && mixed["medicacion"] == "Salud/Medicación.md")
     // lo que va junto a cada nota sigue su carpeta
     #expect(VaultPath.beside("peso", "Fotos") == "Cambio físico/Fotos" && VaultPath.folder("medico") == "Organización/Médico")
+}
+
+@MainActor @Test func oldSavedKeysStillWork() {
+    // el orden de Inicio guardado con los ids de antes
+    let layout = HomeLayout(raw: "mounjaro:0,nala:1,peso:1")
+    #expect(layout.items.prefix(3).map(\.card) == [.medicacion, .mascota, .peso] && layout.items[0].visible == false)
+    #expect(layout.raw.hasPrefix("medicacion:0,mascota:1,peso:1"))
+    // una ruta cambiada con la clave de antes se sigue leyendo; si están las dos, gana la nueva
+    #expect(VaultPath.normalized(["nala": "Gatos/Misi.md", "peso": "Salud/Báscula.md"]) == ["mascota": "Gatos/Misi.md", "peso": "Salud/Báscula.md"])
+    #expect(VaultPath.normalized(["mounjaro": "A.md", "medicacion": "B.md"]) == ["medicacion": "B.md"])
 }

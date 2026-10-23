@@ -40,18 +40,18 @@ import Testing
 
 @Test func homeLayoutLogic() {
     let std = HomeLayout.standard
-    #expect(std.rows.map { $0.map(\.rawValue) } == [["atencion"], ["hoy"], ["peso", "mounjaro"], ["tareas", "habitos"], ["nala", "nutricion"], ["gastos"]])
+    #expect(std.rows.map { $0.map(\.rawValue) } == [["atencion"], ["hoy"], ["peso", "medicacion"], ["tareas", "habitos"], ["mascota", "nutricion"], ["gastos"]])
     var l = HomeLayout(raw: "")
     #expect(l == std)
-    l.move(.nala, by: -10)                          // sube hasta el principio y no se sale
-    #expect(l.items.first?.card == .nala)
+    l.move(.mascota, by: -10)                          // sube hasta el principio y no se sale
+    #expect(l.items.first?.card == .mascota)
     l.setVisible(.peso, false); l.setVisible(.hoy, false)
     #expect(l.rows.flatMap { $0 }.contains(.peso) == false && l.rows.flatMap { $0 }.contains(.hoy) == false)
     let again = HomeLayout(raw: l.raw)
     #expect(again == l)                              // se guarda y se recupera igual
     // ids desconocidos se ignoran y las tarjetas nuevas se añaden al final
-    let odd = HomeLayout(raw: "nala:1,inventada:1,peso:0,peso:1")
-    #expect(odd.items.count == HomeCard.allCases.count && odd.items[0].card == .nala && odd.items[1] == (.peso, false))
+    let odd = HomeLayout(raw: "mascota:1,inventada:1,peso:0,peso:1")
+    #expect(odd.items.count == HomeCard.allCases.count && odd.items[0].card == .mascota && odd.items[1] == (.peso, false))
     // una tarjeta mediana sola ocupa media fila
     var one = HomeLayout.standard
     for c in HomeCard.allCases where c != .peso && c != .atencion { one.setVisible(c, false) }
@@ -75,10 +75,10 @@ import Testing
     let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
     let files = try store.exportData(to: out)
     let names = Set(files.map(\.lastPathComponent))
-    #expect(names.isSuperset(of: ["peso.csv", "mounjaro.csv", "habitos.csv", "tareas.csv", "animo_sueno.csv", "resumen.md"]))
+    #expect(names.isSuperset(of: ["peso.csv", "medicacion.csv", "habitos.csv", "tareas.csv", "animo_sueno.csv", "resumen.md"]))
     let peso = try String(contentsOf: out.appendingPathComponent("peso.csv"), encoding: .utf8)
     #expect(peso.hasPrefix("fecha,peso_kg,notas\n2026-02-24,136,Inicio del registro\n") && peso.contains("2026-09-30,106,"))
-    let dosis = try String(contentsOf: out.appendingPathComponent("mounjaro.csv"), encoding: .utf8)
+    let dosis = try String(contentsOf: out.appendingPathComponent("medicacion.csv"), encoding: .utf8)
     #expect(dosis.contains("2026-02-26,2.5,Abdomen,") && dosis.components(separatedBy: "\n").count > 27)
     #expect(try String(contentsOf: out.appendingPathComponent("animo_sueno.csv"), encoding: .utf8).contains("2026-03-05,4,7"))
     #expect(try String(contentsOf: out.appendingPathComponent("habitos.csv"), encoding: .utf8).contains("2026-W42,Proteína,1,1,1,1,1,1,1,7"))

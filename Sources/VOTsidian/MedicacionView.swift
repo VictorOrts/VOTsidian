@@ -1,10 +1,10 @@
 import Charts
 import SwiftUI
 
-let mounjaroDoses: [Double] = [2.5, 5, 7.5, 10, 12.5, 15]
+let medicacionDoses: [Double] = [2.5, 5, 7.5, 10, 12.5, 15]
 let injectionSites = ["Abdomen izquierdo", "Abdomen derecho", "Abdomen"]
 
-struct MounjaroView: View {
+struct MedicacionView: View {
     @Environment(Store.self) private var store
     @State private var date = Date()
     @State private var dose = 7.5
@@ -13,7 +13,7 @@ struct MounjaroView: View {
     @State private var spec: RowSpec?
 
     var body: some View {
-        let m = store.mounjaro
+        let m = store.medicacion
         let d = m.daysUntilNext
         let periods = m.periods(weights: store.weight.records)
         ScrollView {
@@ -46,10 +46,10 @@ struct MounjaroView: View {
 
                 if periods.count > 0 { periodsCard(periods) }
 
-                Card(title: "Registrar pinchazo", icon: "plus.circle", info: "Se añade una fila a \(VaultPath.mounjaro). Zona sugerida para alternar: \(m.suggestedSite).") {
+                Card(title: "Registrar pinchazo", icon: "plus.circle", info: "Se añade una fila a \(VaultPath.medicacion). Zona sugerida para alternar: \(m.suggestedSite).") {
                     HStack(spacing: 20) {
                         DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).fixedSize()
-                        Picker("Dosis", selection: $dose) { ForEach(mounjaroDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.fixedSize()
+                        Picker("Dosis", selection: $dose) { ForEach(medicacionDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.fixedSize()
                         Picker("Zona", selection: $site) { ForEach(injectionSites, id: \.self) { Text($0).tag($0) } }.fixedSize()
                         Spacer()
                     }
@@ -58,14 +58,14 @@ struct MounjaroView: View {
                         Button("Guardar") {
                             store.addDose(date: DayKey.calendar().startOfDay(for: date), dose: dose, site: site, note: note)
                             note = ""
-                            site = store.mounjaro.suggestedSite
+                            site = store.medicacion.suggestedSite
                         }.buttonStyle(.borderedProminent)
                     }
                 }
 
                 Card(title: "Intervalo entre pinchazos", icon: "timer", info: "Lo decide tu médico. Cambiarlo recalcula el próximo pinchazo y el aviso de Calendar.") {
                     HStack {
-                        Stepper("Cada \(m.everyDays) días", value: Binding(get: { m.everyDays }, set: { store.setProperty(VaultPath.mounjaro, key: "cada_dias", value: String($0)) }), in: 1...30)
+                        Stepper("Cada \(m.everyDays) días", value: Binding(get: { m.everyDays }, set: { store.setProperty(VaultPath.medicacion, key: "cada_dias", value: String($0)) }), in: 1...30)
                         Spacer()
                     }
                 }
@@ -78,7 +78,7 @@ struct MounjaroView: View {
                         GridRow {
                             Text(DayKey.string(x.date)).monospacedDigit(); Text(x.dose); Text(x.site)
                             Text(x.note).foregroundStyle(.secondary).lineLimit(1)
-                            EditButton { spec = RowSpec(file: VaultPath.mounjaro, mode: .edit(line: x.line), title: "pinchazo") }
+                            EditButton { spec = RowSpec(file: VaultPath.medicacion, mode: .edit(line: x.line), title: "pinchazo") }
                         }
                     }
                 }
@@ -87,7 +87,7 @@ struct MounjaroView: View {
             .padding(24)
             .readableWidth()
         }
-        .navigationTitle(store.mounjaro.name)
+        .navigationTitle(store.medicacion.name)
         .sheet(item: $spec) { RowSheet(spec: $0) }
         .onAppear {
             if let mg = m.last?.mg { dose = mg }

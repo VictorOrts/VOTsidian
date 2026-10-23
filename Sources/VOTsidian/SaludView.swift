@@ -41,7 +41,7 @@ struct SaludView: View {
                          note: next.map { "\($0.text) · \(relativeDays(DayKey.days(from: today, to: $0.due!)))" }, tint: (next?.due.map { DayKey.days(from: today, to: $0) <= 7 } ?? false) ? Brand.warn : nil)
                     Tile(title: "Citas pendientes", value: "\(appointments.count)")
                     Tile(title: "Último análisis", value: lastAnalysis.map { dayLabel($0.0) } ?? "–", note: lastAnalysis?.1)
-                    Tile(title: "Tratamientos", value: "\(meds.count + (store.mounjaro.last != nil ? 1 : 0))")
+                    Tile(title: "Tratamientos", value: "\(meds.count + (store.medicacion.last != nil ? 1 : 0))")
                 }
 
                 Button { showSummary = true } label: { Label("Resumen para la consulta (copiar)", systemImage: "doc.on.clipboard") }
@@ -57,14 +57,14 @@ struct SaludView: View {
                 }
 
                 Card(title: "Tratamientos y medicación", icon: "pills", info: "La medicación la decide tu médico. Aquí solo queda anotada.") {
-                    if let m = store.mounjaro.last {
-                        Button { store.screen = .mounjaro } label: {
+                    if let m = store.medicacion.last {
+                        Button { store.screen = .medicacion } label: {
                             HStack {
                                 Image(systemName: "syringe").foregroundStyle(Brand.accent)
-                                Text("\(store.mounjaro.name) \(m.dose)").fontWeight(.medium)
-                                Text("cada \(store.mounjaro.everyDays) días").foregroundStyle(.secondary)
+                                Text("\(store.medicacion.name) \(m.dose)").fontWeight(.medium)
+                                Text("cada \(store.medicacion.everyDays) días").foregroundStyle(.secondary)
                                 Spacer()
-                                if let n = store.mounjaro.next, let d = store.mounjaro.daysUntilNext { Text("próximo \(shortDate(n)) · \(relativeDays(d))").foregroundStyle(d < 0 ? Brand.bad : .secondary) }
+                                if let n = store.medicacion.next, let d = store.medicacion.daysUntilNext { Text("próximo \(shortDate(n)) · \(relativeDays(d))").foregroundStyle(d < 0 ? Brand.bad : .secondary) }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                             }.contentShape(Rectangle())
                         }.buttonStyle(.plain)

@@ -34,7 +34,7 @@ enum Edit {
         return insertRow(text, row: row) { DayKey.date($0[0]) != nil }
     }
 
-    static func addNalaVisit(_ text: String, date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) -> String? {
+    static func addMascotaVisit(_ text: String, date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) -> String? {
         let row = rowString([DayKey.string(date), tipo, detalle, proxima.map(DayKey.string) ?? "", coste])
         return insertRow(text, row: row) { DayKey.date($0[0]) != nil }
     }

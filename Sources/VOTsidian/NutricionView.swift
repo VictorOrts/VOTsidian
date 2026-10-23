@@ -83,7 +83,7 @@ struct NutricionView: View {
                     Button("Abrir la nota Plan Nutricional") { store.pendingNote = VaultPath.plan }
                     Button("Abrir Menú y compra") { store.pendingNote = VaultPath.beside("plan", "Menú y compra.md") }
                 }.buttonStyle(.accentLink)
-                Text("Valores orientativos de tu nota. Confírmalos con tu médico o dietista" + (store.mounjaro.last != nil ? ", sobre todo mientras usas \(store.mounjaro.name)." : "."))
+                Text("Valores orientativos de tu nota. Confírmalos con tu médico o dietista" + (store.medicacion.last != nil ? ", sobre todo mientras usas \(store.medicacion.name)." : "."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)

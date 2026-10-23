@@ -30,10 +30,10 @@ extension Store {
     func alerts(today: Date = DayKey.today()) -> [Alert] {
         var out: [Alert] = []
 
-        if let d = mounjaro.daysUntilNext {
-            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de \(mounjaro.name) con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .mounjaro, action: .injectToday)) }
-            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de \(mounjaro.name)", screen: .mounjaro, action: .injectToday)) }
-            else if d <= 2 { out.append(Alert(level: .soon, icon: "syringe", text: "Pinchazo de \(mounjaro.name) \(relativeDays(d))", screen: .mounjaro)) }
+        if let d = medicacion.daysUntilNext {
+            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de \(medicacion.name) con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .medicacion, action: .injectToday)) }
+            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de \(medicacion.name)", screen: .medicacion, action: .injectToday)) }
+            else if d <= 2 { out.append(Alert(level: .soon, icon: "syringe", text: "Pinchazo de \(medicacion.name) \(relativeDays(d))", screen: .medicacion)) }
         }
         if let l = weight.last {
             let days = DayKey.days(from: l.date, to: today)
@@ -60,10 +60,10 @@ extension Store {
                 if n <= 7 { out.append(Alert(level: n == 0 ? .urgent : .info, icon: "gift", text: "Cumpleaños de \(p.name) \(relativeDays(n))" + (b.age.map { " (\($0) años)" } ?? ""), screen: .personas)) }
             }
         }
-        for o in nala.overdue { out.append(Alert(level: .soon, icon: "cat", text: "\(nala.name): \(o.title) vencida el \(DayKey.dmy(o.date))", screen: .nala)) }
-        for u in nala.upcoming.prefix(2) {
+        for o in mascota.overdue { out.append(Alert(level: .soon, icon: "pawprint", text: "\(mascota.name): \(o.title) vencida el \(DayKey.dmy(o.date))", screen: .mascota)) }
+        for u in mascota.upcoming.prefix(2) {
             let n = DayKey.days(from: today, to: u.date)
-            if n <= 14 { out.append(Alert(level: .info, icon: "cat", text: "\(nala.name): \(u.title) \(relativeDays(n))", screen: .nala)) }
+            if n <= 14 { out.append(Alert(level: .info, icon: "pawprint", text: "\(mascota.name): \(u.title) \(relativeDays(n))", screen: .mascota)) }
         }
         for e in events {
             let n = DayKey.days(from: today, to: e.date)
@@ -121,7 +121,7 @@ extension Store {
         out[.compra] = shoppingItems.filter { !$0.done }.count
         out[.avisos] = alerts(today: today).filter { $0.level != .info }.count
         out[.enlaces] = brokenLinkCount
-        if let d = mounjaro.daysUntilNext, d <= 0 { out[.mounjaro] = 1 }
+        if let d = medicacion.daysUntilNext, d <= 0 { out[.medicacion] = 1 }
         return out.filter { $0.value > 0 }
     }
 

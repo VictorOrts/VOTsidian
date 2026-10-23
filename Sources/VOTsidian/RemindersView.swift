@@ -2,15 +2,15 @@ import SwiftUI
 
 struct RemindersView: View {
     @Environment(Store.self) private var store
-    @AppStorage("remMounjaro") private var mounjaro = true
-    @AppStorage("remMounjaroMin") private var mounjaroMin = 540
+    @AppStorage("remMounjaro") private var medicacion = true
+    @AppStorage("remMounjaroMin") private var medicacionMin = 540
     @AppStorage("remReview") private var review = true
     @AppStorage("remReviewDay") private var reviewDay = 1
     @AppStorage("remReviewMin") private var reviewMin = 1140
     @AppStorage("remWeight") private var weightOn = true
     @AppStorage("remWeightMin") private var weightMin = 540
     @AppStorage("remTasks") private var tasksOn = true
-    @AppStorage("remNala") private var nalaOn = true
+    @AppStorage("remNala") private var mascotaOn = true
     @AppStorage("remBirthdays") private var birthdays = true
     @AppStorage("remDocs") private var docs = true
     @AppStorage("remEvents") private var eventsOn = true
@@ -26,8 +26,8 @@ struct RemindersView: View {
     }
 
     private var plan: ReminderPlan {
-        ReminderPlan(mounjaro: mounjaro, mounjaroMinutes: mounjaroMin, review: review, reviewWeekday: reviewDay, reviewMinutes: reviewMin,
-                     monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, nala: nalaOn,
+        ReminderPlan(medicacion: medicacion, medicacionMinutes: medicacionMin, review: review, reviewWeekday: reviewDay, reviewMinutes: reviewMin,
+                     monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, mascota: mascotaOn,
                      birthdays: birthdays, documents: docs, events: eventsOn, payments: payments)
     }
 
@@ -57,7 +57,7 @@ struct RemindersView: View {
                 }
                 Card(title: "Qué recordar", icon: "bell") {
                     VStack(spacing: 6) {
-                        row("Pinchazo de \(store.mounjaro.name) (cada \(store.mounjaro.everyDays) días)", $mounjaro) { hour($mounjaroMin) }
+                        row("Pinchazo de \(store.medicacion.name) (cada \(store.medicacion.everyDays) días)", $medicacion) { hour($medicacionMin) }
                         Divider()
                         row("Revisión semanal", $review) {
                             Picker("Día", selection: $reviewDay) {
@@ -70,7 +70,7 @@ struct RemindersView: View {
                         Divider()
                         row("Tareas con fecha", $tasksOn)
                         Divider()
-                        row("Citas y vacunas de \(store.nala.name)", $nalaOn)
+                        row("Citas y vacunas de \(store.mascota.name)", $mascotaOn)
                         Divider()
                         row("Cumpleaños (cada año)", $birthdays)
                         Divider()

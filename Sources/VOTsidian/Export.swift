@@ -39,7 +39,7 @@ extension Store {
     func yearStats(_ year: Int) -> YearStats {
         let cal = DayKey.calendar()
         func inYear(_ d: Date) -> Bool { cal.component(.year, from: d) == year }
-        let doses = mounjaro.doses.filter { inYear($0.date) }
+        let doses = medicacion.doses.filter { inYear($0.date) }
         var byMg: [Double: Int] = [:]
         for d in doses { if let mg = d.mg { byMg[mg, default: 0] += 1 } }
         var perMonth: [Int: [Double]] = [:]
@@ -75,7 +75,7 @@ extension Store {
             made.append(u)
         }
         try write("peso.csv", CSV.file(["fecha", "peso_kg", "notas"], weight.records.map { [DayKey.string($0.date), CSV.num($0.kg), $0.note] }))
-        try write("mounjaro.csv", CSV.file(["fecha", "dosis_mg", "zona", "notas"], mounjaro.doses.map { [DayKey.string($0.date), CSV.num($0.mg), $0.site, $0.note] }))
+        try write("medicacion.csv", CSV.file(["fecha", "dosis_mg", "zona", "notas"], medicacion.doses.map { [DayKey.string($0.date), CSV.num($0.mg), $0.site, $0.note] }))
         let (_, measures) = Measures.parse(read(Measures.file))
         if !measures.isEmpty {
             try write("medidas.csv", CSV.file(["fecha"] + Measures.fields + ["notas"], measures.map { m in [DayKey.string(m.date)] + Measures.fields.map { f in CSV.num(m.values[f]) } + [m.note] }))

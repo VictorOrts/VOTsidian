@@ -2,8 +2,8 @@ import SwiftUI
 
 enum Screen: String, CaseIterable, Identifiable {
     case inicio = "Inicio", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
-    case peso = "Peso", nutricion = "Plan nutricional", mounjaro = "Mounjaro", salud = "Salud y médicos", correlaciones = "Correlaciones"
-    case casa = "Casa", compra = "Compra", moda = "Moda", nala = "Nala", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas", gastos = "Gastos"
+    case peso = "Peso", nutricion = "Plan nutricional", medicacion = "Medicación", salud = "Salud y médicos", correlaciones = "Correlaciones"
+    case casa = "Casa", compra = "Compra", moda = "Moda", mascota = "Mascota", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas", gastos = "Gastos"
     case notas = "Notas", bases = "Bases", grafo = "Grafo", enlaces = "Enlaces rotos", avisos = "Avisos", ajustes = "Ajustes"
     var id: String { rawValue }
     var icon: String {
@@ -18,14 +18,14 @@ enum Screen: String, CaseIterable, Identifiable {
         case .objetivos: "target"
         case .peso: "scalemass"
         case .nutricion: "fork.knife"
-        case .mounjaro: "syringe"
+        case .medicacion: "syringe"
         case .salud: "cross.case"
         case .correlaciones: "chart.xyaxis.line"
         case .enlaces: "link.badge.plus"
         case .casa: "house.and.flag"
         case .compra: "cart"
         case .moda: "tshirt"
-        case .nala: "pawprint"
+        case .mascota: "pawprint"
         case .personas: "person.2"
         case .documentos: "doc.on.doc"
         case .finanzas: "eurosign.circle"
@@ -48,8 +48,8 @@ struct ContentView: View {
     private struct SidebarSection { let title: String; let color: Color; let screens: [Screen] }
     private static let sections = [
         SidebarSection(title: "Día a día", color: Brand.accent, screens: [.tareas, .calendario, .planificar, .semana, .mes, .proyectos, .objetivos]),
-        SidebarSection(title: "Cuerpo", color: Brand.violet, screens: [.peso, .nutricion, .mounjaro, .salud, .correlaciones]),
-        SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .nala, .personas, .documentos, .finanzas, .gastos]),
+        SidebarSection(title: "Cuerpo", color: Brand.violet, screens: [.peso, .nutricion, .medicacion, .salud, .correlaciones]),
+        SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .mascota, .personas, .documentos, .finanzas, .gastos]),
         SidebarSection(title: "Conocimiento", color: Brand.info, screens: [.notas, .bases, .grafo, .enlaces]),
         SidebarSection(title: "Sistema", color: Brand.slate, screens: [.avisos, .ajustes]),
     ]
@@ -101,14 +101,14 @@ struct ContentView: View {
         case .objetivos: ObjetivosView()
         case .peso: PesoView()
         case .nutricion: NutricionView()
-        case .mounjaro: MounjaroView()
+        case .medicacion: MedicacionView()
         case .salud: SaludView()
         case .correlaciones: CorrelacionesView()
         case .enlaces: EnlacesView()
         case .casa: CasaView()
         case .compra: CompraView()
         case .moda: ModaView()
-        case .nala: NalaView()
+        case .mascota: MascotaView()
         case .personas: PersonasView()
         case .documentos: DocumentosView()
         case .finanzas: FinanzasView()
@@ -166,9 +166,9 @@ struct ContentView: View {
             .tag(s)
     }
 
-    /// Tareas en rojo si hay vencidas; Mounjaro dice «hoy» o «tarde» en vez de un número.
+    /// Tareas en rojo si hay vencidas; Medicación dice «hoy» o «tarde» en vez de un número.
     private func badge(_ s: Screen) -> Text? {
-        if s == .mounjaro, let d = store.mounjaro.daysUntilNext, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
+        if s == .medicacion, let d = store.medicacion.daysUntilNext, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
         guard let n = counts[s] else { return nil }
         let overdue = s == .tareas && store.tasks.contains { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }
         return Text("\(n)").foregroundStyle(overdue ? Brand.bad : .secondary)

@@ -5,14 +5,14 @@ import SwiftUI
 
 /// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta sin tocar el código:
 /// `defaults write <id de la app> vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"`
-/// (claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
+/// (claves: peso, medicacion, plan, proyecto, mascota, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
 enum VaultPath {
     static let defaults: [String: String] = [
         "peso": "Cambio físico/Peso.md",
-        "mounjaro": "Cambio físico/Mounjaro.md",
+        "medicacion": "Cambio físico/Mounjaro.md",
         "plan": "Cambio físico/Plan Nutricional.md",
         "proyecto": "Proyectos/Cambio físico 2026.md",
-        "nala": "Nala/Nala.md",
+        "mascota": "Nala/Nala.md",
         "casa": "Casa/Casa.md",
         "moda": "Moda/Armario.md",
         "medico": "Organización/Médico/Médico.md",
@@ -27,20 +27,21 @@ enum VaultPath {
         "medidas": "Cambio físico/Medidas.md",
     ]
     static func path(_ key: String) -> String {
-        let custom = UserDefaults.standard.dictionary(forKey: "vaultPathOverrides")?[key] as? String
-        return custom.flatMap { $0.isEmpty ? nil : $0 } ?? defaults[key] ?? key
+        overrides[key].flatMap { $0.isEmpty ? nil : $0 } ?? defaults[key] ?? key
     }
-    /// Rutas para una carpeta nueva: las de `defaults` son las de la primera carpeta de la app («Cambio físico», «Nala»…),
+    /// Claves con que se guardaban antes algunas rutas cambiadas; se siguen leyendo.
+    static let legacyKeys = ["mounjaro": "medicacion", "nala": "mascota"]
+    /// Rutas para una carpeta nueva: las de `defaults` son las de la primera carpeta de la app («Cambio físico/…» y demás),
     /// que se mantienen para quien ya las usa. El asistente pone estas solo para las notas que aún no existen.
     static let fresh: [String: String] = [
         "peso": "Salud/Peso.md",
         "medidas": "Salud/Medidas.md",
-        "mounjaro": "Salud/Medicación.md",
+        "medicacion": "Salud/Medicación.md",
         "plan": "Salud/Plan nutricional.md",
         "medico": "Salud/Médico.md",
         "proyecto": "Proyectos/Objetivo de peso.md",
         "compra": "Casa/Lista de la compra.md",
-        "nala": "Mascota/Mascota.md",
+        "mascota": "Mascota/Mascota.md",
     ]
 
     /// Carpeta de la nota de `key` («Cambio físico» para peso), o `""` si está en la raíz.
@@ -49,20 +50,26 @@ enum VaultPath {
     static func beside(_ key: String, _ name: String) -> String { folder(key).isEmpty ? name : folder(key) + "/" + name }
 
     /// Rutas cambiadas (Ajustes → Módulos), por clave.
-    static var overrides: [String: String] {
-        (UserDefaults.standard.dictionary(forKey: "vaultPathOverrides") as? [String: String]) ?? [:]
+    static var overrides: [String: String] { normalized(UserDefaults.standard.dictionary(forKey: "vaultPathOverrides") ?? [:]) }
+    /// Lo guardado, con las claves antiguas pasadas a las nuevas.
+    static func normalized(_ raw: [String: Any]) -> [String: String] {
+        let saved = raw.compactMapValues { $0 as? String }
+        var out: [String: String] = [:]
+        for (k, v) in saved { out[legacyKeys[k] ?? k] = v }
+        for (k, v) in saved where legacyKeys[k] == nil { out[k] = v }   // si están las dos, gana la nueva
+        return out
     }
     /// Cambia la ruta de una clave; `nil` vuelve a la de siempre.
     static func setOverride(_ key: String, _ value: String?) {
-        var o = overrides
+        var o = overrides   // ya con las claves nuevas: al guardar, las antiguas desaparecen
         o[key] = value
         if o.isEmpty { UserDefaults.standard.removeObject(forKey: "vaultPathOverrides") } else { UserDefaults.standard.set(o, forKey: "vaultPathOverrides") }
     }
     static var peso: String { path("peso") }
-    static var mounjaro: String { path("mounjaro") }
+    static var medicacion: String { path("medicacion") }
     static var plan: String { path("plan") }
     static var proyecto: String { path("proyecto") }
-    static var nala: String { path("nala") }
+    static var mascota: String { path("mascota") }
     static var casa: String { path("casa") }
     static var moda: String { path("moda") }
     static var medico: String { path("medico") }
@@ -94,8 +101,8 @@ struct NoteFile: Identifiable, Hashable {
 final class Store {
     private(set) var root: URL
     private(set) var weight = WeightData()
-    private(set) var mounjaro = MounjaroData()
-    private(set) var nala = NalaData()
+    private(set) var medicacion = MedicacionData()
+    private(set) var mascota = MascotaData()
     private(set) var plan = PlanData()
     private(set) var milestones: [Milestone] = []
     private(set) var habitDefs: [HabitDef] = []
@@ -240,11 +247,7 @@ final class Store {
             return URL(fileURLWithPath: saved)
         }
         let home = fm.homeDirectoryForCurrentUser
-        for p in ["Library/Mobile Documents/com~apple~CloudDocs/VOTsidian", "Library/Mobile Documents/iCloud~md~obsidian/Documents/VictorBrain", "Documents/VictorBrain"] {
-            let url = home.appendingPathComponent(p)
-            if fm.fileExists(atPath: url.appendingPathComponent(VaultPath.peso).path) { return url }
-        }
-        // Sin nada de antes: una carpeta nueva en iCloud Drive (si está activado) para tenerla en todos los dispositivos.
+        // Sin carpeta elegida: VOTsidian en iCloud Drive (si está activado) para tenerla en todos los dispositivos.
         let icloud = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
         return fm.fileExists(atPath: icloud.path) ? icloud.appendingPathComponent("VOTsidian") : home.appendingPathComponent("Documents/VOTsidian")
     }
@@ -374,8 +377,8 @@ final class Store {
             if derivedInputs[rel] != t { derivedInputs[rel] = t; body(t) }
         }
         derive(VaultPath.peso) { weight = Parse.weight($0) }
-        derive(VaultPath.mounjaro) { mounjaro = Parse.mounjaro($0) }
-        derive(VaultPath.nala) { nala = Parse.nala($0) }
+        derive(VaultPath.medicacion) { medicacion = Parse.medicacion($0) }
+        derive(VaultPath.mascota) { mascota = Parse.mascota($0) }
         derive(VaultPath.plan) { plan = Parse.plan($0) }
         derive(VaultPath.proyecto) { milestones = Parse.milestones($0) }
         tasks = allTasks

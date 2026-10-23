@@ -21,14 +21,14 @@ import Testing
     #expect(Parse.weight(again).records.count == 3)
 }
 
-@Test func mounjaroNextAndSite() throws {
-    let m = Parse.mounjaro(mounjaroFixture)
+@Test func medicacionNextAndSite() throws {
+    let m = Parse.medicacion(medicacionFixture)
     #expect(m.doses.count == 2)
     #expect(DayKey.string(m.next!) == "2026-10-18")
     #expect(m.suggestedSite == "Abdomen derecho")
-    let out = try #require(Edit.addDose(mounjaroFixture, date: DayKey.date("2026-10-19")!, dose: 7.5, site: "Abdomen derecho", note: ""))
+    let out = try #require(Edit.addDose(medicacionFixture, date: DayKey.date("2026-10-19")!, dose: 7.5, site: "Abdomen derecho", note: ""))
     #expect(out.contains("| 2026-10-19 | 7,5 mg | Abdomen derecho |  |"))
-    #expect(Parse.mounjaro(out).doses.count == 3)
+    #expect(Parse.medicacion(out).doses.count == 3)
 }
 
 @Test func weekParseAndEdits() throws {
@@ -71,9 +71,9 @@ import Testing
     #expect(out.contains("- [ ] Idea\n- [ ] Llamar 📅 2026-11-02\n\n## Ideas"))
 }
 
-@Test func nalaAlerts() {
-    let text = "---\nnombre: Nala\nnacimiento: 01/04/2022\n---\n## Salud\n| Fecha | Tipo | Detalle | Próxima | Coste |\n| --- | --- | --- | --- | --- |\n| 2024-02-16 | Revisión | | 2024-12-01 | |\n| 2026-01-01 | Vacuna | | 2099-01-01 | |"
-    let n = Parse.nala(text)
+@Test func mascotaAlerts() {
+    let text = "---\nnombre: Luna\nnacimiento: 01/04/2022\n---\n## Salud\n| Fecha | Tipo | Detalle | Próxima | Coste |\n| --- | --- | --- | --- | --- |\n| 2024-02-16 | Revisión | | 2024-12-01 | |\n| 2026-01-01 | Vacuna | | 2099-01-01 | |"
+    let n = Parse.mascota(text)
     #expect(n.visits.count == 2)
     #expect(n.overdue.count == 1 && n.overdue[0].title == "Revisión")
     #expect(n.upcoming.count == 1)
@@ -89,12 +89,12 @@ import Testing
 }
 
 @Test func icsEvents() {
-    let m = Parse.mounjaro(mounjaroFixture)
+    let m = Parse.medicacion(medicacionFixture)
     let tasks = Parse.tasks("- [ ] Dentista 📅 2026-10-20", file: "x.md")
     let today = DayKey.date("2026-10-19")!
-    let ev = ICS.events(ReminderSources(mounjaro: m, tasks: tasks), plan: ReminderPlan(), today: today)
-    #expect(ev.first { $0.uid == "mounjaro" }?.rule == "FREQ=DAILY;INTERVAL=9")
-    #expect(DayKey.string(ev.first { $0.uid == "mounjaro" }!.start) == "2026-10-19") // atrasado: empieza hoy
+    let ev = ICS.events(ReminderSources(medicacion: m, tasks: tasks), plan: ReminderPlan(), today: today)
+    #expect(ev.first { $0.uid == "medicacion" }?.rule == "FREQ=DAILY;INTERVAL=9")
+    #expect(DayKey.string(ev.first { $0.uid == "medicacion" }!.start) == "2026-10-19") // atrasado: empieza hoy
     #expect(ev.contains { $0.title == "Dentista" && $0.minutes == nil })
     let ics = ICS.build(ev)
     #expect(ics.contains("DTSTART;VALUE=DATE:20261020"))
@@ -132,11 +132,11 @@ import Testing
 @MainActor @Test func realVaultCopy() throws {
     guard let path = ProcessInfo.processInfo.environment["VAULT_COPY"] else { return }
     let store = Store(root: try tempVaultCopy(path))
-    print("PESOS", store.weight.records.count, store.weight.last?.kg ?? 0, "DOSIS", store.mounjaro.doses.count,
-          "NEXT", store.mounjaro.next.map(DayKey.string) ?? "-", "TAREAS", store.tasks.count, "REVS", store.reviews.keys.sorted(),
-          "HABITOS", store.habitNames, "NOTAS", store.notes.count, "NALA", store.nala.visits.count, "PLAN", store.plan.kcal,
+    print("PESOS", store.weight.records.count, store.weight.last?.kg ?? 0, "DOSIS", store.medicacion.doses.count,
+          "NEXT", store.medicacion.next.map(DayKey.string) ?? "-", "TAREAS", store.tasks.count, "REVS", store.reviews.keys.sorted(),
+          "HABITOS", store.habitNames, "NOTAS", store.notes.count, "NALA", store.mascota.visits.count, "PLAN", store.plan.kcal,
           "HITOS", store.milestones.count)
-    #expect(store.weight.records.count >= 9 && store.mounjaro.doses.count >= 26)
+    #expect(store.weight.records.count >= 9 && store.medicacion.doses.count >= 26)
     #expect(store.habitNames.count == 5)
     print("LINKS", store.outLinks.values.reduce(0) { $0 + $1.count }, "INICIO->", store.outLinks["Inicio.md"]?.count ?? 0, "BACK(Peso)", store.backLinks["Cambio físico/Peso.md"]?.count ?? 0, "CASA", store.casa.reformas.rows.count, store.casa.compras.rows.count, store.casa.electros.rows.count)
     #expect(store.outLinks.values.reduce(0) { $0 + $1.count } >= 15)
@@ -147,7 +147,7 @@ import Testing
     let aguaBefore = store.reviews["2026-W43"]?.habits.first { $0.name == "Agua" }?.days[0] ?? false
     store.toggleHabit(key: "2026-W43", habit: "Agua", day: 0)
     #expect(store.weight.last?.kg == 104.9)
-    #expect(store.mounjaro.last?.site == "Abdomen derecho")
+    #expect(store.medicacion.last?.site == "Abdomen derecho")
     #expect(store.reviews["2026-W44"] != nil)
     #expect(store.reviews["2026-W43"]?.habits.first { $0.name == "Agua" }?.days[0] == !aguaBefore)
 }
@@ -181,8 +181,8 @@ import Testing
 }
 
 @Test func linkExtraction() {
-    let text = "Ver [[Peso]] y [[Mapa de VictorBrain.excalidraw\\|Mapa]] y [[Nota#sección]] y [[Carpeta/Otra|alias]]\n```\n[[NoEnCodigo]]\n```\n![[Imagen]]"
-    #expect(Links.extract(text) == ["Peso", "Mapa de VictorBrain.excalidraw", "Nota", "Otra", "Imagen"])
+    let text = "Ver [[Peso]] y [[Mapa de mis notas.excalidraw\\|Mapa]] y [[Nota#sección]] y [[Carpeta/Otra|alias]]\n```\n[[NoEnCodigo]]\n```\n![[Imagen]]"
+    #expect(Links.extract(text) == ["Peso", "Mapa de mis notas.excalidraw", "Nota", "Otra", "Imagen"])
 }
 
 @Test func graphLayoutBounds() {
@@ -217,7 +217,7 @@ import Testing
 }
 
 @Test func dosePeriods() {
-    let m = Parse.mounjaro("---\ncada_dias: 9\n---\n| Fecha | Dosis | Zona | N |\n|--|--|--|--|\n| 2026-01-01 | 2,5 mg | A | |\n| 2026-01-10 | 2,5 mg | A | |\n| 2026-02-01 | 5 mg | A | |\n| 2026-03-01 | 5 mg | A | |")
+    let m = Parse.medicacion("---\ncada_dias: 9\n---\n| Fecha | Dosis | Zona | N |\n|--|--|--|--|\n| 2026-01-01 | 2,5 mg | A | |\n| 2026-01-10 | 2,5 mg | A | |\n| 2026-02-01 | 5 mg | A | |\n| 2026-03-01 | 5 mg | A | |")
     let w = [WeightRecord(date: DayKey.date("2026-01-01")!, kg: 100, note: ""), WeightRecord(date: DayKey.date("2026-02-01")!, kg: 96, note: ""), WeightRecord(date: DayKey.date("2026-03-05")!, kg: 91, note: "")]
     let p = m.periods(weights: w)
     #expect(p.count == 2 && p[0].mg == 2.5 && p[0].count == 2 && p[1].count == 2)
@@ -228,7 +228,7 @@ import Testing
 @Test func moreReminderEvents() {
     let people = [Person(name: "Sergio", relation: "", birthday: "1990-10-17", lastContact: nil, line: 1)]
     let src = ReminderSources(people: people, documents: [("Pasaporte", DayKey.date("2026-12-01")!)], events: [("Boda", DayKey.date("2026-11-20")!)])
-    let ev = ICS.events(src, plan: ReminderPlan(mounjaro: false, review: false, monthlyWeight: false, tasks: false, nala: false), today: DayKey.date("2026-10-19")!)
+    let ev = ICS.events(src, plan: ReminderPlan(medicacion: false, review: false, monthlyWeight: false, tasks: false, mascota: false), today: DayKey.date("2026-10-19")!)
     #expect(ev.count == 3)
     let ics = ICS.build(ev)
     #expect(ics.contains("RRULE:FREQ=YEARLY") && ics.contains("TRIGGER:-P30D") && ics.contains("TRIGGER:-P7D"))
@@ -273,8 +273,8 @@ import Testing
 }
 
 @Test func linkContextFindsLinkingLine() {
-    let text = "---\ntipo: x\n---\n# Título\n```\n[[Nala]] en código\n```\n- [ ] Llevar a [[nala|la gata]] al vet\nOtra [[Casa]]"
-    #expect(LinkContext.line(in: text, linkingTo: "Nala") == "Llevar a la gata al vet")
+    let text = "---\ntipo: x\n---\n# Título\n```\n[[Luna]] en código\n```\n- [ ] Llevar a [[luna|la gata]] al vet\nOtra [[Casa]]"
+    #expect(LinkContext.line(in: text, linkingTo: "Luna") == "Llevar a la gata al vet")
     #expect(LinkContext.line(in: text, linkingTo: "Casa") == "Otra Casa")
     #expect(LinkContext.line(in: text, linkingTo: "Nada") == nil)
 }

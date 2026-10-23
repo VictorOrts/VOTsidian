@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AgendaItem: Identifiable {
     enum Kind: String {
-        case task, done, appointment, dose, doseNext, weight, birthday, document, nala, event, shopping, diary
+        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, event, shopping, diary
         var icon: String {
             switch self {
             case .task: "circle"
@@ -12,7 +12,7 @@ struct AgendaItem: Identifiable {
             case .weight: "scalemass"
             case .birthday: "gift"
             case .document: "doc.on.doc"
-            case .nala: "cat"
+            case .mascota: "pawprint"
             case .event: "party.popper"
             case .shopping: "bag"
             case .diary: "note.text"
@@ -27,7 +27,7 @@ struct AgendaItem: Identifiable {
             case .weight: Brand.amber
             case .birthday: Brand.sky
             case .document: Brand.slate
-            case .nala: Brand.clay
+            case .mascota: Brand.clay
             case .event: Brand.rose
             case .shopping: Brand.lime
             case .diary: Brand.info
@@ -74,13 +74,13 @@ extension Store {
                 add(AgendaItem(id: "s\(t.id)", kind: .task, title: t.text, detail: "planeada · \(t.noteName)", date: s, task: t))
             }
         }
-        for d in mounjaro.doses { add(AgendaItem(id: "dose\(d.line)", kind: .dose, title: "Pinchazo \(d.dose)", detail: d.site, date: d.date, screen: .mounjaro)) }
-        if let last = mounjaro.last {
-            var next = DayKey.adding(days: mounjaro.everyDays, to: last.date)
+        for d in medicacion.doses { add(AgendaItem(id: "dose\(d.line)", kind: .dose, title: "Pinchazo \(d.dose)", detail: d.site, date: d.date, screen: .medicacion)) }
+        if let last = medicacion.last {
+            var next = DayKey.adding(days: medicacion.everyDays, to: last.date)
             var guardCount = 0
             while next <= end, guardCount < 80 {
-                if next >= DayKey.today() { add(AgendaItem(id: "next\(DayKey.string(next))", kind: .doseNext, title: "Toca pinchazo", detail: "cada \(mounjaro.everyDays) días", date: next, screen: .mounjaro)) }
-                next = DayKey.adding(days: mounjaro.everyDays, to: next)
+                if next >= DayKey.today() { add(AgendaItem(id: "next\(DayKey.string(next))", kind: .doseNext, title: "Toca pinchazo", detail: "cada \(medicacion.everyDays) días", date: next, screen: .medicacion)) }
+                next = DayKey.adding(days: medicacion.everyDays, to: next)
                 guardCount += 1
             }
         }
@@ -98,9 +98,9 @@ extension Store {
             }
         }
         for d in documents { add(AgendaItem(id: "doc\(d.name)", kind: .document, title: "Caduca: \(d.name)", detail: d.section, date: d.date, screen: .documentos)) }
-        for v in nala.visits {
-            add(AgendaItem(id: "nv\(v.line)", kind: .nala, title: "\(nala.name): \(v.tipo)", detail: v.detalle, date: v.date, screen: .nala))
-            if let p = v.proxima { add(AgendaItem(id: "np\(v.line)", kind: .nala, title: "\(nala.name): \(v.tipo.isEmpty ? "revisión" : v.tipo)", detail: "próxima", date: p, screen: .nala)) }
+        for v in mascota.visits {
+            add(AgendaItem(id: "nv\(v.line)", kind: .mascota, title: "\(mascota.name): \(v.tipo)", detail: v.detalle, date: v.date, screen: .mascota))
+            if let p = v.proxima { add(AgendaItem(id: "np\(v.line)", kind: .mascota, title: "\(mascota.name): \(v.tipo.isEmpty ? "revisión" : v.tipo)", detail: "próxima", date: p, screen: .mascota)) }
         }
         for e in events { add(AgendaItem(id: "e\(e.path)", kind: .event, title: e.name, date: e.date, path: e.path)) }
         for (path, m) in noteMeta where m["tipo"] == "cita_medica" {

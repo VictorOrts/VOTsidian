@@ -2,15 +2,15 @@ import AppKit
 import Foundation
 
 struct ReminderPlan: Equatable {
-    var mounjaro = true
-    var mounjaroMinutes = 9 * 60
+    var medicacion = true
+    var medicacionMinutes = 9 * 60
     var review = true
     var reviewWeekday = 1 // 1 = domingo (Calendar gregoriano)
     var reviewMinutes = 19 * 60
     var monthlyWeight = true
     var weightMinutes = 9 * 60
     var tasks = true
-    var nala = true
+    var mascota = true
     var birthdays = true
     var documents = true
     var events = true
@@ -21,18 +21,18 @@ struct ReminderPlan: Equatable {
         let d = UserDefaults.standard
         func flag(_ k: String) -> Bool { d.object(forKey: k) as? Bool ?? true }
         func int(_ k: String, _ v: Int) -> Int { d.object(forKey: k) as? Int ?? v }
-        return ReminderPlan(mounjaro: flag("remMounjaro"), mounjaroMinutes: int("remMounjaroMin", 540),
+        return ReminderPlan(medicacion: flag("remMounjaro"), medicacionMinutes: int("remMounjaroMin", 540),
                             review: flag("remReview"), reviewWeekday: int("remReviewDay", 1), reviewMinutes: int("remReviewMin", 1140),
                             monthlyWeight: flag("remWeight"), weightMinutes: int("remWeightMin", 540),
-                            tasks: flag("remTasks"), nala: flag("remNala"), birthdays: flag("remBirthdays"),
+                            tasks: flag("remTasks"), mascota: flag("remNala"), birthdays: flag("remBirthdays"),
                             documents: flag("remDocs"), events: flag("remEvents"), payments: flag("remPayments"))
     }
 }
 
 struct ReminderSources {
-    var mounjaro = MounjaroData()
+    var medicacion = MedicacionData()
     var tasks: [TaskItem] = []
-    var nala = NalaData()
+    var mascota = MascotaData()
     var people: [Person] = []
     var documents: [(name: String, date: Date)] = []
     var events: [(name: String, date: Date)] = []
@@ -70,13 +70,13 @@ enum ICS {
 
     static func events(_ src: ReminderSources, plan: ReminderPlan, today: Date = DayKey.today()) -> [ICSEvent] {
         let cal = DayKey.calendar()
-        let mounjaro = src.mounjaro, tasks = src.tasks, nala = src.nala
+        let medicacion = src.medicacion, tasks = src.tasks, mascota = src.mascota
         var out: [ICSEvent] = []
 
-        if plan.mounjaro, let next = mounjaro.next {
-            out.append(ICSEvent(uid: "mounjaro", title: "Pinchazo \(mounjaro.name)",
-                                notes: "Anótalo en \(VaultPath.mounjaro). Se repite cada \(mounjaro.everyDays) días desde el último registro.",
-                                start: max(next, today), minutes: plan.mounjaroMinutes, rule: "FREQ=DAILY;INTERVAL=\(mounjaro.everyDays)"))
+        if plan.medicacion, let next = medicacion.next {
+            out.append(ICSEvent(uid: "medicacion", title: "Pinchazo \(medicacion.name)",
+                                notes: "Anótalo en \(VaultPath.medicacion). Se repite cada \(medicacion.everyDays) días desde el último registro.",
+                                start: max(next, today), minutes: plan.medicacionMinutes, rule: "FREQ=DAILY;INTERVAL=\(medicacion.everyDays)"))
         }
         if plan.review {
             let delta = (plan.reviewWeekday - cal.component(.weekday, from: today) + 7) % 7
@@ -100,10 +100,10 @@ enum ICS {
                                     notes: "Tarea en la nota \(t.noteName).", start: due, minutes: nil, rule: nil))
             }
         }
-        if plan.nala {
-            for u in nala.upcoming {
-                out.append(ICSEvent(uid: "nala-" + stableID(u.title + DayKey.string(u.date)), title: "\(nala.name): \(u.title)",
-                                    notes: "Cita o revisión de \(nala.name).", start: u.date, minutes: nil, rule: nil))
+        if plan.mascota {
+            for u in mascota.upcoming {
+                out.append(ICSEvent(uid: "mascota-" + stableID(u.title + DayKey.string(u.date)), title: "\(mascota.name): \(u.title)",
+                                    notes: "Cita o revisión de \(mascota.name).", start: u.date, minutes: nil, rule: nil))
             }
         }
         if plan.birthdays {

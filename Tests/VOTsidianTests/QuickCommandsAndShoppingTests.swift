@@ -69,9 +69,9 @@ import Testing
     #expect(store.weight.last?.kg == 104.2 && store.weight.records.count == kgBefore + 1)
     store.run(.mood(5, DayKey.today())); store.run(.sleep(8, DayKey.today()))
     #expect(store.diaryValue(DayKey.today(), "animo") == 5 && store.diaryValue(DayKey.today(), "sueno_h") == 8)
-    let dosesBefore = store.mounjaro.doses.count
+    let dosesBefore = store.medicacion.doses.count
     store.run(.injection(DayKey.today()))
-    #expect(store.mounjaro.doses.count == dosesBefore + 1 && store.mounjaro.last?.dose == "7,5 mg")
+    #expect(store.medicacion.doses.count == dosesBefore + 1 && store.medicacion.last?.dose == "7,5 mg")
     store.run(.task("Probar orden", DayKey.adding(days: 2, to: DayKey.today()), nil, 3))
     #expect(store.tasks.contains { $0.text == "Probar orden" && $0.priority == 3 })
     #expect(store.run(.shopping(["té", "Pan"])).contains("Añadido"))

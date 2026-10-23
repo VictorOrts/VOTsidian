@@ -74,8 +74,8 @@ import Testing
     let oct15 = try #require(DayKey.date("2026-10-15")), oct18 = try #require(DayKey.date("2026-10-18"))
     let peso = try #require(Edit.addWeight(pesoFixture, date: oct15, kg: 104, note: "tras | viaje"))
     #expect(Parse.weight(peso).records.first { $0.kg == 104 }?.note == "tras | viaje")
-    let dosis = try #require(Edit.addDose(mounjaroFixture, date: oct18, dose: 7.5, site: "Muslo", note: "a|b"))
-    #expect(Parse.mounjaro(dosis).doses.last?.note == "a|b")
+    let dosis = try #require(Edit.addDose(medicacionFixture, date: oct18, dose: 7.5, site: "Muslo", note: "a|b"))
+    #expect(Parse.medicacion(dosis).doses.last?.note == "a|b")
 }
 
 @MainActor @Test func createBudgetDoesNotOverwriteAnUnscannedNote() throws {
