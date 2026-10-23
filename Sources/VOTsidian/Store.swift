@@ -130,6 +130,8 @@ final class Store {
     /// Notas que existen pero no se pudieron leer (no son UTF-8, permisos…): la app no las ve, y se avisa.
     private(set) var unreadableFiles: [String] = []
     @ObservationIgnored var foldedTexts: [String: String] = [:]
+    /// Nombres de nota ya plegados; se rehacen en cada recarga.
+    @ObservationIgnored var nameKeys: NameKeys?
     struct ParsedNote { var tasks: [TaskItem]; var meta: [String: String]; var tags: [String]; var snippet: String; var aliases: [String]; var links: [String] }
     struct CachedFile { var mtime: Date; var size: Int; var text: String; var parsed: ParsedNote }
     @ObservationIgnored var fileCache: [String: CachedFile] = [:]
@@ -216,8 +218,9 @@ final class Store {
     func url(_ rel: String) -> URL { root.appendingPathComponent(rel) }
     /// Texto del archivo, o `nil` si no se puede leer (no existe, iCloud sin descargar, no es UTF-8).
     func readOptional(_ rel: String) -> String? { try? String(contentsOf: url(rel), encoding: .utf8) }
-    /// Texto para mostrar; `""` si no se puede leer. Para comparar antes de escribir usa `readOptional`.
-    func read(_ rel: String) -> String { readOptional(rel) ?? "" }
+    /// Texto para mostrar; `""` si no se puede leer. Las notas salen de lo ya cargado: las vistas lo piden en cada pintado
+    /// y leer del disco (o esperar a iCloud) bloqueaba la ventana. Para comparar antes de escribir usa `readOptional`.
+    func read(_ rel: String) -> String { noteTexts[rel] ?? readOptional(rel) ?? "" }
 
     // MARK: Carga
 
@@ -371,6 +374,7 @@ final class Store {
         pendingDownloads = pending.sorted()
         unreadableFiles = scan.unreadable.sorted()
         foldedTexts = [:]
+        nameKeys = nil
         // Los hábitos son los de la revisión más reciente; si no hay ninguna, los de siempre.
         if let latest = found.keys.sorted().last(where: { !(found[$0]?.habits.isEmpty ?? true) }), let r = found[latest] {
             habitDefs = r.habits.map { HabitDef(name: $0.name, criterion: $0.criterion) }

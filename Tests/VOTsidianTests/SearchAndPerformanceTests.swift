@@ -55,6 +55,10 @@ import Testing
     let agendaCold = clock.measure { _ = store.agenda(from: DayKey.today(), to: DayKey.adding(days: 400, to: DayKey.today())) }
     let agendaHot = clock.measure { _ = store.agenda(from: DayKey.today(), to: DayKey.adding(days: 400, to: DayKey.today())) }
     print("PERF agenda frío \(agendaCold) caliente \(agendaHot)")
+    // los enlaces ya están analizados en la caché: no se vuelven a extraer de cada nota
+    let broken = clock.measure { _ = store.brokenLinks() }
+    print("PERF enlaces rotos \(broken)")
+    #expect(broken < .milliseconds(100))
     #expect(agendaHot < agendaCold || agendaHot < .milliseconds(5))
 }
 

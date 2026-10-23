@@ -65,4 +65,8 @@ import Testing
     #expect(store.createMissingNote(missing) == "Notas/Algo nuevo.md")
     #expect(store.brokenLinks().isEmpty)
     #expect(Store.editDistance(Array("casa"), Array("cosa")) == 1)
+    // con límite corta en cuanto lo pasa, pero por debajo da la distancia exacta
+    #expect(Store.editDistance(Array("kitten"), Array("sitting")) == 3)
+    #expect(Store.editDistance(Array("kitten"), Array("sitting"), limit: 3) == 3)
+    #expect(Store.editDistance(Array("kitten"), Array("sitting"), limit: 1) == 2)
 }

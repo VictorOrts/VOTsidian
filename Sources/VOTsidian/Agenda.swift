@@ -164,16 +164,41 @@ extension Store {
     /// Como `resolve`, pero tolera plurales y pequeñas diferencias ("Medicos" → "Médico").
     func fuzzyResolve(_ name: String) -> String? {
         if let p = resolve(name) { return p }
-        func stem(_ s: String) -> String {
-            var t = MD.fold((s as NSString).lastPathComponent)
-            if t.hasSuffix("es"), t.count > 4 { t.removeLast(2) } else if t.hasSuffix("s"), t.count > 3 { t.removeLast() }
-            return t
-        }
-        let key = stem(name)
-        if let n = notes.first(where: { stem($0.name) == key }) { return n.path }
+        let stems = noteKeys.stems
+        let key = Store.stem(MD.fold((name as NSString).lastPathComponent))
+        if let i = stems.firstIndex(of: key) { return notes[i].path }
         guard key.count >= 4 else { return nil }
-        let candidates = notes.filter { stem($0.name).hasPrefix(key) || key.hasPrefix(stem($0.name)) }
-        return candidates.count == 1 ? candidates[0].path : nil
+        let candidates = stems.indices.filter { stems[$0].hasPrefix(key) || key.hasPrefix(stems[$0]) }
+        return candidates.count == 1 ? notes[candidates[0]].path : nil
+    }
+
+    /// Quita el plural a un nombre ya plegado ("medicos" → "medico").
+    nonisolated static func stem(_ folded: String) -> String {
+        var t = folded
+        if t.hasSuffix("es"), t.count > 4 { t.removeLast(2) } else if t.hasSuffix("s"), t.count > 3 { t.removeLast() }
+        return t
+    }
+
+    /// Nombres de nota plegados, en el orden de `notes`, para comparar con todos los enlaces que no resuelven.
+    struct NameKeys {
+        var folded: [String]
+        /// Sin plural, para `fuzzyResolve`.
+        var stems: [String]
+        /// En escalares y no en letras: ya sin tildes dan la misma distancia de edición, y compararlos es mucho más rápido.
+        var scalars: [[Unicode.Scalar]]
+        /// La primera nota de cada nombre plegado: las repetidas no dan otra sugerencia.
+        var unique: [Int]
+    }
+
+    /// `nameKeys`, calculados la primera vez que hacen falta tras cada recarga.
+    var noteKeys: NameKeys {
+        if let k = nameKeys { return k }
+        let folded = notes.map { MD.fold($0.name) }
+        var seen = Set<String>()
+        let k = NameKeys(folded: folded, stems: folded.map(Store.stem), scalars: folded.map { Array($0.unicodeScalars) },
+                         unique: folded.indices.filter { seen.insert(folded[$0]).inserted })
+        nameKeys = k
+        return k
     }
 
     struct BrokenLink: Identifiable {
@@ -188,7 +213,8 @@ extension Store {
         var out: [BrokenLink] = []
         for n in notes {
             var seen = Set<String>()
-            for name in Links.extract(noteTexts[n.path] ?? read(n.path)) where seen.insert(name).inserted {
+            // Los enlaces ya están analizados en la caché: volver a sacarlos con regex de cada nota costaba ~0,4 s con 1500 notas.
+            for name in fileCache[n.path]?.parsed.links ?? Links.extract(noteTexts[n.path] ?? read(n.path)) where seen.insert(name).inserted {
                 if resolve(name) != nil || attachmentURL(name) != nil { continue }
                 let sug = fuzzyResolve(name).map { (($0 as NSString).lastPathComponent as NSString).deletingPathExtension }
                 if sug == nil, screenAlias(name) != nil { continue }
@@ -202,34 +228,46 @@ extension Store {
 
     /// Hasta `limit` nombres de nota parecidos a `name` (distancia de edición sin tildes ni mayúsculas), del más al menos parecido.
     func similarNotes(_ name: String, limit: Int = 3) -> [String] {
-        let key = Array(MD.fold(name))
+        let folded = MD.fold(name)
+        let key = Array(folded.unicodeScalars)
         guard !key.isEmpty else { return [] }
         var scored: [(name: String, score: Double)] = []
-        var seen = Set<String>()
-        for n in notes where seen.insert(MD.fold(n.name)).inserted {
-            let other = Array(MD.fold(n.name))
+        let keys = noteKeys
+        for i in keys.unique {
+            let f = keys.folded[i], other = keys.scalars[i]
             let longest = max(key.count, other.count)
-            guard abs(key.count - other.count) <= max(3, longest / 2) else { continue }
-            let contains = other.count >= 3 && (String(key).contains(String(other)) || String(other).contains(String(key)))
-            let score = contains ? 0.2 : Double(Store.editDistance(key, other)) / Double(longest)
-            if score <= 0.4 { scored.append((n.name, score)) }
+            let gap = abs(key.count - other.count)
+            guard gap <= max(3, longest / 2) else { continue }
+            let contains = other.count >= 3 && (MD.contains(folded, f) || MD.contains(f, folded))
+            // La distancia nunca baja de la diferencia de longitud: si eso ya pasa del 0,4, no hace falta calcularla.
+            guard contains || 5 * gap <= 2 * longest else { continue }
+            let score = contains ? 0.2 : Double(Store.editDistance(key, other, limit: 2 * longest / 5)) / Double(longest)
+            if score <= 0.4 { scored.append((notes[i].name, score)) }
         }
         return scored.sorted { ($0.score, $0.name) < ($1.score, $1.name) }.prefix(limit).map(\.name)
     }
 
-    nonisolated static func editDistance(_ a: [Character], _ b: [Character]) -> Int {
+    /// Distancia de Levenshtein. Con `limit`, en cuanto se sabe que pasa de ahí devuelve `limit + 1` sin terminar la cuenta.
+    nonisolated static func editDistance<T: Equatable>(_ a: [T], _ b: [T], limit: Int = .max) -> Int {
         if a.isEmpty { return b.count }
         if b.isEmpty { return a.count }
-        var prev = Array(0...b.count)
-        var cur = [Int](repeating: 0, count: b.count + 1)
-        for i in 1...a.count {
-            cur[0] = i
-            for j in 1...b.count {
-                cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1))
+        let w = b.count + 1
+        // Las dos filas van en la pila: se compara con cada nota, y reservar memoria en cada llamada era lo que más costaba.
+        return withUnsafeTemporaryAllocation(of: Int.self, capacity: 2 * w) { buf in
+            var prev = buf.baseAddress!, cur = prev + w
+            for j in 0..<w { prev[j] = j }
+            for i in 1...a.count {
+                cur[0] = i
+                var best = i
+                for j in 1...b.count {
+                    cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1))
+                    best = min(best, cur[j])
+                }
+                if best > limit { return limit + 1 }   // ninguna fila siguiente baja de este mínimo
+                swap(&prev, &cur)
             }
-            swap(&prev, &cur)
+            return prev[b.count]
         }
-        return prev[b.count]
     }
 
     /// Corrige los enlaces rotos que tienen una sugerencia clara. Devuelve cuántos cambió.
