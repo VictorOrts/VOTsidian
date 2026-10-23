@@ -8,7 +8,7 @@ enum ExpenseParser {
     /// Palabras que llevan a una partida aunque su nombre no aparezca: se buscan dentro del nombre de las partidas.
     private static let hints: [(words: [String], partida: [String])] = [
         (["cena", "comida fuera", "restaurante", "bar", "cafe", "copas", "cine", "concierto", "viaje", "hotel", "vuelo", "entrada"], ["restaurante", "ocio", "entreten"]),
-        (["gasolina", "metro", "taxi", "uber", "cabify", "bus", "autobus", "parking", "tren", "peaje", "renfe"], ["transporte"]),
+        (["gasolina", "metro", "taxi", "uber", "cabify", "bus", "autobus", "parking", "tren", "peaje", "renfe", "taller", "itv", "neumaticos"], ["transporte"]),
         (["mercadona", "super", "supermercado", "compra", "carrefour", "lidl", "fruta", "aldi", "alcampo", "eroski", "consum"], ["alimenta", "comida"]),
         (["luz", "agua", "gas", "factura", "endesa", "iberdrola", "naturgy"], ["suministro", "luz"]),
         (["fibra", "internet", "movil", "telefono", "movistar", "vodafone", "orange", "digi", "o2", "pepephone", "lowi", "simyo"], ["internet", "movil"]),

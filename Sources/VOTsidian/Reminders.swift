@@ -18,6 +18,8 @@ struct ReminderPlan: Equatable {
     /// Revisión mensual, el último día del mes.
     var monthlyReview = true
     var monthlyReviewMinutes = 19 * 60
+    /// ITV, seguro… (30 días antes) y mantenimientos con fecha (7 días antes).
+    var vehiculo = true
 
     /// El plan guardado en Avisos (mismas claves y valores por defecto que `RemindersView`).
     static var stored: ReminderPlan {
@@ -31,6 +33,7 @@ struct ReminderPlan: Equatable {
                             documents: flag("remDocs"), events: flag("remEvents"), payments: flag("remPayments"))
         plan.monthlyReview = flag("remMonthReview")
         plan.monthlyReviewMinutes = int("remMonthReviewMin", 1140)
+        plan.vehiculo = flag("remVehiculo")
         return plan
     }
 }
@@ -39,6 +42,7 @@ struct ReminderSources {
     var medicacion = MedicacionData()
     var tasks: [TaskItem] = []
     var mascota = MascotaData()
+    var vehiculo = VehiculoData()
     var people: [Person] = []
     var documents: [(name: String, date: Date)] = []
     var events: [(name: String, date: Date)] = []
@@ -129,6 +133,18 @@ enum ICS {
             for u in mascota.upcoming {
                 out.append(ICSEvent(uid: "mascota-" + stableID(u.title + DayKey.string(u.date)), title: "\(mascota.name): \(u.title)",
                                     notes: "Cita o revisión de \(mascota.name).", start: u.date, minutes: nil, rule: nil))
+            }
+        }
+        if plan.vehiculo {
+            let v = src.vehiculo
+            for d in v.dues where d.date >= today {
+                out.append(ICSEvent(uid: "vehiculo-" + stableID(d.name + DayKey.string(d.date)), title: "\(v.name): vence \(d.name)",
+                                    notes: "En la nota \(VaultPath.vehiculo).", start: d.date, minutes: nil, rule: nil, extraTriggers: ["-P30D"]))
+            }
+            for s in v.nextServices(today: today) {
+                guard let d = s.date, d >= today else { continue }
+                out.append(ICSEvent(uid: "vehiculo-mant-" + stableID(MD.fold(s.what)), title: "\(v.name): \(s.what)",
+                                    notes: "Mantenimiento en la nota \(VaultPath.vehiculo).", start: d, minutes: nil, rule: nil, extraTriggers: ["-P7D"]))
             }
         }
         if plan.birthdays {

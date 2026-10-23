@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta en Ajustes → Módulos → Rutas de
 /// las notas, o desde la terminal: `defaults write <id de la app> vaultPathOverrides -dict peso "Mis notas/Báscula.md"`
-/// (claves: peso, medicacion, plan, proyecto, mascota, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
+/// (claves: peso, medicacion, plan, proyecto, mascota, vehiculo, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
 enum VaultPath {
     static let defaults: [String: String] = [
         "peso": "Salud/Peso.md",
@@ -15,6 +15,7 @@ enum VaultPath {
         "medico": "Salud/Médico.md",
         "proyecto": "Proyectos/Objetivo de peso.md",
         "mascota": "Mascota/Mascota.md",
+        "vehiculo": "Vehículo/Vehículo.md",
         "casa": "Casa/Casa.md",
         "compra": "Casa/Lista de la compra.md",
         "moda": "Moda/Armario.md",
@@ -50,6 +51,7 @@ enum VaultPath {
     static var plan: String { path("plan") }
     static var proyecto: String { path("proyecto") }
     static var mascota: String { path("mascota") }
+    static var vehiculo: String { path("vehiculo") }
     static var casa: String { path("casa") }
     static var moda: String { path("moda") }
     static var medico: String { path("medico") }
@@ -83,6 +85,7 @@ final class Store {
     private(set) var weight = WeightData()
     private(set) var medicacion = MedicacionData()
     private(set) var mascota = MascotaData()
+    private(set) var vehiculo = VehiculoData()
     private(set) var plan = PlanData()
     private(set) var milestones: [Milestone] = []
     private(set) var habitDefs: [HabitDef] = []
@@ -359,6 +362,7 @@ final class Store {
         derive(VaultPath.peso) { weight = Parse.weight($0) }
         derive(VaultPath.medicacion) { medicacion = Parse.medicacion($0) }
         derive(VaultPath.mascota) { mascota = Parse.mascota($0) }
+        derive(VaultPath.vehiculo) { vehiculo = Parse.vehiculo($0) }
         derive(VaultPath.plan) { plan = Parse.plan($0) }
         derive(VaultPath.proyecto) { milestones = Parse.milestones($0) }
         tasks = allTasks

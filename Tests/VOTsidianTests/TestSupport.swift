@@ -127,9 +127,44 @@ let casaFixture = """
 
 
 /// Vault mínimo con peso, medicación, Casa y una revisión, para probar pantallas sin depender de notas reales.
+/// Coche con ITV que caduca pronto, aceite cada 15.000 km y dos repostajes.
+let vehiculoFixture = """
+---
+tipo: vehiculo
+nombre: Coche
+matricula: 1234 ABC
+km: 
+---
+
+# Coche
+
+## Fechas
+
+| Qué | Vence | Notas |
+| :-- | :---- | :---- |
+| ITV | \(DayKey.string(DayKey.adding(days: 20, to: DayKey.today()))) | |
+| Seguro | 15/03/2030 | Póliza 99 |
+| Impuesto de circulación | | |
+
+## Mantenimiento
+
+| Fecha | Km | Qué | Taller | Coste | Cada (km) | Cada (meses) |
+| :---- | -: | :-- | :----- | ----: | --------: | -----------: |
+| 2026-01-10 | 100.000 | Aceite y filtros | Taller Pepe | 180 € | 15.000 | 12 |
+| 2026-05-02 | 108.000 | Ruedas delanteras | | 240 € | | |
+
+## Repostajes
+
+| Fecha | Km | Litros | Importe |
+| :---- | -: | -----: | ------: |
+| 2026-09-01 | 113.600 | 40 | 62 € |
+| 2026-09-20 | 114.100 | 30 | 47,40 € |
+
+"""
+
 func syntheticVault() throws -> URL {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
-    let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture,
+    let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture,
                  "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture,
                  "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n",
                  "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),

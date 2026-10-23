@@ -168,10 +168,10 @@ struct ModulesCard: View {
         .onAppear { paths = VaultPath.overrides }
     }
 
-    /// «Medicación (Ozempic)», «Mascota (Luna)»; sin repetir si la nota aún no tiene nombre.
+    /// «Medicación (Ozempic)», «Mascota (Luna)», «Vehículo (Coche)»; sin repetir si la nota aún no tiene nombre.
     private func label(_ m: Module) -> String {
-        let name = m == .medicacion ? store.medicacion.name : m == .mascota ? store.mascota.name : nil
-        return name.map { $0 == "Medicación" || $0 == "Mascota" ? m.title : "\(m.title) (\($0))" } ?? m.title
+        let name = m == .medicacion ? store.medicacion.name : m == .mascota ? store.mascota.name : m == .vehiculo ? store.vehiculo.name : nil
+        return name.map { $0 == "Medicación" || $0 == "Mascota" || $0 == "Vehículo" ? m.title : "\(m.title) (\($0))" } ?? m.title
     }
 
     private func save(_ key: String) {

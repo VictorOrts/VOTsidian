@@ -80,6 +80,10 @@ La primera vez sale el asistente «Empecemos». En él eliges la carpeta (por de
 - **Compra:** lista por secciones con casillas.
 - **Ropa:** lo que quieres comprar, con precio, prioridad y estado.
 - **Mascota:** ficha, visitas y vacunas, con aviso de la próxima.
+- **Vehículo:**
+  - ITV, seguro e impuesto con aviso 30 días antes;
+  - mantenimiento cada tantos km o meses, con aviso cuando falta poco;
+  - repostajes, consumo medio y lo gastado en el año, que también se puede apuntar en Gastos.
 - **Personas:** cumpleaños y última vez que hablasteis.
 - **Documentos:** caducidades, con aviso 30 días antes.
 

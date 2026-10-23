@@ -31,6 +31,7 @@ Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No
 | Lista de la compra | Compra | `Casa/Lista de la compra.md` |
 | Ropa | Moda | `Moda/Armario.md` |
 | Mascota | (nombre de la mascota) | `Mascota/Mascota.md` |
+| Vehículo | (nombre del vehículo) | `Vehículo/Vehículo.md` |
 | Personas | Personas | `Organización/Personas.md` |
 | Documentos | Documentos | `Organización/Documentos.md` |
 | Objetivos | Objetivos | `Organización/Objetivos.md` |
@@ -118,6 +119,41 @@ comida: Pienso senior
 
 - `nacimiento` va en `DD/MM/AAAA`; las fechas de la tabla, en `AAAA-MM-DD`.
 - Con «Próxima», la app avisa cuando se acerca y cuando vence.
+
+### Vehículo
+
+```markdown
+---
+nombre: Coche
+matricula: 1234 ABC
+km: 114100
+---
+
+## Fechas
+
+| Qué | Vence | Notas |
+| :-- | :---- | :---- |
+| ITV | 2027-03-15 | |
+| Seguro | 01/06/2027 | Póliza 99 |
+
+## Mantenimiento
+
+| Fecha | Km | Qué | Taller | Coste | Cada (km) | Cada (meses) |
+| :---- | -: | :-- | :----- | ----: | --------: | -----------: |
+| 2026-01-10 | 100.000 | Aceite y filtros | Taller Pepe | 180 € | 15.000 | 12 |
+
+## Repostajes
+
+| Fecha | Km | Litros | Importe |
+| :---- | -: | -----: | ------: |
+| 2026-09-20 | 114.100 | 30 | 47,40 € |
+```
+
+- **Fechas:** cualquier tabla con una columna `Vence`, en `AAAA-MM-DD` o `DD/MM/AAAA`. La app avisa 30 días antes.
+- **Mantenimiento:** la tabla con columna `Taller` o bajo `## Mantenimiento`. Con `Cada (km)` o `Cada (meses)`, la app cuenta desde la última vez que se hizo lo mismo (misma columna `Qué`) y avisa cuando faltan menos de 1.000 km o 30 días.
+- **Repostajes:** la tabla con columna `Litros`. El consumo sale de depósito lleno a depósito lleno, así que llena el depósito cada vez.
+- **Km:** el punto es siempre de millares (`100.000`). Los km actuales son los más altos entre la ficha, el taller y los repostajes.
+- Al apuntar desde la pantalla, «Apuntar también en Gastos» añade el importe al mes, en la partida de transporte si la hay.
 
 ### Plan nutricional
 

@@ -20,7 +20,7 @@ extension Store {
             }
         }
         return ReminderSources(medicacion: isVisible(.medicacion) ? medicacion : MedicacionData(), tasks: tasks,
-                               mascota: isVisible(.mascota) ? mascota : MascotaData(), people: isVisible(.personas) ? people : [],
+                               mascota: isVisible(.mascota) ? mascota : MascotaData(), vehiculo: isVisible(.vehiculo) ? vehiculo : VehiculoData(), people: isVisible(.personas) ? people : [],
                                documents: isVisible(.documentos) ? documents.map { ($0.name, $0.date) } : [],
                                events: (isVisible(.finanzas) ? events.map { ($0.name, $0.date) } : []) + casaDates,
                                payments: isVisible(.gastos) ? upcomingPayments() : [])
@@ -39,7 +39,7 @@ extension Store {
         if let p = fuzzyResolve(target) {
             // Las notas que tienen pantalla propia abren esa pantalla; el resto, el lector de notas.
             let screens: [String: Screen] = [VaultPath.peso: .peso, VaultPath.medicacion: .medicacion, VaultPath.plan: .nutricion, VaultPath.casa: .casa,
-                                             VaultPath.mascota: .mascota, VaultPath.moda: .moda, VaultPath.medico: .salud, VaultPath.inbox: .tareas,
+                                             VaultPath.mascota: .mascota, VaultPath.vehiculo: .vehiculo, VaultPath.moda: .moda, VaultPath.medico: .salud, VaultPath.inbox: .tareas,
                                              VaultPath.personas: .personas, VaultPath.documentos: .documentos,
                                              VaultPath.objetivos: .objetivos, VaultPath.finanzas: .finanzas]
             if let sc = screens[p] { screen = sc } else { pendingNote = p }
