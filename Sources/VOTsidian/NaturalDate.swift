@@ -106,6 +106,9 @@ enum NaturalDate {
         let folded = String(input.map { String($0).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).first ?? $0 })
         let ns = folded as NSString
         let patterns: [(String, (NSTextCheckingResult) -> (String, Date?))] = [
+            (#"\b(?:cada dia laborable|todos los dias laborables|los dias laborables|entre semana|de lunes a viernes)\b"#, { _ in
+                ("weekday", cal.isDateInWeekend(today) ? Recurrence.next(after: today, rule: "weekday", today: today) : today)
+            }),
             (#"\bcada (\d+) (dias?|semanas?|meses|mes|anos?)\b"#, { m in
                 let n = ns.substring(with: m.range(at: 1)), u = ns.substring(with: m.range(at: 2))
                 let unit = u.hasPrefix("dia") ? "days" : u.hasPrefix("semana") ? "weeks" : u.hasPrefix("mes") ? "months" : "years"

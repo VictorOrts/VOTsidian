@@ -107,3 +107,47 @@ import Testing
     #expect(store.renameNote("B.md", to: "b") == "b.md")
     #expect(store.read("A.md").contains("[[b]]"))
 }
+
+@Test func unlinkUnderstandsCaseAccentsAndFolders() {
+    let text = "Ver [[medico]] y [[Salud/Médico|el médico]]\n[[Inicio]] · [[MÉDICO#citas]]\n[[Médicos]] sigue"
+    #expect(Edit.unlink(text, name: "Médico") == "Ver medico y el médico\n[[Inicio]]\n[[Médicos]] sigue")
+}
+
+@Test func frontmatterValuesAreQuotedWhenYAMLNeedsIt() throws {
+    let text = "---\ntipo: nota\nlista: [a, b]\n---\n"
+    var t = try #require(Edit.setFrontmatter(text, key: "area", value: "Casa: cocina"))
+    t = try #require(Edit.setFrontmatter(t, key: "rel", value: "[[Otra nota]]"))
+    t = try #require(Edit.setFrontmatter(t, key: "cita", value: "dijo \"hola\""))
+    t = try #require(Edit.setFrontmatter(t, key: "tipo", value: "#etiqueta"))
+    t = try #require(Edit.setFrontmatter(t, key: "lista", value: "[a, c]"))
+    #expect(t.contains("area: \"Casa: cocina\"") && t.contains("rel: \"[[Otra nota]]\"") && t.contains("lista: [a, c]"))
+    let fm = MD.frontmatter(t)
+    #expect(fm["area"] == "Casa: cocina" && fm["rel"] == "[[Otra nota]]" && fm["tipo"] == "#etiqueta")
+    #expect(fm["cita"] == "dijo \"hola\"")
+    #expect(Edit.setFrontmatter(t, key: "estado", value: "activo")?.contains("estado: activo\n") == true)
+}
+
+@Test func monthlySeriesKeepsTheDayAndWeekdaysSkipWeekends() throws {
+    let d = { (s: String) in DayKey.date(s)! }
+    // Desde el 31 de enero, tres meses después es el 30 de abril (no el 28).
+    #expect(Recurrence.next(after: d("2026-01-31"), rule: "month", today: d("2026-04-15")).map(DayKey.string) == "2026-04-30")
+    #expect(Recurrence.pinningDay("month", due: d("2026-01-31")) == "month on the 31st")
+    #expect(Recurrence.pinningDay("month", due: d("2026-01-15")) == "month")
+    #expect(Recurrence.next(after: d("2026-02-28"), rule: "month on the 31st", today: d("2026-02-28")).map(DayKey.string) == "2026-03-31")
+    #expect(Recurrence.next(after: d("2026-01-31"), rule: "month on the 31st", today: d("2026-01-31")).map(DayKey.string) == "2026-02-28")
+    #expect(Recurrence.describe("month on the 31st") == "cada mes, el día 31")
+
+    // La tarea completada escribe la regla con el día fijo, y la siguiente vuelve al 31.
+    let raw = "- [ ] Pagar 📅 2026-01-31 🔁 every month"
+    let task = TaskItem(file: "A.md", line: 0, raw: raw, text: "Pagar", due: d("2026-01-31"), scheduled: nil, done: false, recurrence: "month")
+    let out = MD.lines(try #require(Edit.completeRecurring(raw, task: task, today: d("2026-01-31"))))
+    #expect(out[1] == "- [ ] Pagar 📅 2026-02-28 🔁 every month on the 31st")
+    let next = try #require(Parse.tasks(out[1], file: "A.md").first)
+    #expect(next.recurrence == "month on the 31st")
+
+    // 2026-10-23 es viernes: el siguiente laborable es el lunes 26.
+    #expect(Recurrence.next(after: d("2026-10-23"), rule: "weekday", today: d("2026-10-23")).map(DayKey.string) == "2026-10-26")
+    #expect(Recurrence.describe("weekday") == "cada día laborable")
+    let p = NaturalDate.extractTask("revisar correo entre semana", today: d("2026-10-24"))   // sábado
+    #expect(p.recurrence == "weekday" && p.text == "revisar correo" && p.date.map(DayKey.string) == "2026-10-26")
+}

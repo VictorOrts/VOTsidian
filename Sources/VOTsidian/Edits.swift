@@ -139,7 +139,8 @@ extension Edit {
 extension Edit {
     /// Completa una tarea que se repite: la marca hecha y añade justo debajo la siguiente repetición.
     static func completeRecurring(_ text: String, task: TaskItem, today: Date = DayKey.today()) -> String? {
-        guard let rule = task.recurrence, let done = setTask(text, task: task, done: true, on: today) else { return nil }
+        guard let base = task.recurrence, let done = setTask(text, task: task, done: true, on: today) else { return nil }
+        let rule = Recurrence.pinningDay(base, due: task.due)
         var lines = MD.lines(done)
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
@@ -224,12 +225,25 @@ extension Edit {
         guard lines.first == "---", let end = lines.dropFirst().firstIndex(of: "---") else { return nil }
         if let i = lines[1..<end].firstIndex(where: { $0.hasPrefix("\(key):") }) {
             let old = String(lines[i].dropFirst(key.count + 1)).trimmingCharacters(in: .whitespaces)
-            let quoted = old.hasPrefix("\"") && !value.isEmpty
-            lines[i] = "\(key):" + (value.isEmpty ? "" : quoted ? " \"\(value)\"" : " \(value)")
+            let quoted = old.hasPrefix("\"") || yamlNeedsQuotes(value)
+            lines[i] = "\(key):" + (value.isEmpty ? "" : quoted ? " " + yamlQuoted(value) : " \(value)")
         } else {
-            lines.insert("\(key):" + (value.isEmpty ? "" : " \(value)"), at: end)
+            lines.insert("\(key):" + (value.isEmpty ? "" : yamlNeedsQuotes(value) ? " " + yamlQuoted(value) : " \(value)"), at: end)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Valores que YAML leería mal sin comillas: con «: » o « #», que empiezan por un signo especial (`[[enlace]]`, `@`, `#`…) o con espacios en los bordes.
+    static func yamlNeedsQuotes(_ v: String) -> Bool {
+        guard let first = v.first else { return false }
+        // `[a, b]` y `{a: 1}` son listas y mapas de YAML escritos a propósito; `[[Nota]]` no, es un enlace.
+        if !v.hasPrefix("[["), (v.hasPrefix("[") && v.hasSuffix("]")) || (v.hasPrefix("{") && v.hasSuffix("}")) { return false }
+        return v.contains(": ") || v.contains(" #") || v.hasSuffix(":") || v.hasPrefix("- ") || v.hasPrefix("? ")
+            || "[]{}&*!|>'\"%@`#,".contains(first) || v != v.trimmingCharacters(in: .whitespaces)
+    }
+
+    static func yamlQuoted(_ v: String) -> String {
+        "\"" + v.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 
     static func setFrontmatterList(_ text: String, key: String, items: [String]) -> String? {
@@ -325,19 +339,29 @@ extension Edit {
     }
 
     /// Convierte los enlaces a una nota en texto (para cuando la nota se elimina). Quita el separador " · " que lo rodeaba.
+    /// Como `renameLinks`, entiende mayúsculas y tildes distintas (`[[medico]]`) y enlaces con carpeta (`[[Salud/Médico]]`).
     static func unlink(_ text: String, name: String) -> String {
-        let n = NSRegularExpression.escapedPattern(for: name)
-        let link = "\\[\\[" + n + "(?:#[^\\]|\\\\]*)?(?:\\\\?\\|[^\\]]*)?\\]\\]"
-        var t = text.replacingOccurrences(of: "[ \\t]·[ \\t]" + link, with: "", options: .regularExpression)
-        t = t.replacingOccurrences(of: link + "[ \\t]·[ \\t]", with: "", options: .regularExpression)
-        guard let re = try? NSRegularExpression(pattern: "\\[\\[" + n + "(?:#[^\\]|\\\\]*)?(?:\\\\?\\|([^\\]]*))?\\]\\]") else { return t }
-        let ns = t as NSString
-        var out = t
-        for m in re.matches(in: t, range: NSRange(location: 0, length: ns.length)).reversed() {
-            let alias = m.range(at: 1).location != NSNotFound ? ns.substring(with: m.range(at: 1)) : name
-            out = (out as NSString).replacingCharacters(in: m.range, with: alias)
+        guard let re = try? NSRegularExpression(pattern: #"\[\[([^\]|#\\]+)(?:#[^\]|\\]*)?(?:\\?\|([^\]]*))?\]\]"#),
+              let sep = try? NSRegularExpression(pattern: #"^[ \t]·[ \t]$"#) else { return text }
+        let key = MD.fold(name)
+        var out = text as NSString
+        func isSeparator(_ r: NSRange) -> Bool {
+            r.location >= 0 && r.location + r.length <= out.length && sep.firstMatch(in: out.substring(with: r), range: NSRange(location: 0, length: 3)) != nil
         }
-        return out
+        for m in re.matches(in: text, range: NSRange(location: 0, length: (text as NSString).length)).reversed() {
+            let target = (text as NSString).substring(with: m.range(at: 1))
+            guard MD.fold((target as NSString).lastPathComponent) == key else { continue }
+            let before = NSRange(location: m.range.location - 3, length: 3), after = NSRange(location: m.range.location + m.range.length, length: 3)
+            if isSeparator(before) {
+                out = out.replacingCharacters(in: NSRange(location: before.location, length: 3 + m.range.length), with: "") as NSString
+            } else if isSeparator(after) {
+                out = out.replacingCharacters(in: NSRange(location: m.range.location, length: m.range.length + 3), with: "") as NSString
+            } else {
+                let alias = m.range(at: 2).location != NSNotFound ? (text as NSString).substring(with: m.range(at: 2)) : (target as NSString).lastPathComponent
+                out = out.replacingCharacters(in: m.range, with: alias) as NSString
+            }
+        }
+        return out as String
     }
 }
 

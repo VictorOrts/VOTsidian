@@ -92,7 +92,11 @@ enum MD {
         for line in l[1..<end] {
             guard !line.hasPrefix(" "), !line.hasPrefix("-"), let i = line.firstIndex(of: ":") else { continue }
             var v = String(line[line.index(after: i)...]).trimmingCharacters(in: .whitespaces)
-            if v.count >= 2, v.hasPrefix("\""), v.hasSuffix("\"") { v = String(v.dropFirst().dropLast()) }
+            if v.count >= 2, v.hasPrefix("\""), v.hasSuffix("\"") {
+                v = String(v.dropFirst().dropLast()).replacingOccurrences(of: "\\\"", with: "\"").replacingOccurrences(of: "\\\\", with: "\\")
+            } else if v.count >= 2, v.hasPrefix("'"), v.hasSuffix("'") {
+                v = String(v.dropFirst().dropLast()).replacingOccurrences(of: "''", with: "'")
+            }
             out[String(line[..<i]).trimmingCharacters(in: .whitespaces)] = v
         }
         return out

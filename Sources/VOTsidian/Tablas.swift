@@ -152,9 +152,22 @@ extension Parse {
 // MARK: - Tareas que se repiten
 
 enum Recurrence {
-    /// Intervalo de una regla como "week", "2 weeks", "month", "3 days", "year".
+    /// Separa «month on the 31st» en la regla base («month») y el día fijo del mes (31; -1 = el último).
+    static func split(_ rule: String) -> (base: String, day: Int?) {
+        let r = rule.lowercased().trimmingCharacters(in: .whitespaces)
+        guard let on = r.range(of: " on the ") else { return (r, nil) }
+        let spec = r[on.upperBound...].trimmingCharacters(in: .whitespaces)
+        let day = spec.hasPrefix("last") ? -1 : spec.firstMatch(of: /^(\d{1,2})/).flatMap { Int($0.1) }.flatMap { (1...31).contains($0) ? $0 : nil }
+        return (String(r[..<on.lowerBound]).trimmingCharacters(in: .whitespaces), day)
+    }
+
+    static func isWeekday(_ rule: String) -> Bool { split(rule).base == "weekday" }
+
+    /// Intervalo de una regla como "week", "2 weeks", "month", "3 days", "year". «weekday» no tiene intervalo fijo: nil.
     static func component(_ rule: String) -> (Calendar.Component, Int)? {
-        let parts = rule.lowercased().split(separator: " ").map(String.init)
+        let base = split(rule).base
+        guard base != "weekday" else { return nil }
+        let parts = base.split(separator: " ").map(String.init)
         guard let unit = parts.last else { return nil }
         let n = parts.count > 1 ? Int(parts[0]) ?? 1 : 1
         if unit.hasPrefix("day") { return (.day, n) }
@@ -165,18 +178,42 @@ enum Recurrence {
     }
 
     /// Siguiente fecha futura de la serie a partir de `due` (o de hoy si no tenía).
+    /// Se cuenta siempre desde `due` (n, 2n, 3n…), no saltando de fecha en fecha: así el 31 de enero + 3 meses es el 30 de abril, no el 28.
     static func next(after due: Date?, rule: String, today: Date = DayKey.today()) -> Date? {
-        guard let (unit, n) = component(rule), n > 0 else { return nil }
         let cal = DayKey.calendar()
-        var d = due ?? today
-        repeat { guard let nx = cal.date(byAdding: unit, value: n, to: d) else { return nil }; d = nx } while d < today
-        return d
+        let anchor = due ?? today
+        if isWeekday(rule) {
+            var d = anchor
+            repeat { d = DayKey.adding(days: 1, to: d) } while d < today || cal.isDateInWeekend(d)
+            return d
+        }
+        guard let (unit, n) = component(rule), n > 0 else { return nil }
+        let fixedDay = unit == .month ? split(rule).day : nil
+        for k in 1...100_000 {
+            guard var d = cal.date(byAdding: unit, value: n * k, to: anchor) else { return nil }
+            if let fixedDay, let days = cal.range(of: .day, in: .month, for: d)?.count {
+                d = cal.date(bySetting: .day, value: fixedDay < 0 ? days : min(fixedDay, days), of: cal.dateInterval(of: .month, for: d)!.start) ?? d
+            }
+            if d >= today { return d }
+        }
+        return nil
+    }
+
+    /// Para una serie mensual que vence el 29, 30 o 31 fija ese día («month on the 31st»): si no, tras febrero se quedaría en el 28.
+    static func pinningDay(_ rule: String, due: Date?) -> String {
+        guard let due, component(rule)?.0 == .month, split(rule).day == nil else { return rule }
+        let day = DayKey.calendar().component(.day, from: due)
+        guard day >= 29 else { return rule }
+        return "\(rule) on the \(day)\(day == 31 ? "st" : "th")"
     }
 
     static func describe(_ rule: String) -> String {
+        if isWeekday(rule) { return "cada día laborable" }
         guard let (unit, n) = component(rule) else { return rule }
         let names: [Calendar.Component: (String, String)] = [.day: ("día", "días"), .weekOfYear: ("semana", "semanas"), .month: ("mes", "meses"), .year: ("año", "años")]
         let (one, many) = names[unit] ?? ("", "")
-        return n == 1 ? "cada \(one)" : "cada \(n) \(many)"
+        var out = n == 1 ? "cada \(one)" : "cada \(n) \(many)"
+        if unit == .month, let d = split(rule).day { out += d < 0 ? ", el último día" : ", el día \(d)" }
+        return out
     }
 }
