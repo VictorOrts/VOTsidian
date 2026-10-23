@@ -114,3 +114,5 @@ VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas
 ```
 
 Para firmar de verdad: `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh`; sin él, usa tu certificado «Apple Development».
+
+Para publicar una versión: `git tag v1.2 && git push origin v1.2`. GitHub pasa los tests, crea `VOTsidian-1.2.dmg` y lo adjunta a una release. Si el repositorio tiene los secretos de firma y notarización (lista en [release.yml](.github/workflows/release.yml)), el .dmg sale firmado y notarizado.

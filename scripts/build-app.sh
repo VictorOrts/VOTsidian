@@ -48,8 +48,13 @@ PLIST
 
 # Firma: SIGN_ID="Developer ID Application: ..." para firmar de verdad (y luego notarizar con notarytool).
 # Sin SIGN_ID usa el primer certificado «Apple Development» válido del llavero (firma estable entre builds); si no hay, firma ad hoc.
-if [ -z "${SIGN_ID:-}" ]; then
+if [ -n "${SIGN_ID:-}" ]; then
+  # Firma pedida a propósito: si falla, se para. Developer ID necesita runtime endurecido y sello de tiempo para notarizar.
+  OPTS=()
+  case "$SIGN_ID" in "Developer ID Application"*) OPTS=(--options runtime --timestamp) ;; esac
+  codesign --force ${OPTS[@]+"${OPTS[@]}"} --sign "$SIGN_ID" "$APP"
+else
   SIGN_ID=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development: .*\)"/\1/p' | head -1)
+  codesign --force --sign "${SIGN_ID:--}" "$APP" >/dev/null 2>&1 || true
 fi
-codesign --force --sign "${SIGN_ID:--}" "$APP" >/dev/null 2>&1 || true
 echo "Listo: $PWD/$APP"
