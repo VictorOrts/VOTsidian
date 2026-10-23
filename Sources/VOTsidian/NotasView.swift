@@ -494,7 +494,7 @@ struct NotasView: View {
             linkRow("Enlaza a (\(outgoing.count))", outgoing)
             VStack(alignment: .leading, spacing: 6) {
                 Text("Enlazada desde (\(incoming.count))").font(.subheadline.weight(.semibold))
-                if incoming.isEmpty { Text("Ninguna").font(.callout).foregroundStyle(.secondary) }
+                if incoming.isEmpty { EmptyNote("Ninguna", icon: "link") }
                 ForEach(incoming, id: \.self) { p in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small).notePreview(p)
@@ -524,7 +524,7 @@ struct NotasView: View {
     private func linkRow(_ title: String, _ paths: [String]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.subheadline.weight(.semibold))
-            if paths.isEmpty { Text("Ninguna").font(.callout).foregroundStyle(.secondary) }
+            if paths.isEmpty { EmptyNote("Ninguna", icon: "link") }
             else { FlowRow(paths) { p in Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small).notePreview(p) } }
         }
     }

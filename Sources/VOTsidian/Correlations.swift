@@ -126,7 +126,7 @@ struct CorrelacionesView: View {
                 }
 
                 Card(title: "Peso y dosis", icon: "scalemass") {
-                    if store.weight.records.count < 2 { Text("Faltan registros de peso.").foregroundStyle(.secondary) }
+                    if store.weight.records.count < 2 { EmptyNote("Faltan registros de peso.", icon: "scalemass") }
                     else {
                         Chart {
                             ForEach(Array(doses.enumerated()), id: \.offset) { i, d in

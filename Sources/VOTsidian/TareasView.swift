@@ -30,7 +30,6 @@ struct TareasView: View {
 
     var body: some View {
         let open = store.tasks.filter { !$0.done && matches($0) }
-        let undated = open.filter { $0.due == nil }
         let done = store.tasks.filter(\.done).sorted { ($0.completed ?? .distantPast) > ($1.completed ?? .distantPast) }
         let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }.count
         ScrollView {
@@ -56,13 +55,17 @@ struct TareasView: View {
                     }
                 } else {
                     let today = DayKey.today()
+                    // Vence solo la fecha límite; una tarea programada para un día pasado sigue siendo «para hoy».
+                    let overdueTasks = open.filter { ($0.due ?? .distantFuture) < today }
+                    let rest = open.filter { ($0.due ?? .distantFuture) >= today }
+                    let day = { (t: TaskItem) in t.due ?? t.scheduled }
                     let groups: [(String, [TaskItem])] = [
-                        ("Vencidas", open.filter { ($0.due ?? .distantFuture) < today }),
-                        ("Hoy", open.filter { $0.due == today }),
-                        ("Mañana", open.filter { $0.due == DayKey.adding(days: 1, to: today) }),
-                        ("Esta semana", open.filter { ($0.due ?? .distantPast) >= DayKey.adding(days: 2, to: today) && ($0.due ?? .distantPast) <= DayKey.adding(days: 7, to: today) }),
-                        ("Más adelante", open.filter { ($0.due ?? .distantPast) > DayKey.adding(days: 7, to: today) }),
-                        ("Sin fecha", undated),
+                        ("Vencidas", overdueTasks),
+                        ("Hoy", rest.filter { day($0).map { $0 <= today } ?? false }),
+                        ("Mañana", rest.filter { day($0) == DayKey.adding(days: 1, to: today) }),
+                        ("Esta semana", rest.filter { day($0).map { $0 >= DayKey.adding(days: 2, to: today) && $0 <= DayKey.adding(days: 7, to: today) } ?? false }),
+                        ("Más adelante", rest.filter { day($0).map { $0 > DayKey.adding(days: 7, to: today) } ?? false }),
+                        ("Sin fecha", rest.filter { day($0) == nil }),
                     ]
                     ForEach(groups.filter { !$0.1.isEmpty }, id: \.0) { g in
                         section(g.0, g.1.sorted { a, b in a.priority != b.priority ? a.priority > b.priority : (a.due ?? .distantFuture) < (b.due ?? .distantFuture) })

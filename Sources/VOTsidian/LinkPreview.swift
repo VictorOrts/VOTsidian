@@ -34,7 +34,7 @@ struct NotePreview: View {
         let text = Embed.body(of: store.noteTexts[path] ?? store.read(path), heading: nil)
         VStack(alignment: .leading, spacing: 8) {
             Text(((path as NSString).lastPathComponent as NSString).deletingPathExtension).font(.headline)
-            if text.isEmpty { Text("Nota vacía.").foregroundStyle(.secondary) }
+            if text.isEmpty { EmptyNote("Nota vacía.", icon: "doc") }
             else {
                 NoteBody(text: String(text.prefix(900)), actions: NoteActions(toggle: { _, _ in }, editRow: { _ in }, addRow: { _ in }, setProperty: { _, _ in }), depth: 2)
                     .frame(maxHeight: 240, alignment: .top).clipped()

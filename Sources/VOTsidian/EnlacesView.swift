@@ -34,8 +34,7 @@ struct EnlacesView: View {
                     }
                 }
                 if !isolated.isEmpty {
-                    Card(title: "Notas sin ningún enlace", icon: "point.3.connected.trianglepath.dotted") {
-                        Text("Ni enlazan ni las enlaza nadie.").font(.caption).foregroundStyle(.secondary)
+                    Card(title: "Notas sin ningún enlace", icon: "point.3.connected.trianglepath.dotted", info: "Ni enlazan ni las enlaza nadie.") {
                         FlowLinks(names: isolated.map(\.name)) { name in
                             if let n = isolated.first(where: { $0.name == name }) { store.pendingNote = n.path }
                         }

@@ -22,7 +22,7 @@ struct FinanzasView: View {
                 Card(title: "Hoja de cuentas", icon: "tablecells.badge.ellipsis", info: "Las cuentas siguen en Numbers: la app no puede leer ni editar ese formato.") {
                     if let u = store.attachmentURL("Simple.numbers") {
                         Button { NSWorkspace.shared.open(u) } label: { Label("Abrir Simple.numbers en Numbers", systemImage: "arrow.up.forward.app") }
-                    } else { Text("No encuentro Simple.numbers en tu vault.").foregroundStyle(.secondary) }
+                    } else { EmptyNote("No encuentro Simple.numbers en tu vault.", icon: "questionmark.folder") }
                 }
                 ForEach(eventos, id: \.path) { e in
                     Card(title: ((e.path as NSString).lastPathComponent as NSString).deletingPathExtension, icon: "party.popper", actionTitle: "Abrir nota", action: { store.pendingNote = e.path }) {
