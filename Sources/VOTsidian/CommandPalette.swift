@@ -44,16 +44,18 @@ struct CommandPalette: View {
         let q = SearchQuery.parse(query)
         var out: [PaletteItem] = []
         func go(_ s: Screen) -> () -> Void { { store.screen = s; dismiss() } }
-        let actions: [PaletteItem] = [
+        var actions: [PaletteItem] = [
             PaletteItem(icon: "plus.circle", title: "Captura rápida", subtitle: "Tarea, peso, pinchazo o idea", tag: "Acción") { dismiss(); store.showQuickAdd = true },
             PaletteItem(icon: "note.text", title: "Nota de hoy", subtitle: "Abre o crea Diario/hoy.md", tag: "Acción") { store.openToday(); dismiss() },
             PaletteItem(icon: "moon.stars", title: "Cerrar el día", subtitle: "Revisa lo pendiente y prepara mañana", tag: "Acción") { dismiss(); store.showCierre = true },
-            PaletteItem(icon: "scalemass", title: "Registrar peso", subtitle: "Ir a Peso", tag: "Acción", run: go(.peso)),
-            PaletteItem(icon: "syringe", title: "Registrar pinchazo", subtitle: "Ir a Mounjaro", tag: "Acción", run: go(.mounjaro)),
             PaletteItem(icon: "square.and.pencil", title: "Nueva nota", subtitle: "Ir a Notas", tag: "Acción", run: go(.notas)),
             PaletteItem(icon: "arrow.uturn.backward", title: "Deshacer último cambio", tag: "Acción") { store.undo(); dismiss() },
         ]
-        let screens = Screen.allCases.map { s in PaletteItem(icon: s.icon, title: s.rawValue, subtitle: "Pantalla", tag: "Pantalla", run: go(s)) }
+        if store.isVisible(.peso) { actions.insert(PaletteItem(icon: "scalemass", title: "Registrar peso", subtitle: "Ir a Peso", tag: "Acción", run: go(.peso)), at: 3) }
+        if store.isVisible(.mounjaro) {
+            actions.insert(PaletteItem(icon: "syringe", title: "Registrar pinchazo", subtitle: "Ir a \(store.mounjaro.name)", tag: "Acción", run: go(.mounjaro)), at: 3)
+        }
+        let screens = Screen.allCases.filter(store.isVisible).map { s in PaletteItem(icon: s.icon, title: store.title(s), subtitle: "Pantalla", tag: "Pantalla", run: go(s)) }
         let hasText = !q.tokens.isEmpty
         if let cmd = QuickCommand.parse(query, categories: store.expenseCategories, people: store.people.map(\.name), learned: store.expenseLearned) {
             out.append(PaletteItem(icon: "bolt.fill", title: cmd.summary, subtitle: "intro para hacerlo", tag: "Orden") { store.run(cmd); dismiss() })

@@ -142,7 +142,7 @@ struct CorrelacionesView: View {
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .frame(height: 220)
-                        .accessibilityLabel("Gráfica de peso con las dosis de Mounjaro como bandas")
+                        .accessibilityLabel("Gráfica de peso con las dosis de \(store.mounjaro.name) como bandas")
                     }
                 }
 

@@ -31,9 +31,9 @@ extension Store {
         var out: [Alert] = []
 
         if let d = mounjaro.daysUntilNext {
-            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de Mounjaro con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .mounjaro, action: .injectToday)) }
-            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de Mounjaro", screen: .mounjaro, action: .injectToday)) }
-            else if d <= 2 { out.append(Alert(level: .soon, icon: "syringe", text: "Pinchazo de Mounjaro \(relativeDays(d))", screen: .mounjaro)) }
+            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de \(mounjaro.name) con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .mounjaro, action: .injectToday)) }
+            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de \(mounjaro.name)", screen: .mounjaro, action: .injectToday)) }
+            else if d <= 2 { out.append(Alert(level: .soon, icon: "syringe", text: "Pinchazo de \(mounjaro.name) \(relativeDays(d))", screen: .mounjaro)) }
         }
         if let l = weight.last {
             let days = DayKey.days(from: l.date, to: today)
@@ -89,9 +89,9 @@ extension Store {
         if let r = reviews[wk], r.totalDone == 0, weekday == 1 || weekday >= 5 {
             out.append(Alert(level: .info, icon: "calendar.badge.checkmark", text: "Sin hábitos marcados en la semana \(wk.suffix(3))", screen: .semana))
         }
-        // Dos avisos iguales (mismo texto y pantalla) son uno: además comparten id.
+        // Dos avisos iguales (mismo texto y pantalla) son uno: además comparten id. Los de módulos ocultos no salen.
         var seen = Set<String>()
-        return out.filter { seen.insert($0.id).inserted }.sorted { $0.level.rawValue < $1.level.rawValue }
+        return out.filter { isVisible($0.screen) && seen.insert($0.id).inserted }.sorted { $0.level.rawValue < $1.level.rawValue }
     }
 }
 

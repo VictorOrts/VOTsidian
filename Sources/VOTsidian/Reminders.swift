@@ -74,8 +74,8 @@ enum ICS {
         var out: [ICSEvent] = []
 
         if plan.mounjaro, let next = mounjaro.next {
-            out.append(ICSEvent(uid: "mounjaro", title: "Pinchazo Mounjaro",
-                                notes: "Anótalo en Cambio físico/Mounjaro. Se repite cada \(mounjaro.everyDays) días desde el último registro.",
+            out.append(ICSEvent(uid: "mounjaro", title: "Pinchazo \(mounjaro.name)",
+                                notes: "Anótalo en \(VaultPath.mounjaro). Se repite cada \(mounjaro.everyDays) días desde el último registro.",
                                 start: max(next, today), minutes: plan.mounjaroMinutes, rule: "FREQ=DAILY;INTERVAL=\(mounjaro.everyDays)"))
         }
         if plan.review {

@@ -15,6 +15,7 @@ struct NalaView: View {
         let tasks = store.tasks.filter { $0.file == VaultPath.nala && !$0.done }
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                MissingNoteBanner(module: .mascota)
                 HStack(spacing: 12) {
                     Tile(title: "Edad", value: n.ageText ?? "–", note: n.birth.map { "nació el \(dayLabel($0))" })
                     Tile(title: "Comida", value: n.food.isEmpty ? "–" : n.food)

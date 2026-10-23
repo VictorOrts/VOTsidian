@@ -35,6 +35,7 @@ struct SaludView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                MissingNoteBanner(module: .salud)
                 HStack(spacing: 12) {
                     Tile(title: "Próxima cita", value: next?.due.map { dayLabel($0) } ?? "–",
                          note: next.map { "\($0.text) · \(relativeDays(DayKey.days(from: today, to: $0.due!)))" }, tint: (next?.due.map { DayKey.days(from: today, to: $0) <= 7 } ?? false) ? Brand.warn : nil)
@@ -60,7 +61,7 @@ struct SaludView: View {
                         Button { store.screen = .mounjaro } label: {
                             HStack {
                                 Image(systemName: "syringe").foregroundStyle(Brand.accent)
-                                Text("Mounjaro \(m.dose)").fontWeight(.medium)
+                                Text("\(store.mounjaro.name) \(m.dose)").fontWeight(.medium)
                                 Text("cada \(store.mounjaro.everyDays) días").foregroundStyle(.secondary)
                                 Spacer()
                                 if let n = store.mounjaro.next, let d = store.mounjaro.daysUntilNext { Text("próximo \(shortDate(n)) · \(relativeDays(d))").foregroundStyle(d < 0 ? Brand.bad : .secondary) }

@@ -93,6 +93,8 @@ struct Dose: Identifiable, Equatable {
 }
 
 struct MounjaroData: Equatable {
+    /// Nombre del medicamento («nombre:» en la nota); da nombre a la pantalla y a los avisos.
+    var name = "Medicación"
     var everyDays = 9
     var doses: [Dose] = []
 
@@ -123,7 +125,7 @@ struct NalaVisit: Identifiable, Equatable {
 }
 
 struct NalaData: Equatable {
-    var name = "Nala"
+    var name = "Mascota"
     var birth: Date?
     var food = ""
     var visits: [NalaVisit] = []

@@ -9,6 +9,7 @@ struct ObjetivosView: View {
         let text = store.read(file)
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                MissingNoteBanner(module: .objetivos)
                 if let l = w.last, w.goalKg > 0 {
                     Card(title: "Objetivo de peso", icon: "scalemass", actionTitle: "Ver peso", action: { store.screen = .peso }) {
                         ProgressView(value: w.progress).tint(Brand.accent)

@@ -9,6 +9,7 @@ struct DocumentosView: View {
         let today = DayKey.today()
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                MissingNoteBanner(module: .documentos)
                 Card(title: "Caducidades", icon: "clock.badge.exclamationmark",
                      info: "Anota solo la referencia del documento, no el documento. Al activar los avisos se crean eventos 30 días antes de cada caducidad.") {
                     if docs.isEmpty { EmptyNote("Ningún documento tiene fecha. Pon la fecha en la columna «Caduca / renueva» (AAAA-MM-DD).", icon: "calendar") }

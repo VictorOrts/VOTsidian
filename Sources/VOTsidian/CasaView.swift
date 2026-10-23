@@ -44,6 +44,7 @@ struct CasaView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                MissingNoteBanner(module: .casa)
                 HStack(spacing: 12) {
                     Tile(title: "Reformas", value: Money.format(totalR), note: reformas.count == 1 ? "1 idea" : "\(reformas.count) ideas")
                     Tile(title: "Compras", value: Money.format(totalC), note: compras.count == 1 ? "1 idea" : "\(compras.count) ideas")

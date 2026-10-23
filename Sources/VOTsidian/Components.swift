@@ -748,7 +748,7 @@ struct AlertList: View {
                         .frame(width: 28, height: 28).background(color(a.level).opacity(0.14), in: Circle())
                     VStack(alignment: .leading, spacing: 1) {
                         Text(a.text).fixedSize(horizontal: false, vertical: true)
-                        Text(a.screen.rawValue).font(.caption).foregroundStyle(.secondary)
+                        Text(store.title(a.screen)).font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 8)
                 }.contentShape(Rectangle())

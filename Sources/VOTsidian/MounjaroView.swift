@@ -18,6 +18,7 @@ struct MounjaroView: View {
         let periods = m.periods(weights: store.weight.records)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                MissingNoteBanner(module: .medicacion)
                 HStack(spacing: 12) {
                     Tile(title: "Último", value: m.last.map { dayLabel($0.date) } ?? "–", note: m.last?.dose)
                     Tile(title: "Próximo", value: m.next.map { dayLabel($0) } ?? "–", note: d.map(relativeDays), tint: (d ?? 0) < 0 ? Brand.bad : nil)
@@ -45,7 +46,7 @@ struct MounjaroView: View {
 
                 if periods.count > 0 { periodsCard(periods) }
 
-                Card(title: "Registrar pinchazo", icon: "plus.circle", info: "Se añade una fila a Cambio físico/Mounjaro.md. Zona sugerida para alternar: \(m.suggestedSite).") {
+                Card(title: "Registrar pinchazo", icon: "plus.circle", info: "Se añade una fila a \(VaultPath.mounjaro). Zona sugerida para alternar: \(m.suggestedSite).") {
                     HStack(spacing: 20) {
                         DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).fixedSize()
                         Picker("Dosis", selection: $dose) { ForEach(mounjaroDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.fixedSize()
@@ -86,7 +87,7 @@ struct MounjaroView: View {
             .padding(24)
             .readableWidth()
         }
-        .navigationTitle("Mounjaro")
+        .navigationTitle(store.mounjaro.name)
         .sheet(item: $spec) { RowSheet(spec: $0) }
         .onAppear {
             if let mg = m.last?.mg { dose = mg }

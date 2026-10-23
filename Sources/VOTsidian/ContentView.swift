@@ -25,7 +25,7 @@ enum Screen: String, CaseIterable, Identifiable {
         case .casa: "house.and.flag"
         case .compra: "cart"
         case .moda: "tshirt"
-        case .nala: "cat"
+        case .nala: "pawprint"
         case .personas: "person.2"
         case .documentos: "doc.on.doc"
         case .finanzas: "eurosign.circle"
@@ -56,19 +56,13 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var store = store
-        if !store.isValid {
-            ContentUnavailableView {
-                Label("No encuentro tu vault", systemImage: "folder.badge.questionmark")
-            } description: {
-                Text("Busqué \(store.root.path). Elige la carpeta de tus notas, la que tiene tus notas (por ejemplo Cambio físico/Peso.md).")
-            } actions: {
-                Button("Elegir carpeta…") { store.chooseFolder() }
-            }
+        if !store.isValid || (!store.modulesConfigured && store.looksNew) {
+            WelcomeView()
         } else {
             NavigationSplitView {
                 List(selection: $store.screen) {
                     row(.inicio, color: Brand.accent)
-                    ForEach(Self.sections, id: \.title) { sec in
+                    ForEach(Self.sections.map { SidebarSection(title: $0.title, color: $0.color, screens: $0.screens.filter(store.isVisible)) }.filter { !$0.screens.isEmpty }, id: \.title) { sec in
                         Section(isExpanded: expanded(sec.title)) {
                             ForEach(sec.screens) { row($0, color: sec.color) }
                         } header: { header(sec) }
@@ -96,7 +90,7 @@ struct ContentView: View {
     }
 
     @ViewBuilder private var detail: some View {
-        switch store.screen ?? .inicio {
+        switch store.screen.flatMap({ store.isVisible($0) ? $0 : nil }) ?? .inicio {
         case .inicio: InicioView(go: { store.screen = $0 })
         case .tareas: TareasView()
         case .calendario: CalendarioView()
@@ -167,7 +161,7 @@ struct ContentView: View {
     }
 
     private func row(_ s: Screen, color: Color) -> some View {
-        Label { Text(s.rawValue) } icon: { Image(systemName: s.icon).foregroundStyle(color) }
+        Label { Text(store.title(s)) } icon: { Image(systemName: s.icon).foregroundStyle(color) }
             .badge(badge(s))
             .tag(s)
     }

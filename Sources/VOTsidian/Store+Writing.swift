@@ -186,19 +186,24 @@ extension Store {
     }
 
     /// Lee el archivo recién del disco, aplica el cambio y lo guarda. Así no se pisan cambios hechos desde otro programa.
+    /// Si la nota de un módulo aún no existe, se parte de su plantilla: lo primero que se apunta la crea.
     /// Devuelve `false` si no se pudo (el motivo queda en `message`).
     @discardableResult
     func edit(_ rel: String, quiet: Bool = false, _ transform: (String) -> String?) -> Bool {
         let u = url(rel)
-        guard let text = try? String(contentsOf: u, encoding: .utf8) else { message = "No se pudo leer \(rel)."; return false }
+        let onDisk = try? String(contentsOf: u, encoding: .utf8)
+        // Solo si de verdad no está: una nota ilegible o pendiente de iCloud no se sustituye por la plantilla.
+        let starter = onDisk == nil && !exists(rel) && !pendingDownloads.contains(rel) ? starterText(for: rel) : nil
+        guard let text = onDisk ?? starter else { message = "No se pudo leer \(rel)."; return false }
         guard let new = transform(text) else { message = "No encontré dónde cambiar \(rel). No se modificó."; return false }
-        guard new != text else { return true }
+        guard new != text || starter != nil else { return true }
         ensureBackup()
         var ok = true
         do {
+            if starter != nil { try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true) }
             try new.write(to: u, atomically: true, encoding: .utf8)
             message = nil
-            record(rel, previous: text, written: new, quiet: quiet)
+            record(rel, previous: onDisk, written: new, quiet: quiet)
         } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)"; ok = false }
         reload(changed: [rel])
         return ok

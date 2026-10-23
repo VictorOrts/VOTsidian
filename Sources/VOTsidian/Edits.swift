@@ -5,7 +5,10 @@ enum Edit {
     /// Inserta `row` justo después de la última fila de tabla que cumple `match`.
     static func insertRow(_ text: String, row: String, after match: ([String]) -> Bool) -> String? {
         var lines = MD.lines(text)
-        guard let last = MD.tableRows(lines).last(where: { match($0.cells) }) else { return nil }
+        let rows = MD.tableRows(lines)
+        // Sin ninguna fila aún (nota recién creada), va justo debajo de la cabecera de la primera tabla.
+        let separator = rows.first { r in !r.cells.isEmpty && r.cells.allSatisfy { $0.range(of: #"^:?-+:?$"#, options: .regularExpression) != nil } }
+        guard let last = rows.last(where: { match($0.cells) }) ?? separator else { return nil }
         lines.insert(row, at: last.index + 1)
         return lines.joined(separator: "\n")
     }

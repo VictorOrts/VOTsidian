@@ -30,6 +30,16 @@ enum VaultPath {
         let custom = UserDefaults.standard.dictionary(forKey: "vaultPathOverrides")?[key] as? String
         return custom.flatMap { $0.isEmpty ? nil : $0 } ?? defaults[key] ?? key
     }
+    /// Rutas cambiadas (Ajustes → Módulos), por clave.
+    static var overrides: [String: String] {
+        (UserDefaults.standard.dictionary(forKey: "vaultPathOverrides") as? [String: String]) ?? [:]
+    }
+    /// Cambia la ruta de una clave; `nil` vuelve a la de siempre.
+    static func setOverride(_ key: String, _ value: String?) {
+        var o = overrides
+        o[key] = value
+        if o.isEmpty { UserDefaults.standard.removeObject(forKey: "vaultPathOverrides") } else { UserDefaults.standard.set(o, forKey: "vaultPathOverrides") }
+    }
     static var peso: String { path("peso") }
     static var mounjaro: String { path("mounjaro") }
     static var plan: String { path("plan") }
@@ -88,6 +98,16 @@ final class Store {
         didSet { UserDefaults.standard.set(pinned, forKey: "pinnedNotes") }
     }
     var lastChange: Change?
+    /// Con una raíz explícita (tests) los módulos no se leen ni se guardan en las preferencias de la app.
+    @ObservationIgnored private var persistsModules = true
+    /// Módulos que no se usan: sus pantallas, tarjetas y avisos no salen.
+    var hiddenModules: Set<Module> = Set((UserDefaults.standard.stringArray(forKey: "hiddenModules") ?? []).compactMap(Module.init)) {
+        didSet { if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") } }
+    }
+    /// Ya se pasó por el asistente del principio.
+    var modulesConfigured = UserDefaults.standard.bool(forKey: "modulesConfigured") {
+        didSet { if persistsModules { UserDefaults.standard.set(modulesConfigured, forKey: "modulesConfigured") } }
+    }
     var screen: Screen? = Screen.allCases.first { String(describing: $0) == ProcessInfo.processInfo.environment["VOT_SCREEN"] }
         ?? Screen(rawValue: UserDefaults.standard.string(forKey: "lastScreen") ?? "") ?? .inicio {
         didSet { if let s = screen { UserDefaults.standard.set(s.rawValue, forKey: "lastScreen") } }
@@ -177,6 +197,7 @@ final class Store {
             ? Store.defaultBackupsFolder
             : FileManager.default.temporaryDirectory.appendingPathComponent("votsidian-backups-\(UUID().uuidString)"))
         self.root = root ?? Store.defaultRoot()
+        if root != nil { persistsModules = false; hiddenModules = []; modulesConfigured = false }
         if root == nil { backupPassword = BackupKeychain.load(); moveOldBackups(); moveLooseBackups() }
         reload()
         if root == nil {
@@ -205,7 +226,9 @@ final class Store {
             let url = home.appendingPathComponent(p)
             if fm.fileExists(atPath: url.appendingPathComponent(VaultPath.peso).path) { return url }
         }
-        return home.appendingPathComponent("Documents/VictorBrain")
+        // Sin nada de antes: una carpeta nueva en iCloud Drive (si está activado) para tenerla en todos los dispositivos.
+        let icloud = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
+        return fm.fileExists(atPath: icloud.path) ? icloud.appendingPathComponent("VOTsidian") : home.appendingPathComponent("Documents/VOTsidian")
     }
 
     var vaultName: String { root.lastPathComponent }
@@ -437,7 +460,8 @@ final class Store {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        panel.message = "Elige la carpeta de tus notas"
+        panel.canCreateDirectories = true
+        panel.message = "Elige la carpeta de tus notas (o crea una nueva)"
         guard panel.runModal() == .OK, let u = panel.url else { return }
         root = u
         UserDefaults.standard.set(u.path, forKey: "vaultPath")

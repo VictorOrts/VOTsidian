@@ -17,6 +17,7 @@ struct NutricionView: View {
         let w = store.weight
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                MissingNoteBanner(module: .nutricion)
                 if p.kcal > 0 {
                     HStack(spacing: 12) {
                         Tile(title: "Calorías", value: fmt(p.kcal, 0), note: "kcal al día")
@@ -82,7 +83,7 @@ struct NutricionView: View {
                     Button("Abrir la nota Plan Nutricional") { store.pendingNote = VaultPath.plan }
                     Button("Abrir Menú y compra") { store.pendingNote = "Cambio físico/Menú y compra.md" }
                 }.buttonStyle(.accentLink)
-                Text("Valores orientativos de tu nota. Confírmalos con tu médico o dietista, sobre todo mientras usas Mounjaro.")
+                Text("Valores orientativos de tu nota. Confírmalos con tu médico o dietista" + (store.mounjaro.last != nil ? ", sobre todo mientras usas \(store.mounjaro.name)." : "."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)

@@ -19,6 +19,17 @@ enum HomeCard: String, CaseIterable, Identifiable {
         }
     }
     var full: Bool { self == .atencion || self == .hoy }
+    /// Módulo del que es la tarjeta: si está oculto, la tarjeta tampoco sale.
+    var module: Module? {
+        switch self {
+        case .peso: .peso
+        case .mounjaro: .medicacion
+        case .nala: .mascota
+        case .nutricion: .nutricion
+        case .gastos: .finanzas
+        default: nil
+        }
+    }
 }
 
 struct HomeLayout: Equatable {
@@ -122,8 +133,10 @@ struct InicioView: View {
                         .controlSize(.small)
                 }
                 let layout = HomeLayout(raw: layoutRaw)
+                // Se pinta sin las tarjetas de módulos ocultos, pero los cambios se guardan sobre el orden completo.
+                let shown = HomeLayout(items: layout.items.filter { $0.card.module.map { !store.hiddenModules.contains($0) } ?? true })
                 Grid(horizontalSpacing: 16, verticalSpacing: 16) {
-                    ForEach(Array(layout.rows.enumerated()), id: \.offset) { _, row in
+                    ForEach(Array(shown.rows.enumerated()), id: \.offset) { _, row in
                         GridRow {
                             if row.count == 2 {
                                 homeCard(row[0], layout); homeCard(row[1], layout)
@@ -220,12 +233,12 @@ struct InicioView: View {
     }
 
     @ViewBuilder private func hiddenCards(_ layout: HomeLayout) -> some View {
-        let hidden = layout.items.filter { !$0.visible }.map(\.card)
+        let hidden = layout.items.filter { !$0.visible && ($0.card.module.map { !store.hiddenModules.contains($0) } ?? true) }.map(\.card)
         HStack(spacing: 10) {
             Text("Ocultas:").foregroundStyle(.secondary)
             if hidden.isEmpty { Text("ninguna").foregroundStyle(.secondary) }
             ForEach(hidden) { c in
-                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c.title, systemImage: "eye") }.controlSize(.small)
+                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c == .mounjaro ? store.mounjaro.name : c == .nala ? store.nala.name : c.title, systemImage: "eye") }.controlSize(.small)
             }
             Spacer()
             Button("Restablecer orden") { layoutRaw = "" }.controlSize(.small)
@@ -278,7 +291,7 @@ struct InicioView: View {
 
     private var mounjaroCard: some View {
         let m = store.mounjaro
-        return Card(title: "Mounjaro", icon: "syringe", actionTitle: "Registrar", action: { go(.mounjaro) }) {
+        return Card(title: m.name, icon: "syringe", actionTitle: "Registrar", action: { go(.mounjaro) }) {
             if let last = m.last, let next = m.next, let d = m.daysUntilNext {
                 let color: Color = d < 0 ? Brand.bad : d == 0 ? Brand.warn : Brand.accent
                 HStack(spacing: 20) {
@@ -359,7 +372,7 @@ struct InicioView: View {
 
     private var nalaCard: some View {
         let n = store.nala
-        return Card(title: n.name, icon: "cat", actionTitle: "Abrir", action: { go(.nala) }) {
+        return Card(title: n.name, icon: "pawprint", actionTitle: "Abrir", action: { go(.nala) }) {
             ForEach(Array(n.overdue.enumerated()), id: \.offset) { _, o in
                 Label("\(o.title) vencida el \(DayKey.dmy(o.date))", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Brand.warn)
             }

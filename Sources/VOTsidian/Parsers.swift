@@ -21,6 +21,8 @@ enum Parse {
 
     static func mounjaro(_ text: String) -> MounjaroData {
         var d = MounjaroData()
+        // Las notas de antes de poder elegir el nombre no lo llevan: eran de Mounjaro. Sin nota, el nombre genérico.
+        d.name = MD.frontmatter(text)["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : "Mounjaro")
         d.everyDays = MD.frontmatter(text)["cada_dias"].flatMap { Int($0) } ?? 9
         for (i, c) in MD.tableRows(MD.lines(text)) where c.count >= 3 {
             guard let date = DayKey.date(c[0]) else { continue }
@@ -33,7 +35,7 @@ enum Parse {
     static func nala(_ text: String) -> NalaData {
         let fm = MD.frontmatter(text)
         var d = NalaData()
-        d.name = fm["nombre"] ?? "Nala"
+        d.name = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : "Nala")   // como en `mounjaro`
         d.birth = fm["nacimiento"].flatMap(DayKey.dmyDate)
         d.food = fm["comida"] ?? ""
         for (line, c) in MD.tableRows(MD.lines(text)) where c.count >= 2 {

@@ -48,6 +48,7 @@ struct AjustesView: View {
                         Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([store.root]) }
                     }
                 }
+                ModulesCard()
                 Card(title: "Copias de seguridad", icon: "clock.arrow.circlepath", info: "Cada cambio también se puede deshacer con el botón del aviso o con ⌥⌘Z. El historial de una sola nota está en Notas → ⋯ → Historial.") {
                     Text("Antes del primer cambio de cada día la app copia tus notas a una sola carpeta («Ver copias en Finder»), fuera de Documentos para que no ocupen iCloud. Guarda las últimas \(Store.keepAutoBackups) copias automáticas y borra las más viejas. Las copias manuales no se borran solas.")
                         .font(.callout).foregroundStyle(.secondary)

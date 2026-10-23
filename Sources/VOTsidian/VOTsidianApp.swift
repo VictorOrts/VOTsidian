@@ -46,9 +46,9 @@ struct VOTsidianApp: App {
                 Button("Deshacer último cambio de la app") { store.undo() }.keyboardShortcut("z", modifiers: [.command, .option]).disabled(!store.canUndo)
             }
             CommandMenu("Ir a") {
-                ForEach(Array(Screen.allCases.enumerated()), id: \.offset) { i, s in
-                    if i < 9 { Button(s.rawValue) { store.screen = s }.keyboardShortcut(KeyEquivalent(Character(String(i + 1))), modifiers: .command) }
-                    else { Button(s.rawValue) { store.screen = s } }
+                ForEach(Array(Screen.allCases.filter(store.isVisible).enumerated()), id: \.offset) { i, s in
+                    if i < 9 { Button(store.title(s)) { store.screen = s }.keyboardShortcut(KeyEquivalent(Character(String(i + 1))), modifiers: .command) }
+                    else { Button(store.title(s)) { store.screen = s } }
                 }
             }
         }

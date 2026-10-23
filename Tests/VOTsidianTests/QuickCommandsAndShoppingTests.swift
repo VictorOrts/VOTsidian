@@ -32,7 +32,10 @@ import Testing
     let b = Shopping.addItems(a.text, items: ["POLLO", "pavo"], category: "Proteína")          // no repite, aunque cambie la capitalización
     #expect(b.added == 1)
     let c = Shopping.addItems(b.text, items: ["velas"], category: "Hogar")                      // categoría nueva antes del pie
-    #expect(c.added == 1 && c.text.contains("## Hogar\n- [ ] Velas") && c.text.hasSuffix("---\n[[Menú y compra]] · [[Plan Nutricional]]\n"))
+    #expect(c.added == 1 && c.text.contains("## Hogar\n- [ ] Velas") && c.text.hasSuffix("## Hogar\n- [ ] Velas\n\n---\n"))
+    // sin pie, la sección nueva va al final y no dentro del encabezado
+    let bare = Shopping.addItems("---\ntipo: compra\n---\n\n## Fruta\n", items: ["peras"], category: "Hogar")
+    #expect(bare.text.hasPrefix("---\ntipo: compra\n---\n") && Shopping.parse(bare.text).map(\.category) == ["Hogar"])
     var items = Shopping.parse(c.text)
     #expect(items.map(\.text) == ["Pollo", "Leche", "Pavo", "Velas"] && items.map(\.category) == ["Proteína", "Proteína", "Proteína", "Hogar"])
     let checked = try #require(Edit.toggleCheckbox(c.text, line: items[0].line, expect: items[0].raw))

@@ -12,6 +12,15 @@ swift test                   # tests
 
 La carpeta de notas por defecto es `iCloud Drive/VOTsidian`. Se cambia en Ajustes.
 
+**Para empezar de cero o explicárselo a otra persona: [GUIA.md](GUIA.md)** (primer arranque, módulos y formato de cada nota).
+
+## Módulos y primer arranque
+
+- Con una carpeta vacía (o sin ninguna nota de los módulos) sale el asistente «Empecemos»: carpeta y módulos que se quieren (peso, medicación, salud, finanzas, casa, compra, ropa, mascota, personas, documentos, objetivos). Crea las notas con su plantilla y oculta el resto. Tareas, calendario, revisiones, proyectos y notas van siempre.
+- La nota de un módulo se crea sola al apuntar lo primero (con deshacer); mientras no existe, su pantalla lo dice con un botón «Crear la nota».
+- **Ajustes → Módulos**: mostrar u ocultar módulos (también quita sus tarjetas de Inicio, sus avisos y sus entradas en ⌘K y en el menú Ir a), crear las notas que falten y cambiar la ruta de cada nota sin `defaults write`.
+- Medicación y mascota toman el nombre de su nota (`nombre:`); las notas de antes sin ese campo siguen saliendo como «Mounjaro» y «Nala».
+
 ## Seguridad de los datos
 
 - Al abrir la app (y antes del primer cambio de cada día) se copia toda la carpeta a la carpeta de copias. Si una copia falla, o la última tiene más de 2 días, sale un aviso.
@@ -115,7 +124,7 @@ Escribe una orden y pulsa intro: `peso 105,5` · `peso 105,5 ayer` · `ánimo 4`
 
 ## Otra estructura de carpetas
 
-Las rutas de los archivos que usa cada pantalla (peso, Mounjaro, Inbox…) están en `VaultPath`. Para cambiar una sin tocar código:
+Las rutas de los archivos que usa cada pantalla (peso, Mounjaro, Inbox…) están en `VaultPath` y se cambian en Ajustes → Módulos → Rutas de las notas. También desde la terminal:
 
 ```bash
 defaults write com.victor.votsidian vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"

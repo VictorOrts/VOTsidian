@@ -13,6 +13,7 @@ struct PersonasView: View {
         }.sorted { $0.3 < $1.3 }
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                MissingNoteBanner(module: .personas)
                 Card(title: "Próximos cumpleaños", icon: "gift") {
                     if upcoming.isEmpty { EmptyNote("Añade fechas de cumpleaños en la tabla de abajo.", icon: "gift") }
                     ForEach(upcoming.prefix(6), id: \.0.id) { p, date, age, days in

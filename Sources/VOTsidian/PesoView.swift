@@ -15,6 +15,7 @@ struct PesoView: View {
         let rate = w.ratePerMonth(window: 120)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                MissingNoteBanner(module: .peso)
                 HStack(spacing: 12) {
                     Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { dayLabel($0.date) })
                     Tile(title: "Perdidos", value: fmt(w.lostKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)

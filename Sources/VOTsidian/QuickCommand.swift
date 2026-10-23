@@ -21,7 +21,7 @@ enum QuickCommand: Equatable {
         case .weight(let kg, let d): return "Registrar peso \(MD.formatNumber(kg, comma: true)) kg (\(day(d)))"
         case .mood(let n, let d): return "Anotar ánimo \(n) de 5 (\(day(d)))"
         case .sleep(let h, let d): return "Anotar sueño \(MD.formatNumber(h, comma: true)) h (\(day(d)))"
-        case .injection(let d): return "Registrar pinchazo de Mounjaro (\(day(d)))"
+        case .injection(let d): return "Registrar pinchazo (\(day(d)))"
         case .task(let t, let d, let r, let p):
             return "Tarea «\(t)»" + (d.map { " para \(day($0))" } ?? "") + (r.map { " · \(Recurrence.describe($0))" } ?? "") + (p == 3 ? " · urgente" : "")
         case .idea(let t): return "Guardar idea «\(t)»"
@@ -117,7 +117,7 @@ enum Shopping {
 
     static var template: String {
         "---\ntipo: compra\ntags:\n  - compra\n---\n\n# Lista de la compra\n\n> Se marca al comprar. «Vaciar comprados» quita lo que ya tienes.\n\n"
-            + defaultCategories.map { "## \($0)\n" }.joined(separator: "\n") + "\n---\n[[Menú y compra]] · [[Plan Nutricional]]\n"
+            + defaultCategories.map { "## \($0)\n" }.joined(separator: "\n") + "\n---\n"
     }
 
     static func parse(_ text: String) -> [ShoppingItem] {
@@ -150,9 +150,10 @@ enum Shopping {
             let last = r.last(where: { lines[$0].hasPrefix("- [") }) ?? head
             lines.insert(contentsOf: new, at: last + 1)
         } else {
-            // sección nueva antes del pie
+            // sección nueva antes del pie (no antes del cierre del encabezado YAML, que también es «---»)
             var at = lines.count
-            if let hr = lines.lastIndex(of: "---"), hr > 0 { at = hr }
+            let header = lines.first == "---" ? lines.dropFirst().firstIndex(of: "---") ?? 0 : 0
+            if let hr = lines.lastIndex(of: "---"), hr > header { at = hr }
             lines.insert(contentsOf: ["## \(category)"] + new + [""], at: at)
         }
         return (lines.joined(separator: "\n"), fresh.count)
