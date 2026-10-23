@@ -55,6 +55,7 @@ extension Store {
                 out.append(Alert(level: .info, icon: "party.popper", text: "\(e.name) \(relativeDays(n))", screen: .finanzas))
             }
         }
+        out += budgetAlerts(today: today)
         if !pendingDownloads.isEmpty { out.append(Alert(level: .soon, icon: "icloud.and.arrow.down", text: "\(pendingDownloads.count) archivos de iCloud sin descargar en este Mac (no entran en las copias)", screen: .ajustes)) }
         if !unreadableFiles.isEmpty { out.append(Alert(level: .soon, icon: "exclamationmark.triangle", text: "\(unreadableFiles.count) \(unreadableFiles.count == 1 ? "nota no se puede leer" : "notas no se pueden leer"): \(unreadableFiles.prefix(2).joined(separator: ", "))", screen: .ajustes)) }
         let conflicts = conflictCopies
@@ -108,5 +109,32 @@ extension Store {
             n += Set(names).filter { resolve($0) == nil && attachmentURL($0) == nil && screenAlias($0) == nil }.count
         }
         return n
+    }
+}
+
+extension Store {
+    /// Pagos del mes en curso: los que tocaban y no están marcados, los de hoy y mañana, y si el mes va a cerrar en negativo.
+    func budgetAlerts(today: Date = DayKey.today()) -> [Alert] {
+        let month = Budget.monthKey(today)
+        guard let b = budget(month) else {
+            // Hay presupuestos pero no el de este mes: se avisa una vez entrado el mes.
+            if let last = budgetMonths.last, last < month, DayKey.calendar().component(.day, from: today) >= 2 {
+                return [Alert(level: .info, icon: "creditcard", text: "Crea el presupuesto de \(Budget.title(month).lowercased())", screen: .gastos)]
+            }
+            return []
+        }
+        var out: [Alert] = []
+        let day = DayKey.calendar().component(.day, from: today)
+        for l in b.lines where !l.isDiscretionary && l.isDue(month) && !l.paid && b.real(l) == 0 && l.planned > 0 {
+            guard let d = l.day else { continue }
+            if d < day { out.append(Alert(level: .soon, icon: "creditcard", text: "\(l.name) (\(Money.format(l.planned)), día \(d)) sin marcar como pagado", screen: .gastos)) }
+            else if d == day { out.append(Alert(level: .soon, icon: "creditcard", text: "Hoy se paga \(l.name) (\(Money.format(l.planned)))", screen: .gastos)) }
+            else if d == day + 1 { out.append(Alert(level: .info, icon: "creditcard", text: "Mañana se paga \(l.name) (\(Money.format(l.planned)))", screen: .gastos)) }
+        }
+        let s = BudgetStatus(b, today: today)
+        if s.day >= 5, s.endLeft < -20 {
+            out.append(Alert(level: .soon, icon: "creditcard", text: "A este ritmo el mes acabará en \(Money.format(s.endLeft))", screen: .gastos))
+        }
+        return out
     }
 }

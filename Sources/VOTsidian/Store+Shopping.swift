@@ -59,6 +59,7 @@ extension Store {
         case .shopping(let items):
             let n = addShopping(items)
             return n == 0 ? "Ya estaba en la lista de la compra." : "Añadido a la lista de la compra (\(n))."
+        case .expense(let p): return addExpense(p)
         }
         return c.summary
     }

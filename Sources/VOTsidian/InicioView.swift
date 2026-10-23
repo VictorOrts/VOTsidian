@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Orden y visibilidad de las tarjetas de Inicio. Se guarda como «id:1,id:0,…» (1 visible, 0 oculta).
 enum HomeCard: String, CaseIterable, Identifiable {
-    case atencion, hoy, peso, mounjaro, tareas, habitos, nala, nutricion
+    case atencion, hoy, peso, mounjaro, tareas, habitos, nala, nutricion, gastos
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -15,6 +15,7 @@ enum HomeCard: String, CaseIterable, Identifiable {
         case .habitos: "Hábitos"
         case .nala: "Nala"
         case .nutricion: "Plan nutricional"
+        case .gastos: "Gastos"
         }
     }
     var full: Bool { self == .atencion || self == .hoy }
@@ -202,6 +203,7 @@ struct InicioView: View {
             case .habitos: weekCard
             case .nala: nalaCard
             case .nutricion: nutritionCard
+            case .gastos: gastosCard
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -377,6 +379,28 @@ struct InicioView: View {
             }
             if n.overdue.isEmpty && n.upcoming.isEmpty { Label("Sin citas ni vacunas programadas", systemImage: "checkmark.seal").foregroundStyle(.secondary) }
             if let last = n.visits.last { Text("Último registro: \(DayKey.dmy(last.date)) · \(last.tipo)").font(.callout).foregroundStyle(.secondary) }
+        }
+    }
+
+    /// Cómo va el mes en Gastos y el próximo pago fijo sin marcar.
+    private var gastosCard: some View {
+        let month = Budget.monthKey(DayKey.today())
+        return Card(title: "Gastos", icon: "creditcard", actionTitle: "Abrir", action: { go(.gastos) }) {
+            if let b = store.budget(month) {
+                let s = BudgetStatus(b)
+                HStack(spacing: 22) {
+                    macro("hoy puedes", Money.format(s.perDay), s.perDay > 0 ? Brand.accent : Brand.bad)
+                    macro("sobrará el \(s.days)", Money.format(s.endLeft), s.endLeft < 0 ? Brand.bad : Brand.info)
+                    macro("gastado", Money.format(b.spent), Brand.amber)
+                }
+                let day = DayKey.calendar().component(.day, from: DayKey.today())
+                if let next = b.lines.filter({ !$0.isDiscretionary && $0.isDue(month) && !$0.paid && b.real($0) == 0 && ($0.day ?? 0) >= day && $0.planned > 0 })
+                    .min(by: { ($0.day ?? 99) < ($1.day ?? 99) }), let d = next.day {
+                    Label("Próximo pago: \(next.name), \(Money.format(next.planned)) el día \(d)", systemImage: "calendar").font(.callout).foregroundStyle(.secondary)
+                }
+            } else {
+                EmptyNote("Sin presupuesto este mes.", icon: "creditcard")
+            }
         }
     }
 

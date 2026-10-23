@@ -12,6 +12,7 @@ enum QuickCommand: Equatable {
     case appointment(String, Date)
     case measure(String, Double, Date)
     case shopping([String])
+    case expense(ExpenseParser.Result)
 
     /// Lo que va a hacer, para enseñarlo antes de ejecutarlo.
     var summary: String {
@@ -28,12 +29,16 @@ enum QuickCommand: Equatable {
         case .appointment(let t, let d): return "Cita «\(t)» el \(day(d))"
         case .measure(let f, let v, let d): return "Medida de \(f.lowercased()): \(MD.formatNumber(v, comma: true)) (\(day(d)))"
         case .shopping(let items): return "Añadir a la compra: \(items.joined(separator: ", "))"
+        case .expense(let p):
+            return "Gasto de \(Money.exact(p.amount))" + (p.category.map { " en \($0)" } ?? "") + (p.note.isEmpty ? "" : " · \(p.note)") + " (\(day(p.date)))"
         }
     }
 
     private static let measureFields = ["cintura": "Cintura", "cadera": "Cadera", "pecho": "Pecho", "brazo": "Brazo", "muslo": "Muslo", "grasa": "Grasa"]
 
-    static func parse(_ raw: String, today: Date = DayKey.today()) -> QuickCommand? {
+    /// `categories`, `people` y `learned` son para los gastos («gasto 22 cena con Ana»): sin ellas se usan las partidas de la hoja de Numbers.
+    static func parse(_ raw: String, today: Date = DayKey.today(), categories: [String] = Edit.defaultBudgetLines.map(\.0),
+                      people: [String] = [], learned: [String: String] = [:]) -> QuickCommand? {
         let text = raw.trimmingCharacters(in: .whitespaces)
         guard let space = text.firstIndex(of: " ") else {
             // órdenes sin argumento
@@ -79,6 +84,8 @@ enum QuickCommand: Equatable {
             let p = NaturalDate.extract(arg, today: today)
             guard !p.text.isEmpty else { return nil }
             return .appointment(p.text, p.date ?? today)
+        case "gasto", "gaste", "pague", "pago":
+            return ExpenseParser.parse(arg, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
         case "compra", "comprar", "lista":
             let items = arg.replacingOccurrences(of: " y ", with: ",").split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }

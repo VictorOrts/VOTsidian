@@ -41,6 +41,10 @@ struct BudgetLine: Identifiable, Equatable {
         return (0..<max(every, 1)).map { BudgetLine.month(m + $0) }.first(where: isDue) ?? month
     }
 
+    /// Gasto del día a día (variable y de cada mes): el que tiene ritmo y entra en «puedes gastar hoy».
+    /// Un cargo de cada varios meses, aunque su importe varíe, se trata como un pago fijo del mes en que toca.
+    var isDiscretionary: Bool { kind == .variable && every == 1 }
+
     /// Lo que conviene apartar cada mes para tenerlo cuando toque.
     var monthlyReserve: Double { every > 1 ? amount / Double(every) : 0 }
 }
@@ -122,14 +126,15 @@ struct BudgetStatus {
         day = current ? cal.component(.day, from: today) : (today < first ? 0 : days)
         let frac = Double(day) / Double(days)
         var proj: [String: Double] = [:]
-        for l in b.lines where l.kind == .variable {
+        for l in b.lines where l.isDiscretionary {
             let r = b.real(l)
             // Los primeros días el ritmo engaña (una compra grande el día 1): hasta el 3 se supone lo previsto.
-            proj[l.name] = !current ? r : day >= 3 ? max(r, r / frac) : max(r, l.planned)
+            // Sin nada apuntado tampoco hay ritmo (lo normal es que aún no lo hayas apuntado): se supone lo previsto.
+            proj[l.name] = !current ? r : day >= 3 && r > 0 ? max(r, r / frac) : max(r, l.planned)
         }
         projection = proj
-        let variables = b.lines.filter { $0.kind == .variable }
-        let others = b.lines.filter { $0.kind != .variable }.reduce(0) { $0 + (current ? max(b.real($1), $1.paid ? 0 : $1.planned) : b.real($1)) }
+        let variables = b.lines.filter(\.isDiscretionary)
+        let others = b.lines.filter { !$0.isDiscretionary }.reduce(0) { $0 + (current ? max(b.real($1), $1.paid ? 0 : $1.planned) : b.real($1)) }
         // Lo que queda en variables según lo previsto, pero nunca más que el dinero que de verdad queda tras los fijos:
         // si los ingresos no cubren lo previsto, «puedes gastar hoy» no puede prometer lo que no hay.
         let cash = b.income - others - variables.reduce(0) { $0 + b.real($1) } - b.unassigned
@@ -159,12 +164,12 @@ struct BudgetStatus {
         guard isCurrent, day < days else { return (real, []) }
         // Lo que falta de cada fijo sin pagar (entero o lo que quede si ya se pagó una parte), en su día.
         var pendingOn = [Int: Double]()
-        for l in b.lines where l.kind != .variable && !l.paid {
+        for l in b.lines where !l.isDiscretionary && !l.paid {
             let left = l.planned - b.real(l)
             if left > 0 { pendingOn[min(max(l.day ?? days, day + 1), days), default: 0] += left }
         }
         // Los variables bajan hasta su previsión (la misma que usa «Sobrará»), repartida entre los días que quedan.
-        let variables = b.lines.filter { $0.kind == .variable }
+        let variables = b.lines.filter(\.isDiscretionary)
         let rate = variables.reduce(0) { $0 + (projection[$1.name] ?? b.real($1)) - b.real($1) } / Double(days - day)
         var forecast: [(Int, Double)] = [(day, left)]
         // Los gastos apuntados por adelantado («mañana comunidad 60») bajan en su día.
@@ -182,6 +187,8 @@ struct BudgetInsight: Identifiable, Equatable {
     var category: String? = nil
     /// Nota que abre el aviso (un evento con aportación pendiente).
     var notePath: String? = nil
+    /// Sobrante de un mes cerrado que se puede pasar al fondo de emergencia.
+    var transfer: Double? = nil
 }
 
 extension Budget {
@@ -195,12 +202,12 @@ extension Budget {
             guard !past.isEmpty else { continue }
             let avg = past.reduce(0, +) / Double(past.count)
             let r = b.real(l)
-            if l.kind == .fijo, r > l.planned, r >= avg * 1.1, r - avg >= 5 {
+            if !l.isDiscretionary, l.kind != .ahorro, r > l.planned, r >= avg * 1.1, r - avg >= 5 {
                 out.append(BudgetInsight(id: "sube-\(l.name)", level: .warn,
                     text: "\(l.name): \(Money.format(r)), un \(Int(((r - avg) / avg * 100).rounded())) % más que tu media de \(past.count == 1 ? "el mes anterior" : "los últimos \(past.count) meses") (\(Money.format(avg))). Si cambió la tarifa, sube lo previsto.",
                     category: l.name))
             }
-            if l.kind == .variable, l.planned > 0 {
+            if l.isDiscretionary, l.planned > 0 {
                 let overBefore = previous.prefix(2).allSatisfy { p in p.line(named: l.name).map { p.real($0) > $0.planned } ?? false }
                 let overNow = (s.projection[l.name] ?? r) > l.planned
                 if previous.count >= 2, overBefore, overNow {
@@ -221,6 +228,12 @@ extension Budget {
         }
         for e in events where e.amount > 0 {
             out.append(BudgetInsight(id: "evento-\(e.path)", level: .info, text: "\(e.name): aportación de \(Money.format(e.amount)) sin pagar.", notePath: e.path))
+        }
+        if !s.isCurrent, s.day == s.days, b.lines.contains(where: { $0.kind == .ahorro }) {
+            let left = b.income - b.spent - b.saved
+            if left >= 5 {
+                out.append(BudgetInsight(id: "cierre", level: .good, text: "En \(Budget.title(b.month).lowercased()) sobraron \(Money.exact(left)). Pásalos al fondo de emergencia para que no se diluyan en el mes siguiente.", transfer: left))
+            }
         }
         if s.isCurrent, s.day >= 3 {
             if s.endLeft > 50 {
@@ -387,7 +400,14 @@ enum ExpenseParser {
         (["ahorro", "fondo"], ["ahorro"]),
     ]
 
-    static func parse(_ input: String, categories: [String], people: [String] = [], today: Date = DayKey.today()) -> Result? {
+    /// Palabras de la nota que se guardan al corregir la partida («dentista» → «Imprevistos»): las vacías no cuentan.
+    static func keywords(_ note: String) -> [String] {
+        let stop: Set = ["con", "para", "del", "los", "las", "una", "uno", "por", "que", "the"]
+        return MD.fold(note.replacingOccurrences(of: #"\[\[[^\]]*\]\]"#, with: " ", options: .regularExpression))
+            .split { !$0.isLetter }.map(String.init).filter { $0.count >= 3 && !stop.contains($0) }
+    }
+
+    static func parse(_ input: String, categories: [String], people: [String] = [], learned: [String: String] = [:], today: Date = DayKey.today()) -> Result? {
         // La fecha va primero: en «22/10 gasolina 40» o «el 12 pan 3» el número de la fecha no es el importe.
         let dated = NaturalDate.extract(input.trimmingCharacters(in: .whitespaces), today: today)
         var rest = dated.text
@@ -407,7 +427,9 @@ enum ExpenseParser {
             let words = MD.fold(c).split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count >= 4 || $0.contains(where: \.isNumber) }
             return (c, words.filter { folded.contains(" \($0) ") }.count, words.count)
         }.filter { $0.1 > 0 }
-        var category = scored.max { ($0.1, -$0.2) < ($1.1, -$1.2) }?.0
+        // Lo aprendido de tus correcciones manda sobre todo lo demás (si la partida sigue existiendo).
+        var category = keywords(rest).lazy.compactMap { w in learned[w].flatMap { l in categories.first { MD.fold($0) == MD.fold(l) } } }.first
+            ?? scored.max { ($0.1, -$0.2) < ($1.1, -$1.2) }?.0
         if category == nil {
             for h in hints where h.words.contains(where: { folded.contains(" \($0) ") }) {
                 if let c = categories.first(where: { c in h.partida.contains { MD.fold(c).contains($0) } }) { category = c; break }
@@ -523,6 +545,61 @@ extension Store {
             guard let now = Parse.budget(text, month: b.month, path: b.path).moves.first(where: { $0.line == m.line }),
                   now.date == m.date, now.amount == m.amount else { return nil }
             return Edit.deleteRow(text, line: m.line, expectFirst: MD.cells(MD.lines(text)[m.line]).first ?? "")
+        }
+    }
+
+    /// Partidas para adivinar un gasto: las del mes en curso, o las del último mes con nota, o las de la hoja de Numbers.
+    var expenseCategories: [String] {
+        (budget(Budget.monthKey(DayKey.today())) ?? budgetMonths.last.flatMap { budget($0) })?.lines.map(\.name) ?? Edit.defaultBudgetLines.map(\.0)
+    }
+
+    /// Palabra → partida, aprendido de las veces que corriges la partida que se adivinó.
+    var expenseLearned: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: "expenseLearned") as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: "expenseLearned") }
+    }
+
+    func learnExpense(note: String, category: String) {
+        let words = ExpenseParser.keywords(note)
+        guard !words.isEmpty else { return }
+        var l = expenseLearned
+        for w in words { l[w] = category }
+        expenseLearned = l
+    }
+
+    func parseExpense(_ text: String) -> ExpenseParser.Result? {
+        ExpenseParser.parse(text, categories: expenseCategories, people: people.map(\.name), learned: expenseLearned)
+    }
+
+    /// Apunta un gasto escrito como frase (⌘K, captura rápida). Sin partida reconocible va a la de imprevistos.
+    @discardableResult
+    func addExpense(_ p: ExpenseParser.Result) -> String {
+        let cats = expenseCategories
+        guard let c = p.category ?? cats.first(where: { MD.fold($0).contains("imprevist") }) ?? cats.last else { return "No hay partidas donde apuntarlo." }
+        addExpense(p.amount, category: c, note: p.note, date: p.date)
+        return "Apuntado: \(Money.exact(p.amount)) en \(c)" + (Budget.monthKey(p.date) != Budget.monthKey(DayKey.today()) ? " (\(Budget.title(Budget.monthKey(p.date)).lowercased()))" : "")
+    }
+
+    /// Cambia la partida de un gasto ya apuntado y aprende de la corrección.
+    func setExpenseCategory(_ b: Budget, _ m: BudgetMove, to category: String) {
+        guard MD.fold(category) != MD.fold(m.category) else { return }
+        edit(b.path) { text in
+            let lines = MD.lines(text)
+            guard m.line < lines.count, let first = MD.cells(lines[m.line]).first else { return nil }
+            return Edit.setSectionCell(text, section: "Movimientos", line: m.line, expectFirst: first, column: "Partida", value: category)
+        }
+        learnExpense(note: m.note, category: category)
+    }
+
+    /// Pasa el sobrante de un mes al fondo: un movimiento en la partida de ahorro (el último día del mes) y la suma en
+    /// `fondo_emergencia_eur` de la nota Finanzas. Así el mes queda cuadrado y el fondo, al día.
+    func transferLeftover(_ b: Budget, amount: Double) {
+        guard amount > 0, let saving = b.lines.first(where: { $0.kind == .ahorro }), let first = Budget.firstDay(b.month),
+              let last = DayKey.calendar().date(byAdding: DateComponents(month: 1, day: -1), to: first) else { return }
+        edit(b.path) { Edit.addBudgetMove($0, date: last, amount: amount, category: saving.name, note: "sobrante del mes") }
+        let now = Money.parse(noteMeta[VaultPath.finanzas]?["fondo_emergencia_eur"] ?? "")
+        if FileManager.default.fileExists(atPath: url(VaultPath.finanzas).path) {
+            setProperty(VaultPath.finanzas, key: "fondo_emergencia_eur", value: Edit.budgetNumber(now + amount))
         }
     }
 

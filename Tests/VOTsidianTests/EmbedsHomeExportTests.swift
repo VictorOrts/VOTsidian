@@ -40,7 +40,7 @@ import Testing
 
 @Test func homeLayoutLogic() {
     let std = HomeLayout.standard
-    #expect(std.rows.map { $0.map(\.rawValue) } == [["atencion"], ["hoy"], ["peso", "mounjaro"], ["tareas", "habitos"], ["nala", "nutricion"]])
+    #expect(std.rows.map { $0.map(\.rawValue) } == [["atencion"], ["hoy"], ["peso", "mounjaro"], ["tareas", "habitos"], ["nala", "nutricion"], ["gastos"]])
     var l = HomeLayout(raw: "")
     #expect(l == std)
     l.move(.nala, by: -10)                          // sube hasta el principio y no se sale
@@ -56,7 +56,7 @@ import Testing
     var one = HomeLayout.standard
     for c in HomeCard.allCases where c != .peso && c != .atencion { one.setVisible(c, false) }
     #expect(one.rows.map { $0.map(\.rawValue) } == [["atencion"], ["peso"]])
-    #expect(HomeLayout.standard.items.count == 8)
+    #expect(HomeLayout.standard.items.count == 9)
 }
 
 // MARK: - Exportar

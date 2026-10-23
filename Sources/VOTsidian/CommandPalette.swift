@@ -55,7 +55,7 @@ struct CommandPalette: View {
         ]
         let screens = Screen.allCases.map { s in PaletteItem(icon: s.icon, title: s.rawValue, subtitle: "Pantalla", tag: "Pantalla", run: go(s)) }
         let hasText = !q.tokens.isEmpty
-        if let cmd = QuickCommand.parse(query) {
+        if let cmd = QuickCommand.parse(query, categories: store.expenseCategories, people: store.people.map(\.name), learned: store.expenseLearned) {
             out.append(PaletteItem(icon: "bolt.fill", title: cmd.summary, subtitle: "intro para hacerlo", tag: "Orden") { store.run(cmd); dismiss() })
         }
         let folderFilter = folder.isEmpty ? nil : folder
@@ -172,7 +172,7 @@ struct CommandPalette: View {
 }
 
 struct QuickAddSheet: View {
-    enum Kind: String, CaseIterable, Identifiable { case tarea = "Tarea", peso = "Peso", pinchazo = "Pinchazo", idea = "Idea"; var id: String { rawValue } }
+    enum Kind: String, CaseIterable, Identifiable { case tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Pinchazo", idea = "Idea"; var id: String { rawValue } }
 
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -196,6 +196,12 @@ struct QuickAddSheet: View {
                 HStack { Toggle("Fecha", isOn: $hasDue).toggleStyle(.checkbox); DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue) }
                 if !hasDue, let d = NaturalDate.extract(text).date { Label("Se guardará para \(longDate(d))", systemImage: "calendar").font(.caption).foregroundStyle(Brand.accent) }
                 else { Text("Va al Inbox. Puedes escribir la fecha en la frase: “mañana”, “el viernes”, “25/11”, “en 3 días”.").font(.caption).foregroundStyle(.secondary) }
+            case .gasto:
+                TextField("22 € cena con Ana, gasolina 48, ayer 12,50 Mercadona", text: $text).focused($focused).onSubmit(save)
+                if let p = store.parseExpense(text) {
+                    Label("\(Money.exact(p.amount)) en \(p.category ?? "Imprevistos") · \(p.date == DayKey.today() ? "hoy" : longDate(p.date))", systemImage: "creditcard")
+                        .font(.caption).foregroundStyle(Brand.accent)
+                } else { Text("Se apunta en la nota del mes de Gastos. La partida se adivina por las palabras.").font(.caption).foregroundStyle(.secondary) }
             case .idea:
                 TextField("Idea", text: $text).focused($focused).onSubmit(save)
                 Text("Se añade a Ideas, en el Inbox.").font(.caption).foregroundStyle(.secondary)
@@ -224,6 +230,7 @@ struct QuickAddSheet: View {
     private var valid: Bool {
         switch kind {
         case .tarea, .idea: !text.trimmingCharacters(in: .whitespaces).isEmpty
+        case .gasto: store.parseExpense(text) != nil
         case .peso: MD.number(kg) != nil
         case .pinchazo: true
         }
@@ -238,6 +245,7 @@ struct QuickAddSheet: View {
             let p = NaturalDate.extractTask(t)
             store.addTask(hasDue ? t : p.text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : p.date, recurrence: hasDue ? nil : p.recurrence, priority: hasDue ? 0 : p.priority)
         case .idea: store.addIdea(t)
+        case .gasto: if let p = store.parseExpense(t) { store.addExpense(p) }
         case .peso: if let v = MD.number(kg) { store.addWeight(date: day, kg: v, note: t) }
         case .pinchazo: store.addDose(date: day, dose: dose, site: site, note: t)
         }

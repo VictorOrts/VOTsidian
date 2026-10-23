@@ -64,7 +64,7 @@ struct GastosView: View {
 
     private func quickAdd(_ reference: Budget?) -> some View {
         let categories = reference?.lines.map(\.name) ?? Edit.defaultBudgetLines.map(\.0)
-        let parsed = ExpenseParser.parse(quick, categories: categories, people: store.people.map(\.name))
+        let parsed = ExpenseParser.parse(quick, categories: categories, people: store.people.map(\.name), learned: store.expenseLearned)
         let category = chosen ?? parsed?.category
         return Card(title: "Añadir gasto", icon: "plus.circle",
                     info: "Escribe como hablas: «22 € cena con Ana», «gasolina 48», «ayer 12,50 pan». La partida se adivina por las palabras; si falla, elígela en el menú. Se apunta en la nota del mes de la fecha.") {
@@ -97,6 +97,8 @@ struct GastosView: View {
 
     private func add(_ p: ExpenseParser.Result?, _ category: String?) {
         guard let p, let category else { return }
+        // Si corregiste la partida adivinada, se recuerda para la próxima vez («dentista» → Imprevistos).
+        if let c = chosen, c != p.category { store.learnExpense(note: p.note, category: c) }
         store.addExpense(p.amount, category: category, note: p.note, date: p.date)
         // Si va a otro mes que el que estás viendo, se dice: si no, parece que no se apuntó.
         let elsewhere = Budget.monthKey(p.date) != month ? " · en \(Budget.title(Budget.monthKey(p.date)).lowercased())" : ""
@@ -119,7 +121,7 @@ struct GastosView: View {
                 Tile(title: "Ahorrado", value: Money.format(b.saved))
             }
             Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos · ingresos \(Money.format(b.income))")
-            let fixed = b.lines.filter { $0.kind != .variable && $0.isDue(b.month) }
+            let fixed = b.lines.filter { !$0.isDiscretionary && $0.isDue(b.month) }
             let pending = fixed.filter { !$0.paid && b.real($0) == 0 }
             Tile(title: "Pagos fijos", value: "\(fixed.count - pending.count) de \(fixed.count)",
                  note: pending.isEmpty ? "todos pagados" : "\(Money.format(pending.reduce(0) { $0 + $1.planned })) por pagar")
@@ -142,7 +144,7 @@ struct GastosView: View {
     }
 
     private func paceCard(_ b: Budget, _ s: BudgetStatus) -> some View {
-        let variables = b.lines.filter { $0.kind == .variable && $0.planned > 0 }
+        let variables = b.lines.filter { $0.isDiscretionary && $0.planned > 0 }
         return Card(title: "Ritmo del mes", icon: "speedometer",
                     info: "La raya marca lo que tocaría llevar gastado hoy si se reparte lo previsto por igual entre los días del mes. La previsión supone que sigues al mismo ritmo.") {
             if variables.isEmpty { EmptyNote("Ninguna partida variable con algo previsto.", icon: "speedometer") }
@@ -208,6 +210,9 @@ struct GastosView: View {
                         Text(i.text).font(.callout).fixedSize(horizontal: false, vertical: true)
                         if let c = i.category { Button("Ver movimientos de \(c)") { filter = c }.buttonStyle(.accentLink).font(.caption) }
                         if let p = i.notePath { Button("Abrir nota") { store.pendingNote = p }.buttonStyle(.accentLink).font(.caption) }
+                        if let t = i.transfer, let b = store.budget(month) {
+                            Button("Pasar \(Money.exact(t)) al fondo") { store.transferLeftover(b, amount: t) }.buttonStyle(.borderedProminent).controlSize(.small)
+                        }
                     }
                 }
             }
@@ -275,7 +280,7 @@ struct GastosView: View {
                     let past = previous.compactMap { p in p.line(named: l.name).map { p.real($0) } }.filter { $0 > 0 }
                     let avg = past.isEmpty ? nil : past.reduce(0, +) / Double(past.count)
                     GridRow {
-                        if l.kind == .variable || !l.isDue(b.month) { Color.clear.frame(width: 18, height: 18) } else {
+                        if l.isDiscretionary || !l.isDue(b.month) { Color.clear.frame(width: 18, height: 18) } else {
                             Button {
                                 store.setBudgetCell(b, section: "Partidas", line: l.line, name: l.name, column: "Pagado", value: l.paid ? "" : "✅")
                             } label: { Image(systemName: l.paid ? "checkmark.circle.fill" : "circle").foregroundStyle(l.paid ? Brand.good : .secondary) }
@@ -395,7 +400,7 @@ struct GastosView: View {
         let shown = filter.map { f in all.filter { MD.fold($0.category) == MD.fold(f) } } ?? all
         return Card(title: filter.map { "Movimientos · \($0)" } ?? "Movimientos", icon: "list.dash", actionTitle: filter == nil ? nil : "Ver todos", action: { filter = nil }) {
             if shown.isEmpty { EmptyNote(filter == nil ? "Aún no hay gastos apuntados este mes." : "Ningún gasto en esta partida.", icon: "tray") }
-            ForEach(shown.prefix(40)) { m in MoveRow(budget: b, move: m) }
+            ForEach(shown.prefix(40)) { m in MoveRow(budget: b, move: m, categories: b.lines.map(\.name)) }
             if shown.count > 40 { Text("y \(shown.count - 40) más en la nota del mes").font(.caption).foregroundStyle(.secondary) }
         }
     }
@@ -463,6 +468,7 @@ private struct MoveRow: View {
     @Environment(Store.self) private var store
     let budget: Budget
     let move: BudgetMove
+    let categories: [String]
     @State private var hover = false
 
     var body: some View {
@@ -476,5 +482,14 @@ private struct MoveRow: View {
                 .buttonStyle(.borderless).opacity(hover ? 1 : 0)
         }
         .onHover { hover = $0 }
+        .contextMenu {
+            // Corregir la partida también enseña al adivinador: la próxima vez que escribas lo mismo irá aquí.
+            Menu("Cambiar partida") {
+                ForEach(categories, id: \.self) { c in
+                    Button(c) { store.setExpenseCategory(budget, move, to: c) }.disabled(MD.fold(c) == MD.fold(move.category))
+                }
+            }
+            Button("Borrar gasto", role: .destructive) { store.deleteExpense(budget, move) }
+        }
     }
 }

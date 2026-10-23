@@ -272,3 +272,77 @@ mes: 2026-10
         #expect(abs(end - s.endLeft) < 0.01, "día \(day): gráfica \(end) frente a \(s.endLeft)")
     }
 }
+
+@Test func everyFewMonthsVariableIsNotDailySpending() throws {
+    let text = """
+    ## Ingresos
+    | Concepto | Previsto | Real |
+    | :--- | ---: | ---: |
+    | Nómina | 2000 | 2000 |
+
+    ## Partidas
+    | Partida | Previsto | Tipo | Pagado | Día | Cada | Desde |
+    | :--- | ---: | :--- | :---: | ---: | :---: | :--- |
+    | Comida | 300 | Variable |  |  |  |  |
+    | Comunidad | 500 | Variable |  |  | 3 | 2026-10 |
+    """
+    let b = Parse.budget(text, month: "2026-10", path: "x")
+    let s = BudgetStatus(b, today: try #require(DayKey.date("2026-10-10")))
+    // Los 500 € de la comunidad no son «gasto libre»: no entran en lo que se puede gastar al día.
+    #expect(s.variableLeft == 300 && s.projection["Comunidad"] == nil)
+    #expect(abs(s.endLeft - (2000 - 500 - 300)) < 0.01)
+    #expect(!(try #require(b.line(named: "Comunidad"))).isDiscretionary)
+}
+
+@Test func learnedCorrectionsWinAndQuickCommandAddsExpenses() throws {
+    let cats = Edit.defaultBudgetLines.map(\.0)
+    let today = try #require(DayKey.date("2026-10-23"))
+    #expect(ExpenseParser.parse("40 dentista", categories: cats, today: today)?.category == "Imprevistos / otros")
+    let learned = Dictionary(uniqueKeysWithValues: ExpenseParser.keywords("dentista").map { ($0, "Seguro vida") })
+    #expect(ExpenseParser.parse("40 dentista", categories: cats, learned: learned, today: today)?.category == "Seguro vida")
+    #expect(ExpenseParser.keywords("cena con [[Ana]] en el bar") == ["cena", "bar"])
+    guard case .expense(let p)? = QuickCommand.parse("gasto 22 € cena con Ana", today: today, categories: cats, people: ["Ana"]) else {
+        Issue.record("«gasto …» no se entiende"); return
+    }
+    #expect(p.amount == 22 && p.category == "Restaurantes, viajes, entretenimiento" && p.note == "cena con [[Ana]]")
+}
+
+@MainActor @Test func leftoverGoesToTheFundAndAlertsForPayments() throws {
+    let store = try undoVault()
+    try "---\ntipo: hub\nfondo_emergencia_eur: 1000\n---\n# Finanzas\n".write(to: store.url(VaultPath.finanzas).deletingLastPathComponent().appendingPathComponent("Finanzas.md").creatingParent(), atomically: true, encoding: .utf8)
+    store.reload()
+    store.addExpense(100, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-09-10")))
+    var b = try #require(store.budget("2026-09"))
+    let nomina = try #require(b.incomes.first)
+    store.setBudgetCell(b, section: "Ingresos", line: nomina.line, name: nomina.name, column: "Real", value: "500")
+    b = try #require(store.budget("2026-09"))
+    let s = BudgetStatus(b, today: try #require(DayKey.date("2026-10-05")))
+    let ins = Budget.insights(b, previous: [], status: s)
+    let close = try #require(ins.first { $0.id == "cierre" })
+    #expect(close.transfer == 400)
+    store.transferLeftover(b, amount: 400)
+    let after = try #require(store.budget("2026-09"))
+    #expect(after.saved == 400 && after.income - after.spent - after.saved == 0)
+    #expect(store.noteMeta[VaultPath.finanzas]?["fondo_emergencia_eur"] == "1400")
+
+    // Avisos: un pago con día pasado sin marcar, y el de mañana.
+    store.addExpense(5, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-10-02")))
+    var oct = try #require(store.budget("2026-10"))
+    for (name, day) in [("Gym + O2", "1"), ("Seguro vida", "6")] {
+        let l = try #require(oct.line(named: name))
+        store.setBudgetCell(oct, section: "Partidas", line: l.line, name: name, column: "Previsto", value: "50")
+        oct = try #require(store.budget("2026-10"))
+        store.setBudgetCell(oct, section: "Partidas", line: l.line, name: name, column: "Día", value: day)
+        oct = try #require(store.budget("2026-10"))
+    }
+    let alerts = store.budgetAlerts(today: try #require(DayKey.date("2026-10-05"))).map(\.text)
+    #expect(alerts.contains { $0.contains("Gym + O2") && $0.contains("sin marcar") })
+    #expect(alerts.contains { $0.contains("Mañana se paga Seguro vida") })
+}
+
+private extension URL {
+    func creatingParent() throws -> URL {
+        try FileManager.default.createDirectory(at: deletingLastPathComponent(), withIntermediateDirectories: true)
+        return self
+    }
+}
