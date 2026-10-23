@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AgendaItem: Identifiable {
     enum Kind: String {
-        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, event, shopping, diary
+        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, vehiculo, event, shopping, diary
         var icon: String {
             switch self {
             case .task: "circle"
@@ -13,6 +13,7 @@ struct AgendaItem: Identifiable {
             case .birthday: "gift"
             case .document: "doc.on.doc"
             case .mascota: "pawprint"
+            case .vehiculo: "car"
             case .event: "party.popper"
             case .shopping: "bag"
             case .diary: "note.text"
@@ -28,6 +29,7 @@ struct AgendaItem: Identifiable {
             case .birthday: Brand.sky
             case .document: Brand.slate
             case .mascota: Brand.clay
+            case .vehiculo: Brand.sky
             case .event: Brand.rose
             case .shopping: Brand.lime
             case .diary: Brand.info
@@ -108,6 +110,11 @@ extension Store {
             add(AgendaItem(id: "nv\(v.line)", kind: .mascota, title: "\(mascota.name): \(v.tipo)", detail: v.detalle, date: v.date, screen: .mascota))
             if let p = v.proxima { add(AgendaItem(id: "np\(v.line)", kind: .mascota, title: "\(mascota.name): \(v.tipo.isEmpty ? "revisión" : v.tipo)", detail: "próxima", date: p, screen: .mascota)) }
         }
+        for d in vehiculo.dues { add(AgendaItem(id: "vd\(d.line)", kind: .vehiculo, title: "\(vehiculo.name): vence \(d.name)", date: d.date, screen: .vehiculo)) }
+        for s in vehiculo.services { add(AgendaItem(id: "vs\(s.line)", kind: .vehiculo, title: "\(vehiculo.name): \(s.what)", detail: s.shop, date: s.date, screen: .vehiculo)) }
+        for s in vehiculo.nextServices() {
+            if let d = s.date { add(AgendaItem(id: "vn\(s.what)", kind: .vehiculo, title: "\(vehiculo.name): toca \(s.what)", detail: "próximo", date: d, screen: .vehiculo)) }
+        }
         for e in events { add(AgendaItem(id: "e\(e.path)", kind: .event, title: e.name, date: e.date, path: e.path)) }
         for (path, m) in noteMeta where m["tipo"] == "cita_medica" {
             if let d = m["fecha"].flatMap(DayKey.date) {
@@ -162,7 +169,7 @@ extension Store {
         "tareas": .tareas, "proyectos": .proyectos, "habitos": .semana, "revision semanal": .semana, "revision mensual": .mes, "revisiones": .semana,
         "calendario": .calendario, "grafo": .grafo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
         "medicos": .salud, "analiticas": .salud, "analisis": .salud, "medico": .salud, "doctor": .salud, "inicio": .inicio,
-        "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos,
+        "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos, "coche": .vehiculo, "vehiculo": .vehiculo,
     ]
 
     func screenAlias(_ name: String) -> Screen? { Store.screenAliases[MD.fold((name as NSString).lastPathComponent)] }

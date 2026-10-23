@@ -7,7 +7,7 @@ import Foundation
 // que empieza de cero elige lo que quiere y la app le crea esas notas con el formato correcto.
 
 enum Module: String, CaseIterable, Identifiable {
-    case peso, nutricion, medicacion, salud, finanzas, casa, compra, moda, mascota, personas, documentos, objetivos
+    case peso, nutricion, medicacion, salud, finanzas, casa, compra, moda, mascota, vehiculo, personas, documentos, objetivos
 
     var id: String { rawValue }
 
@@ -22,6 +22,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .compra: "Lista de la compra"
         case .moda: "Ropa"
         case .mascota: "Mascota"
+        case .vehiculo: "Vehículo"
         case .personas: "Personas"
         case .documentos: "Documentos"
         case .objetivos: "Objetivos"
@@ -39,6 +40,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .compra: "Lista de la compra por secciones, con casillas."
         case .moda: "Lo que quieres comprar de ropa, con precio, prioridad y estado."
         case .mascota: "Ficha, visitas al veterinario, vacunas y avisos de la próxima."
+        case .vehiculo: "ITV, seguro e impuesto con aviso, mantenimiento por km o meses, repostajes y consumo."
         case .personas: "Cumpleaños y cuándo hablaste por última vez con cada persona."
         case .documentos: "DNI, pasaporte, seguros… con avisos antes de que caduquen."
         case .objetivos: "Objetivos por área y una revisión cada trimestre."
@@ -56,6 +58,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .compra: "cart"
         case .moda: "tshirt"
         case .mascota: "pawprint"
+        case .vehiculo: "car"
         case .personas: "person.2"
         case .documentos: "doc.on.doc"
         case .objetivos: "target"
@@ -73,6 +76,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .compra: [.compra]
         case .moda: [.moda]
         case .mascota: [.mascota]
+        case .vehiculo: [.vehiculo]
         case .personas: [.personas]
         case .documentos: [.documentos]
         case .objetivos: [.objetivos]
@@ -91,6 +95,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .compra: ["compra"]
         case .moda: ["moda"]
         case .mascota: ["mascota"]
+        case .vehiculo: ["vehiculo"]
         case .personas: ["personas"]
         case .documentos: ["documentos"]
         case .objetivos: ["objetivos"]
@@ -110,7 +115,7 @@ enum Starter {
     /// Nombre de cada ruta configurable, para Ajustes.
     static let labels: [String: String] = [
         "peso": "Peso", "medidas": "Medidas", "plan": "Plan nutricional", "proyecto": "Proyecto con hitos de peso",
-        "medicacion": "Medicación", "medico": "Salud y médicos", "mascota": "Mascota", "casa": "Casa", "moda": "Ropa",
+        "medicacion": "Medicación", "medico": "Salud y médicos", "mascota": "Mascota", "vehiculo": "Vehículo", "casa": "Casa", "moda": "Ropa",
         "inbox": "Bandeja de tareas", "documentos": "Documentos", "personas": "Personas", "objetivos": "Objetivos",
         "finanzas": "Finanzas", "gastos": "Carpeta de gastos (una nota por mes)", "revisiones": "Carpeta de revisiones", "compra": "Lista de la compra",
     ]
@@ -184,6 +189,42 @@ enum Starter {
 
             | Fecha | Tipo | Detalle | Próxima | Coste |
             | ----- | ---- | ------- | ------- | ----- |
+
+            """
+        case "vehiculo":
+            return """
+            ---
+            tipo: vehiculo
+            nombre:
+            matricula:
+            km:
+            ---
+
+            # Vehículo
+
+            ## Fechas
+
+            > ITV, seguro, impuesto… Fechas en AAAA-MM-DD o DD/MM/AAAA. La app avisa 30 días antes.
+
+            | Qué | Vence | Notas |
+            | :-- | :---- | :---- |
+            | ITV | | |
+            | Seguro | | |
+            | Impuesto de circulación | | |
+
+            ## Mantenimiento
+
+            > Una fila por visita al taller. Con «Cada (km)» o «Cada (meses)», la app calcula cuándo toca la siguiente.
+
+            | Fecha | Km | Qué | Taller | Coste | Cada (km) | Cada (meses) |
+            | :---- | -: | :-- | :----- | ----: | --------: | -----------: |
+
+            ## Repostajes
+
+            > Llena el depósito cada vez para que el consumo salga bien.
+
+            | Fecha | Km | Litros | Importe |
+            | :---- | -: | -----: | ------: |
 
             """
         case "plan":
@@ -410,6 +451,7 @@ extension Store {
         switch s {
         case .medicacion: medicacion.name
         case .mascota: mascota.name
+        case .vehiculo: vehiculo.name
         default: s.rawValue
         }
     }

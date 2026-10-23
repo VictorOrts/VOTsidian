@@ -79,6 +79,7 @@ extension Store {
             let n = DayKey.days(from: today, to: u.date)
             if n <= 14 { out.append(Alert(level: .info, icon: "pawprint", text: "\(mascota.name): \(u.title) \(relativeDays(n))", screen: .mascota)) }
         }
+        out += vehiculoAlerts(today: today)
         for e in events {
             let n = DayKey.days(from: today, to: e.date)
             if n >= 0, n <= 14, noteMeta[e.path]?["estado"] != "pagado" {
@@ -116,6 +117,23 @@ extension Store {
         // Dos avisos iguales (mismo texto y pantalla) son uno: además comparten id. Los de módulos ocultos no salen.
         var seen = Set<String>()
         return out.filter { isVisible($0.screen) && seen.insert($0.id).inserted }.sorted { $0.level.rawValue < $1.level.rawValue }
+    }
+}
+
+extension Store {
+    /// Lo que vence del vehículo (ITV, seguro…) y los mantenimientos a los que les toca o les falta poco.
+    func vehiculoAlerts(today: Date = DayKey.today()) -> [Alert] {
+        let v = vehiculo
+        var out: [Alert] = []
+        for d in v.dues {
+            let n = DayKey.days(from: today, to: d.date)
+            if n < 0 { out.append(Alert(level: .urgent, icon: "car", text: "\(v.name): \(d.name) venció el \(DayKey.dmy(d.date))", screen: .vehiculo)) }
+            else if n <= 30 { out.append(Alert(level: .soon, icon: "car", text: "\(v.name): \(d.name) vence \(relativeDays(n))", screen: .vehiculo)) }
+        }
+        for s in v.nextServices(today: today) where s.isDue || s.isSoon {
+            out.append(Alert(level: s.isDue ? .urgent : .soon, icon: "wrench.and.screwdriver", text: "\(v.name): \(s.what) \(Vehiculo.dueText(s))", screen: .vehiculo))
+        }
+        return out
     }
 }
 

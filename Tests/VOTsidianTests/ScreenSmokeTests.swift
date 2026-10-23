@@ -37,6 +37,7 @@ import Testing
         case .compra: try render("Compra", CompraView())
         case .moda: try render("Moda", ModaView())
         case .mascota: try render("Mascota", MascotaView())
+        case .vehiculo: try render("Vehículo", VehiculoView())
         case .personas: try render("Personas", PersonasView())
         case .documentos: try render("Documentos", DocumentosView())
         case .finanzas: try render("Finanzas", FinanzasView())

@@ -13,6 +13,7 @@ struct RemindersView: View {
     @AppStorage("remWeightMin") private var weightMin = 540
     @AppStorage("remTasks") private var tasksOn = true
     @AppStorage("remMascota") private var mascotaOn = true
+    @AppStorage("remVehiculo") private var vehiculoOn = true
     @AppStorage("remBirthdays") private var birthdays = true
     @AppStorage("remDocs") private var docs = true
     @AppStorage("remEvents") private var eventsOn = true
@@ -31,7 +32,7 @@ struct RemindersView: View {
         ReminderPlan(medicacion: medicacion, medicacionMinutes: medicacionMin, review: review, reviewWeekday: reviewDay, reviewMinutes: reviewMin,
                      monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, mascota: mascotaOn,
                      birthdays: birthdays, documents: docs, events: eventsOn, payments: payments,
-                     monthlyReview: monthReview, monthlyReviewMinutes: monthReviewMin)
+                     monthlyReview: monthReview, monthlyReviewMinutes: monthReviewMin, vehiculo: vehiculoOn)
     }
 
     /// Fila de un aviso: nombre, sus ajustes (día, hora) y el interruptor, todo en la misma línea.
@@ -80,6 +81,7 @@ struct RemindersView: View {
                         }
                         row("Tareas con fecha", $tasksOn)
                         if store.isVisible(.mascota) { Divider(); row("Citas y vacunas de \(store.mascota.name)", $mascotaOn) }
+                        if store.isVisible(.vehiculo) { Divider(); row("\(store.vehiculo.name): ITV, seguro (30 días antes) y mantenimiento (7 días antes)", $vehiculoOn) }
                         if store.isVisible(.personas) { Divider(); row("Cumpleaños (cada año)", $birthdays) }
                         if store.isVisible(.documentos) { Divider(); row("Caducidad de documentos (30 días antes)", $docs) }
                         if store.isVisible(.finanzas) || store.isVisible(.casa) { Divider(); row("Eventos y fechas de Casa (7 días antes)", $eventsOn) }
