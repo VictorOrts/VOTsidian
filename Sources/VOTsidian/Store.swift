@@ -96,6 +96,10 @@ final class Store {
     var showQuickAdd = false
     var showCierre = false
     var pendingNote: String?
+    /// Mes (AAAA-MM) que Gastos debe enseñar al abrirse: lo ponen Inicio y Finanzas para ir a un mes que no es el actual.
+    var pendingGastosMonth: String?
+    /// Año cuyo resumen debe enseñar Gastos al abrirse (desde Finanzas).
+    var pendingGastosYear: Int?
     var message: String?
     /// Día (AAAA-MM-DD) de la última copia automática comprobada; así la copia es de verdad diaria aunque la app siga abierta.
     var lastBackupDay: String?

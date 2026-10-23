@@ -222,7 +222,7 @@ struct NotasView: View {
                 Text(name(path)).fontWeight(.medium).lineLimit(1)
                 if store.pinned.contains(path) { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(Brand.accent) }
                 Spacer()
-                if let d = store.modified[path] { Text(shortDate(d)).font(.caption2).foregroundStyle(.tertiary) }
+                if let d = store.modified[path] { Text(dayLabel(d)).font(.caption2).foregroundStyle(.tertiary) }
             }
             if let s = store.snippets[path], !s.isEmpty { Text(s).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
         }

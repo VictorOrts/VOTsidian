@@ -64,6 +64,9 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 
 - **Gastos → Año**: resumen anual sacado de las notas de cada mes, con mes, ingresos, gastos (sin el ahorro) y lo que queda. Tiene una gráfica de barras por mes (al pasar el ratón por un mes salen sus cifras) y una tabla; pulsar un mes lo abre. «Guardar en nota» deja la tabla en `Finanzas/Gastos/Resumen AAAA.md`, con enlaces a cada mes; al actualizarla se conserva lo que escribas en «## Comentarios», y la app avisa si la nota se ha quedado atrás. Un mes creado por adelantado sale como «previsto», con lo previsto de cada partida (o lo ya pagado, si es más).
 
+- **Gastos y Finanzas** (más): si el mes actual no tiene nota pero otro sí (p. ej. noviembre preparado en octubre), Gastos, Inicio y Finanzas ofrecen «Ver noviembre»; Finanzas resume el año («En 2026: ingresos · gastos · queda») con un botón al resumen; una aportación de evento se da por pagada con un clic («Ya pagada: apuntar en Gastos»), que la apunta como gasto y pone el evento en pagado (se deshace de una vez); en Ingresos se pueden añadir y quitar conceptos; aviso de partidas con 0 € previstos; la exportación incluye `resumen_mensual.csv`.
+- **Detalles visuales**: fechas con año cuando no son de este año (tareas, avisos, notas, Bases); «1 día», «1 pinchazo», «1 evento» en singular; la leyenda del Calendario ya no parte «pinchazo» y baja de línea si no cabe; los selectores Tablas/Tablero y Lista/Tablero quedan alineados.
+
 ## Recuperar versiones y enlaces rotos
 
 - **Historial de una nota** (Notas → ⋯ → Historial…): cada versión distinta de la nota en las copias de seguridad, comparada línea a línea con la actual (rojo: estaba y ya no; verde: añadido después). «Restaurar esta versión» se deshace con ⌥⌘Z. Las copias cifradas se abren con la contraseña del Llavero; las de otra contraseña se cuentan aparte.

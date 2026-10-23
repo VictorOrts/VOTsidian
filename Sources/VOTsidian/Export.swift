@@ -91,6 +91,12 @@ extension Store {
         // Gastos: cada movimiento de todas las notas de mes, con su mes por si la fecha escrita a mano es de otro.
         let moves = budgetMonths.compactMap { budget($0) }.flatMap { b in b.moves.map { [b.month, DayKey.string($0.date), CSV.num($0.amount), $0.category, $0.note] } }
         if !moves.isEmpty { try write("gastos.csv", CSV.file(["mes", "fecha", "importe_eur", "partida", "nota"], moves)) }
+        // El resumen anual, mes a mes: lo mismo que Gastos → Año.
+        let months = budgetYears.sorted().flatMap { budgetYear($0).months }
+        if !months.isEmpty {
+            try write("resumen_mensual.csv", CSV.file(["mes", "ingresos_eur", "gastos_eur", "queda_eur", "previsto"],
+                                                     months.map { [$0.month, CSV.num($0.income), CSV.num($0.spent), CSV.num($0.left), $0.planned ? "1" : "0"] }))
+        }
         var diary: [[String]] = []
         for n in notes where n.path.hasPrefix("Diario/") {
             guard let d = DayKey.date(n.name) else { continue }

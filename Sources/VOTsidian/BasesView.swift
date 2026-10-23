@@ -72,7 +72,7 @@ struct BasesView: View {
                                 GridRow {
                                     Button(((path as NSString).lastPathComponent as NSString).deletingPathExtension) { store.pendingNote = path }
                                         .buttonStyle(.accentLink).frame(width: 190, alignment: .leading)
-                                    Text(store.modified[path].map { shortDate($0) } ?? "–").foregroundStyle(.secondary).frame(width: 80, alignment: .leading)
+                                    Text(store.modified[path].map { dayLabel($0) } ?? "–").foregroundStyle(.secondary).lineLimit(1).frame(width: 96, alignment: .leading)
                                     Text((store.noteTags[path] ?? []).map { "#\($0)" }.joined(separator: " ")).font(.caption).foregroundStyle(Brand.accent).frame(width: 150, alignment: .leading).lineLimit(2)
                                     ForEach(columns, id: \.self) { col in PropertyField(file: path, key: col, width: 130) }
                                 }

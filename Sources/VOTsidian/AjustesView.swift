@@ -42,7 +42,7 @@ struct AjustesView: View {
                 Card(title: "Tus datos", icon: "externaldrive") {
                     Text(store.root.path).font(.callout.monospaced()).textSelection(.enabled)
                     if store.root.path.contains("com~apple~CloudDocs") { Label("Está en iCloud Drive: se sincroniza con tus otros dispositivos.", systemImage: "icloud").font(.callout).foregroundStyle(Brand.accent) }
-                    Text("\(store.notes.count) notas · \(store.tasks.filter { !$0.done }.count) tareas abiertas · \(store.outLinks.values.reduce(0) { $0 + $1.count }) enlaces").font(.callout).foregroundStyle(.secondary)
+                    Text("\(plural(store.notes.count, "nota", "notas")) · \(plural(store.tasks.filter { !$0.done }.count, "tarea abierta", "tareas abiertas")) · \(plural(store.outLinks.values.reduce(0) { $0 + $1.count }, "enlace", "enlaces"))").font(.callout).foregroundStyle(.secondary)
                     HStack {
                         Button("Cambiar carpeta…") { store.chooseFolder() }
                         Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([store.root]) }

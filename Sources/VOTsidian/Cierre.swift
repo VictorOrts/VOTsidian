@@ -30,7 +30,7 @@ struct CierreSheet: View {
                             HStack(spacing: 8) {
                                 if t.priority > 0 { Image(systemName: "flag.fill").font(.caption).foregroundStyle(t.priority == 3 ? Brand.bad : Brand.warn) }
                                 Text(MDParser.inline(t.text)).lineLimit(2)
-                                if let d = t.due, d < DayKey.today() { Text("vencida \(shortDate(d))").font(.caption).foregroundStyle(Brand.bad) }
+                                if let d = t.due, d < DayKey.today() { Text("vencida \(dayLabel(d))").font(.caption).foregroundStyle(Brand.bad) }
                                 Spacer()
                                 Button("Hecha") { store.setTask(t, done: true) }.controlSize(.small)
                                 Button("Mañana") { store.reschedule(t, to: DayKey.adding(days: 1, to: DayKey.today())) }.controlSize(.small)

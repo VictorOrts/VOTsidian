@@ -94,7 +94,7 @@ struct GrafoView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(n.name).font(.headline)
             Text(n.folder).font(.caption).foregroundStyle(.secondary)
-            Text("\((store.outLinks[n.path] ?? []).count) enlaces salientes · \((store.backLinks[n.path] ?? []).count) entrantes").font(.caption)
+            Text("\(plural((store.outLinks[n.path] ?? []).count, "enlace saliente", "enlaces salientes")) · \(plural((store.backLinks[n.path] ?? []).count, "entrante", "entrantes"))").font(.caption)
             Text("Pulsa para abrir la nota").font(.caption2).foregroundStyle(.secondary)
         }
         .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: Brand.radius))

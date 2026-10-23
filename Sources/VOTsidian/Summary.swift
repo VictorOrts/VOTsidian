@@ -21,7 +21,7 @@ extension Store {
         if let last = m.last {
             l.append("MOUNJARO")
             l.append("- Dosis actual: \(last.dose) cada \(m.everyDays) días. Último pinchazo: \(DayKey.dmy(last.date)) (\(last.site))")
-            if let first = m.doses.first { l.append("- \(m.doses.count) pinchazos desde \(DayKey.dmy(first.date))") }
+            if let first = m.doses.first { l.append("- \(plural(m.doses.count, "pinchazo", "pinchazos")) desde \(DayKey.dmy(first.date))") }
             for p in m.periods(weights: w.records) {
                 l.append("- \(MD.formatNumber(p.mg, comma: true)) mg desde \(DayKey.dmy(p.start)): \(p.count) pinchazos" + (p.lostKg.map { ", \(fmt($0)) kg perdidos" } ?? "") + (p.kgPerMonth.map { " (\(fmt($0)) kg/mes)" } ?? ""))
             }

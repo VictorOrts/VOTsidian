@@ -19,6 +19,9 @@ func dayLabel(_ d: Date) -> String {
 }
 func longDate(_ d: Date) -> String { DayKey.esLong(d, .dateTime.weekday(.wide).day().month(.wide)) }
 
+/// «1 día», «3 días»: cuenta con la palabra en singular o plural.
+func plural(_ n: Int, _ one: String, _ many: String) -> String { "\(n) \(n == 1 ? one : many)" }
+
 func relativeDays(_ n: Int) -> String {
     switch n {
     case 0: "hoy"
@@ -186,7 +189,7 @@ struct TaskRow: View {
             Spacer(minLength: 8)
             if let due = task.due {
                 let n = DayKey.days(from: DayKey.today(), to: due)
-                Text(n < 0 && !task.done ? "vencida \(shortDate(due))" : shortDate(due))
+                Text(n < 0 && !task.done ? "vencida \(dayLabel(due))" : dayLabel(due))
                     .font(.caption).foregroundStyle(n < 0 && !task.done ? Brand.bad : .secondary)
             }
             Button(task.noteName) { store.pendingNote = task.file }

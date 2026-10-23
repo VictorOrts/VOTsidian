@@ -219,6 +219,8 @@ struct BudgetInsight: Identifiable, Equatable {
     var category: String? = nil
     /// Nota que abre el aviso (un evento con aportación pendiente).
     var notePath: String? = nil
+    /// Aportación de un evento que se puede dar por pagada y apuntar como gasto desde el aviso.
+    var pay: Double? = nil
     /// Sobrante de un mes cerrado que se puede pasar al fondo de emergencia.
     var transfer: Double? = nil
     /// Mes del que es el sobrante (puede ser el anterior al que se está viendo).
@@ -261,9 +263,15 @@ extension Budget {
             }
         }
         for e in events where e.amount > 0 {
-            out.append(BudgetInsight(id: "evento-\(e.path)", level: .info, text: "\(e.name): aportación de \(Money.format(e.amount)) sin pagar.", notePath: e.path))
+            out.append(BudgetInsight(id: "evento-\(e.path)", level: .info, text: "\(e.name): aportación de \(Money.format(e.amount)) sin pagar.", notePath: e.path, pay: e.amount))
         }
         if !s.isCurrent, s.day == s.days { out += closing(b) }
+        // Mes en curso o por venir con muchas partidas sin importe: sin lo previsto, ni el ritmo ni «Sobrará» dicen nada.
+        let empty = b.lines.filter { $0.amount == 0 && $0.kind != .ahorro && b.real($0) == 0 }
+        if s.isCurrent || s.day == 0, empty.count >= 3 {
+            out.append(BudgetInsight(id: "sin-previsto", level: .info,
+                text: "\(empty.count) partidas tienen 0 € previstos (\(empty.prefix(3).map(\.name).joined(separator: ", "))\(empty.count > 3 ? "…" : "")). Pon lo que sueles gastar en ellas o quítalas si no las usas."))
+        }
         if s.isCurrent, s.day >= 3 {
             if s.endLeft > 50 {
                 out.append(BudgetInsight(id: "sobra", level: .good, text: "A este ritmo sobrarán ~\(Money.format(s.endLeft)) el \(s.days). Al cerrar el mes puedes pasarlos al fondo de emergencia."))
@@ -395,6 +403,17 @@ extension Edit {
             while cells.count < header.count { cells.append(isSeparator && i > 0 ? "---" : "") }
             if cells != row.cells { lines[row.index] = rowString(cells) }
         }
+        return lines.joined(separator: "\n")
+    }
+
+    /// Añade un concepto al final de la tabla de Ingresos, sin importes.
+    static func addBudgetIncome(_ text: String, name: String) -> String? {
+        let t = normalizeBudgetTable(text, section: "Ingresos")
+        var lines = MD.lines(t)
+        guard let r = MD.section(lines, containing: "Ingresos") else { return nil }
+        let rows = MD.tableRows(lines).filter { r.contains($0.index) }
+        guard let last = rows.last, let width = rows.first?.cells.count else { return nil }
+        lines.insert(rowString([name] + Array(repeating: "", count: max(width - 1, 0))), at: last.index + 1)
         return lines.joined(separator: "\n")
     }
 
@@ -579,6 +598,16 @@ extension Store {
         return b
     }
 
+    /// El mes con nota más cercano a `month` (a igual distancia, el siguiente): para no dejar en blanco Inicio,
+    /// Finanzas o Gastos cuando el mes actual no tiene nota pero, por ejemplo, el que viene ya está preparado.
+    func nearestBudgetMonth(to month: String) -> String? {
+        guard let m = BudgetLine.monthIndex(month) else { return nil }
+        return budgetMonths.filter { $0 != month }.min { a, b in
+            let da = abs((BudgetLine.monthIndex(a) ?? 0) - m), db = abs((BudgetLine.monthIndex(b) ?? 0) - m)
+            return da != db ? da < db : a > b
+        }
+    }
+
     /// Los `limit` meses con nota anteriores a `month`, del más reciente al más viejo.
     func budgets(before month: String, limit: Int = 3) -> [Budget] {
         budgetMonths.filter { $0 < month }.reversed().prefix(limit).compactMap { budget($0) }
@@ -641,6 +670,17 @@ extension Store {
         guard edit(b.path, { Edit.renameBudgetLine($0, line: l.line, from: l.name, to: clean) }) else { return }
         // Lo aprendido apuntaba al nombre viejo: sin esto, «dentista» dejaría de ir a su partida tras renombrarla.
         expenseLearned = expenseLearned.mapValues { MD.fold($0) == MD.fold(l.name) ? clean : $0 }
+    }
+
+    func addBudgetIncome(_ b: Budget, name: String) {
+        let clean = name.replacingOccurrences(of: "|", with: "/").trimmingCharacters(in: .whitespaces)
+        guard !clean.isEmpty else { return }
+        guard !b.incomes.contains(where: { MD.fold($0.name) == MD.fold(clean) }) else { message = "Ya hay un ingreso llamado «\(clean)»."; return }
+        edit(b.path) { Edit.addBudgetIncome($0, name: clean) }
+    }
+
+    func removeBudgetIncome(_ b: Budget, _ i: BudgetIncome) {
+        edit(b.path) { Edit.deleteRow($0, line: i.line, expectFirst: i.name) }
     }
 
     /// Quita la partida de este mes. Sus movimientos se quedan en la nota y siguen contando como gasto.
@@ -736,6 +776,25 @@ extension Store {
                 // Sin propiedades en la nota, se crean.
                 return Edit.setFrontmatter(t, key: key, value: value) ?? "---\n\(key): \(value)\n---\n" + t
             }
+        }
+    }
+
+    /// Da por pagada la aportación de un evento: la apunta como gasto (con enlace al evento, en la partida que se
+    /// adivine por su nombre o en imprevistos) y pone el evento en «pagado». Se deshace de una vez.
+    func payContribution(path: String, amount: Double, date: Date = DayKey.today()) {
+        guard amount > 0 else { return }
+        let name = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+        let cats = expenseCategories
+        let category = ExpenseParser.parse("\(Edit.budgetNumber(amount)) \(name)", categories: cats, learned: expenseLearned)?.category
+            ?? cats.first { MD.fold($0).contains("imprevist") } ?? cats.last
+        guard let category else { message = "No hay partidas donde apuntarlo."; return }
+        let month = Budget.monthKey(date)
+        grouped {
+            let before = budget(month)?.moves.count ?? 0
+            addExpense(amount, category: category, note: "aportación [[\(name)]]", date: date)
+            // Solo se marca pagado si el gasto quedó apuntado.
+            guard (budget(month)?.moves.count ?? 0) > before else { return }
+            setProperty(path, key: "estado", value: "pagado")
         }
     }
 

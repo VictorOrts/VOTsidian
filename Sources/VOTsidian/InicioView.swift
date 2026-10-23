@@ -292,7 +292,7 @@ struct InicioView: View {
                         Text("Próximo").font(.caption).foregroundStyle(.secondary)
                         Text(capitalizedFirst(longDate(next))).font(.title3.weight(.semibold))
                         Text("Último: \(DayKey.dmy(last.date)) · \(last.dose) · \(last.site)").font(.callout).foregroundStyle(.secondary)
-                        Text("\(m.doses.count) pinchazos · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)
+                        Text(plural(m.doses.count, "pinchazo", "pinchazos") + " · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)
                     }
                 }
                 if d <= 1, m.last?.date != DayKey.today() {
@@ -387,6 +387,9 @@ struct InicioView: View {
                     .min(by: { ($0.day ?? 99) < ($1.day ?? 99) }), let d = next.day {
                     Label("Próximo pago: \(next.name), \(Money.format(next.planned)) el día \(d)", systemImage: "calendar").font(.callout).foregroundStyle(.secondary)
                 }
+            } else if let near = store.nearestBudgetMonth(to: month) {
+                EmptyNote("Sin presupuesto de \(Budget.title(month).lowercased()).", icon: "creditcard")
+                Button("Ver \(Budget.title(near).lowercased())") { store.pendingGastosMonth = near; go(.gastos) }.buttonStyle(.accentLink)
             } else {
                 EmptyNote("Sin presupuesto este mes.", icon: "creditcard")
             }

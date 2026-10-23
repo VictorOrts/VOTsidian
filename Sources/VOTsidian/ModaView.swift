@@ -37,7 +37,7 @@ struct ModaView: View {
                     Tile(title: "Categorías", value: "\(wardrobe?.rows.count ?? 0)", note: "en el armario")
                 }
 
-                Picker("", selection: $board) { Text("Lista").tag(false); Text("Tablero").tag(true) }.pickerStyle(.segmented).frame(width: 190).labelsHidden()
+                Picker("", selection: $board) { Text("Lista").tag(false); Text("Tablero").tag(true) }.pickerStyle(.segmented).labelsHidden().fixedSize()
                 if let buy, board {
                     StatusBoard(columns: modaEstados.filter { !$0.isEmpty },
                                 cards: Dictionary(grouping: rows, by: { let e = buy.value($0, "estado"); return e.isEmpty ? "Pendiente" : e }).mapValues { rs in

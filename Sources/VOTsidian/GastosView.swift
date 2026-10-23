@@ -20,6 +20,7 @@ struct GastosView: View {
     @State private var renaming: BudgetLine?
     @State private var renameText = ""
     @State private var search = ""
+    @State private var newIncome = ""
     /// `true` = resumen del año en vez del mes. No se recuerda al salir: los avisos y el Inicio traen aquí para ver el mes.
     @State private var yearMode = false
     /// Año del resumen; `nil` = el del mes que se está viendo.
@@ -37,11 +38,8 @@ struct GastosView: View {
                 if yearMode {
                     let y = year ?? Int(m.prefix(4)) ?? DayKey.calendar().component(.year, from: DayKey.today())
                     yearHeader(y)
-                    GastosYearView(year: y) { open in
-                        // Clic en un mes del resumen: se abre ese mes.
-                        offset = (BudgetLine.monthIndex(open) ?? 0) - (BudgetLine.monthIndex(Budget.monthKey(DayKey.today())) ?? 0)
-                        yearMode = false
-                    }
+                    // Clic en un mes del resumen: se abre ese mes.
+                    GastosYearView(year: y, open: show)
                 } else {
                     header(m)
                     quickAdd(budget ?? store.budgetMonths.last.flatMap { store.budget($0) })
@@ -52,7 +50,12 @@ struct GastosView: View {
                             EmptyNote(store.budgetMonths.isEmpty
                                       ? "Se crea con las partidas de tu hoja de Numbers. Pon lo previsto de cada una y empieza a apuntar gastos."
                                       : "Se crea copiando ingresos, partidas y lo previsto del último mes.", icon: "eurosign.circle")
-                            Button("Crear el presupuesto de \(Budget.title(m).lowercased())") { store.createBudget(m) }.buttonStyle(.borderedProminent)
+                                HStack {
+                                Button("Crear el presupuesto de \(Budget.title(m).lowercased())") { store.createBudget(m) }.buttonStyle(.borderedProminent)
+                                if let near = store.nearestBudgetMonth(to: m) {
+                                    Button("Ver \(Budget.title(near).lowercased())") { show(near) }.buttonStyle(.accentLink)
+                                }
+                            }
                         }
                     }
                 }
@@ -61,6 +64,22 @@ struct GastosView: View {
             .readableWidth()
         }
         .navigationTitle("Gastos")
+        .onAppear(perform: consumePendingMonth)
+        .onChange(of: store.pendingGastosMonth) { consumePendingMonth() }
+        .onChange(of: store.pendingGastosYear) { consumePendingMonth() }
+    }
+
+    /// Enseña un mes (AAAA-MM) en la vista de mes.
+    private func show(_ month: String) {
+        offset = (BudgetLine.monthIndex(month) ?? 0) - (BudgetLine.monthIndex(Budget.monthKey(DayKey.today())) ?? 0)
+        yearMode = false
+    }
+
+    private func consumePendingMonth() {
+        if let y = store.pendingGastosYear { year = y; yearMode = true; store.pendingGastosYear = nil }
+        guard let m = store.pendingGastosMonth else { return }
+        show(m)
+        store.pendingGastosMonth = nil
     }
 
     // MARK: Cabecera y añadir
@@ -177,12 +196,22 @@ struct GastosView: View {
         if b.income == 0 || b.planned == 0 {
             Label("Pon lo previsto de ingresos y partidas (abajo) para ver el ritmo y las previsiones.", systemImage: "info.circle").font(.callout).foregroundStyle(.secondary)
         }
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(spacing: 16) { paceCard(b, s); if s.day > 0 { remainingCard(b, s) } }.frame(maxWidth: .infinity)
-                VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }.frame(width: 360)
+        // Sin variables con algo previsto «Ritmo del mes» no tiene nada que enseñar; en un mes por venir tampoco hay
+        // «Lo que te queda». Sin ninguna de las dos, avisos y fondo van a la par en vez de junto a una caja vacía.
+        let hasPace = b.lines.contains { $0.isDiscretionary && $0.planned > 0 }
+        if !hasPace && s.day == 0 {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) { insightsCard(insights); fundCard(b, s) }
+                VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }
             }
-            VStack(spacing: 16) { paceCard(b, s); insightsCard(insights); if s.day > 0 { remainingCard(b, s) }; fundCard(b, s) }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(spacing: 16) { if hasPace { paceCard(b, s) }; if s.day > 0 { remainingCard(b, s) } }.frame(maxWidth: .infinity)
+                    VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }.frame(width: 360)
+                }
+                VStack(spacing: 16) { if hasPace { paceCard(b, s) }; insightsCard(insights); if s.day > 0 { remainingCard(b, s) }; fundCard(b, s) }
+            }
         }
         if b.lines.contains(where: { $0.every > 1 }) { reserveCard(b) }
         incomeCard(b)
@@ -257,7 +286,14 @@ struct GastosView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(i.text).font(.callout).fixedSize(horizontal: false, vertical: true)
                         if let c = i.category { Button("Ver movimientos de \(c)") { filter = c }.buttonStyle(.accentLink).font(.caption) }
-                        if let p = i.notePath { Button("Abrir nota") { store.pendingNote = p }.buttonStyle(.accentLink).font(.caption) }
+                        if let p = i.notePath {
+                            HStack(spacing: 12) {
+                                if let amount = i.pay {
+                                    Button("Ya pagada: apuntar \(Money.exact(amount))") { store.payContribution(path: p, amount: amount) }.buttonStyle(.borderedProminent).controlSize(.small)
+                                }
+                                Button("Abrir nota") { store.pendingNote = p }.buttonStyle(.accentLink).font(.caption)
+                            }
+                        }
                         if let t = i.transfer, let b = store.budget(i.month ?? month) {
                             Button("Pasar \(Money.exact(t)) al fondo") { store.transferLeftover(b, amount: t) }.buttonStyle(.borderedProminent).controlSize(.small)
                         }
@@ -296,22 +332,28 @@ struct GastosView: View {
             if planned == 0, monthly == nil { Text("Sin ahorro previsto este mes: la simulación usa 300 €.").font(.caption).foregroundStyle(.secondary) }
             if s.isCurrent, s.endLeft > 0 { Toggle("Sumar lo que sobre este mes (~\(Money.format(s.endLeft)))", isOn: $addLeftover).toggleStyle(.checkbox).font(.callout) }
             Text(goal <= 0 ? "Pon lo previsto de las partidas para calcular la meta." : now + extra >= goal ? "Ya tienes los 3 meses cubiertos." : "Llegarías en \(DayKey.esLong(reach, .dateTime.month(.wide).year())) · \(months) \(months == 1 ? "mes" : "meses") ahorrando \(Money.format(perMonth)).")
-                .font(.callout).padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                .font(.callout).fixedSize(horizontal: false, vertical: true).padding(10).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Brand.sky.opacity(0.12), in: RoundedRectangle(cornerRadius: Brand.radius))
         }
     }
 
     private func incomeCard(_ b: Budget) -> some View {
-        Card(title: "Ingresos", icon: "arrow.down.circle", info: "Si «Real» está vacío se cuenta lo previsto.") {
+        Card(title: "Ingresos", icon: "arrow.down.circle", info: "Si «Real» está vacío se cuenta lo previsto. Clic derecho en un concepto para quitarlo; los meses nuevos copian los conceptos de este.") {
             Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 6) {
                 GridRow { Text("Concepto"); Text("Previsto"); Text("Real") }.font(.caption).foregroundStyle(.secondary)
                 ForEach(b.incomes) { i in
                     GridRow {
-                        Text(i.name)
+                        Text(i.name).contextMenu { Button("Quitar «\(i.name)»", role: .destructive) { store.removeBudgetIncome(b, i) } }
                         AmountCell(value: i.planned) { store.setBudgetCell(b, section: "Ingresos", line: i.line, name: i.name, column: "Previsto", value: $0) }
                         AmountCell(value: i.real) { store.setBudgetCell(b, section: "Ingresos", line: i.line, name: i.name, column: "Real", value: $0) }
                     }
                 }
+            }
+            HStack {
+                TextField("Nuevo ingreso (p. ej. Paga extra)", text: $newIncome).textFieldStyle(.roundedBorder).frame(maxWidth: 280)
+                    .onSubmit { store.addBudgetIncome(b, name: newIncome); newIncome = "" }
+                Button("Añadir") { store.addBudgetIncome(b, name: newIncome); newIncome = "" }
+                    .disabled(newIncome.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
     }
@@ -328,7 +370,8 @@ struct GastosView: View {
                     let past = previous.compactMap { p in p.line(named: l.name).map { p.real($0) } }.filter { $0 > 0 }
                     let avg = past.isEmpty ? nil : past.reduce(0, +) / Double(past.count)
                     GridRow {
-                        if l.isDiscretionary || !l.isDue(b.month) { Color.clear.frame(width: 18, height: 18) } else {
+                        // Sin nada previsto no hay pago que marcar (salvo que ya esté marcado, para poder quitarlo).
+                        if l.isDiscretionary || !l.isDue(b.month) || (l.planned == 0 && !l.paid) { Color.clear.frame(width: 18, height: 18) } else {
                             Button {
                                 store.setBudgetCell(b, section: "Partidas", line: l.line, name: l.name, column: "Pagado", value: l.paid ? "" : "✅")
                             } label: { Image(systemName: l.paid ? "checkmark.circle.fill" : "circle").foregroundStyle(l.paid ? Brand.good : .secondary) }

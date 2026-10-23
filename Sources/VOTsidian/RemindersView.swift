@@ -90,7 +90,7 @@ struct RemindersView: View {
                         Spacer()
                         Button("Añadir a Calendar") {
                             message = ICS.openInCalendar(events)
-                                ? "Calendar se abrió con \(events.count) eventos. Confirma la importación."
+                                ? "Calendar se abrió con \(plural(events.count, "evento", "eventos")). Confirma la importación."
                                 : "No se pudo crear el archivo de avisos."
                         }.buttonStyle(.borderedProminent)
                     }
@@ -111,12 +111,12 @@ struct RemindersView: View {
                     if !message.isEmpty { Text(message).font(.callout).foregroundStyle(.secondary) }
                 }
 
-                Card(title: "Se crearán \(events.count) eventos", icon: "list.bullet") {
+                Card(title: events.count == 1 ? "Se creará 1 evento" : "Se crearán \(events.count) eventos", icon: "list.bullet") {
                     ForEach(events.prefix(14)) { e in
                         HStack {
                             Text(MDParser.inline(e.title))
                             Spacer()
-                            Text(shortDate(e.start) + (e.minutes.map { String(format: " %02d:%02d", $0 / 60, $0 % 60) } ?? "") + (e.rule != nil ? " · se repite" : ""))
+                            Text(dayLabel(e.start) + (e.minutes.map { String(format: " %02d:%02d", $0 / 60, $0 % 60) } ?? "") + (e.rule != nil ? " · se repite" : ""))
                                 .font(.callout).foregroundStyle(.secondary)
                         }
                     }

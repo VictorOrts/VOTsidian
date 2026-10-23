@@ -66,7 +66,7 @@ struct CasaView: View {
                     }
                 }
 
-                Picker("", selection: $board) { Text("Tablas").tag(false); Text("Tablero").tag(true) }.pickerStyle(.segmented).frame(width: 190).labelsHidden()
+                Picker("", selection: $board) { Text("Tablas").tag(false); Text("Tablero").tag(true) }.pickerStyle(.segmented).labelsHidden().fixedSize()
                 if board {
                     let tables: [(String, SectionTable)] = [("Reformas", c.reformas), ("Compras", c.compras)]
                     let all = tables.flatMap { sec, t in t.rows.filter { !($0.cells.first ?? "").isEmpty }.map { (sec, t, $0) } }
@@ -87,7 +87,7 @@ struct CasaView: View {
                 Card(title: "Añadir", icon: "plus.circle") {
                     HStack {
                         Picker("", selection: $addKind) { Text("Reforma").tag("Reformas"); Text("Compra").tag("Compras") }
-                            .pickerStyle(.segmented).frame(width: 190).labelsHidden()
+                            .pickerStyle(.segmented).labelsHidden().fixedSize()
                         TextField("Qué", text: $name)
                         TextField("Estancia", text: $room).frame(width: 150)
                     }

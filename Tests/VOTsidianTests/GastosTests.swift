@@ -615,3 +615,39 @@ extension URL {
     #expect(m.income == 3157 && m.spent == 525 + 70 + 37 && m.left == 3157 - 632)
     #expect(Edit.budgetYearNote(y).contains("(previsto)"))
 }
+
+@MainActor @Test func paidContributionIsAnExpenseAndUndoesInOneStep() throws {
+    let store = try undoVault()
+    let path = "Finanzas/Boda Luis y Jazmin.md"
+    try "---\ntipo: evento\nestado: pendiente\naportacion_eur: 150\n---\n# Boda\n".write(to: store.url(path).creatingParent(), atomically: true, encoding: .utf8)
+    store.reload()
+    #expect(store.pendingContributions.map(\.amount) == [150])
+    let day = try #require(DayKey.date("2026-12-05"))
+    store.payContribution(path: path, amount: 150, date: day)
+    let m = try #require(store.budget("2026-12")?.moves.first)
+    #expect(m.amount == 150 && m.category == "Imprevistos / otros" && m.note == "aportación [[Boda Luis y Jazmin]]")
+    #expect(store.noteMeta[path]?["estado"] == "pagado" && store.pendingContributions.isEmpty)
+    // Un solo deshacer quita el gasto, la nota del mes creada para él y el «pagado».
+    store.undo()
+    #expect(store.message == nil && store.budget("2026-12") == nil && store.noteMeta[path]?["estado"] == "pendiente")
+}
+
+@MainActor @Test func incomesCanBeAddedAndRemovedAndSummaryIsExported() throws {
+    let store = try undoVault()
+    store.addExpense(40, category: "Transporte", note: "", date: try #require(DayKey.date("2026-09-03")))
+    var b = try #require(store.budget("2026-09"))
+    store.addBudgetIncome(b, name: "Paga extra")
+    b = try #require(store.budget("2026-09"))
+    let extra = try #require(b.incomes.first { $0.name == "Paga extra" })
+    store.setBudgetCell(b, section: "Ingresos", line: extra.line, name: extra.name, column: "Real", value: "900")
+    #expect(store.budget("2026-09")?.income == 900)
+    store.addBudgetIncome(try #require(store.budget("2026-09")), name: "paga extra")
+    #expect(store.budget("2026-09")?.incomes.count == 3 && store.message?.contains("Ya hay") == true)
+    store.removeBudgetIncome(try #require(store.budget("2026-09")), try #require(store.budget("2026-09")?.incomes.first { $0.name == "Nómina" }))
+    #expect(store.budget("2026-09")?.incomes.map(\.name) == ["Ingresos adicionales", "Paga extra"])
+
+    let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
+    let files = try store.exportData(to: out)
+    let csv = try String(contentsOf: try #require(files.first { $0.lastPathComponent == "resumen_mensual.csv" }), encoding: .utf8)
+    #expect(csv == "mes,ingresos_eur,gastos_eur,queda_eur,previsto\n2026-09,900,40,860,0\n")
+}

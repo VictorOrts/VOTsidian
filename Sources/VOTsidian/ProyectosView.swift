@@ -36,7 +36,7 @@ struct ProyectosView: View {
                     ContentUnavailableView("Todavía no hay proyectos", systemImage: "folder.badge.plus",
                                            description: Text("Crea el primero con el botón de abajo."))
                 }
-                Picker("", selection: $board) { Text("Lista").tag(false); Text("Tablero").tag(true) }.pickerStyle(.segmented).frame(width: 190).labelsHidden()
+                Picker("", selection: $board) { Text("Lista").tag(false); Text("Tablero").tag(true) }.pickerStyle(.segmented).labelsHidden().fixedSize()
                 if board {
                     StatusBoard(columns: ["activo", "pausado", "completado"],
                                 cards: Dictionary(grouping: items, by: { $0.meta["estado"] ?? "activo" }).mapValues { rs in

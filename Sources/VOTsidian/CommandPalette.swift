@@ -95,7 +95,7 @@ struct CommandPalette: View {
                 let f = NoteFile(path: t.file)
                 guard folderFilter == nil || f.folder == folderFilter, SearchEngine.passesFilters(path: t.file, folder: f.folder, type: store.noteMeta[t.file]?["tipo"], tags: store.noteTags[t.file] ?? [], q) else { continue }
                 guard hasText ? SearchEngine.matches(MD.fold(t.text + " " + t.noteName), q) : (scope == .tareas && q.date == nil) else { continue }
-                let when = t.due.map { " · " + shortDate($0) } ?? ""
+                let when = t.due.map { " · " + dayLabel($0) } ?? ""
                 out.append(PaletteItem(icon: t.done ? "checkmark.circle" : (t.priority == 3 ? "flag.fill" : "circle"), title: t.text, subtitle: "\(t.noteName)\(when)", highlighted: nil, tag: "Tarea") { store.pendingNote = t.file; dismiss() })
             }
         }

@@ -12,6 +12,8 @@ struct FinanzasView: View {
     /// Resumen del mes de Gastos: lo justo para saber cómo va sin cambiar de pantalla.
     @ViewBuilder private var gastosCard: some View {
         let month = Budget.monthKey(DayKey.today())
+        let year = DayKey.calendar().component(.year, from: DayKey.today())
+        let y = store.budgetYear(year)
         Card(title: "Gastos de \(Budget.title(month).lowercased())", icon: "creditcard", actionTitle: "Abrir Gastos", action: { store.screen = .gastos }) {
             if let b = store.budget(month) {
                 let s = BudgetStatus(b)
@@ -22,7 +24,21 @@ struct FinanzasView: View {
                 }
             } else {
                 EmptyNote("Aún no hay presupuesto de este mes.", icon: "calendar.badge.plus")
-                Button("Crear el presupuesto") { store.createBudget(month); store.screen = .gastos }.buttonStyle(.borderedProminent)
+                HStack {
+                    Button("Crear el presupuesto") { store.createBudget(month); store.screen = .gastos }.buttonStyle(.borderedProminent)
+                    if let near = store.nearestBudgetMonth(to: month) {
+                        Button("Ver \(Budget.title(near).lowercased())") { store.pendingGastosMonth = near; store.screen = .gastos }.buttonStyle(.accentLink)
+                    }
+                }
+            }
+            if !y.months.isEmpty {
+                Divider()
+                HStack {
+                    Text("En \(String(year)): ingresos \(Money.format(y.income)) · gastos \(Money.format(y.spent)) · queda \(Money.format(y.left))" + (y.future.isEmpty ? "" : " (con lo previsto)"))
+                        .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+                    Spacer()
+                    Button("Resumen del año") { store.pendingGastosYear = year; store.screen = .gastos }.buttonStyle(.accentLink)
+                }
             }
         }
     }
@@ -37,7 +53,10 @@ struct FinanzasView: View {
                 HStack(spacing: 12) {
                     Tile(title: "Eventos", value: "\(eventos.count)")
                     Tile(title: "Aportaciones", value: Money.format(total))
-                    Tile(title: "Por pagar", value: Money.format(pending), tint: pending > 0 ? Brand.warn : Brand.accent)
+                    // Un evento pendiente sin importe no está «resuelto»: 0 € en verde lo daría a entender.
+                    let unknown = vivos.filter { $0.meta["estado"] != "pagado" && Money.parse($0.meta["aportacion_eur"] ?? "") == 0 }.count
+                    Tile(title: "Por pagar", value: Money.format(pending), note: unknown == 0 ? nil : plural(unknown, "evento sin importe", "eventos sin importe"),
+                         tint: pending > 0 || unknown > 0 ? Brand.warn : Brand.accent)
                 }
                 gastosCard
                 if let u = store.attachmentURL("Simple.numbers") {
@@ -51,6 +70,12 @@ struct FinanzasView: View {
                             VStack(alignment: .leading, spacing: 3) { Text("Estado").font(.caption).foregroundStyle(.secondary); PropertyPicker(file: e.path, key: "estado", options: ["pendiente", "pagado", "cancelado"]) }
                             VStack(alignment: .leading, spacing: 3) { Text("Fecha").font(.caption).foregroundStyle(.secondary); PropertyDateField(file: e.path, key: "fecha_evento") }
                             VStack(alignment: .leading, spacing: 3) { Text("Aportación (€)").font(.caption).foregroundStyle(.secondary); PropertyField(file: e.path, key: "aportacion_eur", width: 100) }
+                            // Pagar una aportación es un gasto: con un clic queda apuntado en Gastos y el evento, pagado.
+                            let amount = Money.parse(e.meta["aportacion_eur"] ?? "")
+                            if amount > 0, e.meta["estado"] != "pagado", e.meta["estado"] != "cancelado" {
+                                Button("Ya pagada: apuntar en Gastos") { store.payContribution(path: e.path, amount: amount) }
+                                    .buttonStyle(.borderedProminent).controlSize(.small).padding(.top, 14)
+                            }
                         }
                         ForEach(store.tasks.filter { $0.file == e.path && !$0.done }) { TaskRow(task: $0) }
                     }

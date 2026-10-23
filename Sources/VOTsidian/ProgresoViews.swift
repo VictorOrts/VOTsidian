@@ -187,7 +187,7 @@ struct FotosCard: View {
                 if let da = list[ia].date, let db = list[ib].date, let w = Optional(store.weight) {
                     let wa = w.records.last(where: { $0.date <= da })?.kg, wb = w.records.last(where: { $0.date <= db })?.kg
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("\(max(DayKey.days(from: da, to: db), 0)) días entre fotos").font(.callout)
+                        Text(plural(max(DayKey.days(from: da, to: db), 0), "día", "días") + " entre fotos").font(.callout)
                         if let wa, let wb { Text("Peso: \(fmt(wa)) → \(fmt(wb)) kg (\(fmtDelta(wb - wa)))").font(.callout).foregroundStyle(Brand.accent) }
                     }
                 }

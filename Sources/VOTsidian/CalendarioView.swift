@@ -31,13 +31,10 @@ struct CalendarioView: View {
 
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Button { monthOffset -= 1 } label: { Image(systemName: "chevron.left").accessibilityLabel("Anterior") }
-                    Text(capitalizedFirst(DayKey.esLong(first, .dateTime.month(.wide).year()))).font(.title2.weight(.semibold)).frame(minWidth: 190)
-                    Button { monthOffset += 1 } label: { Image(systemName: "chevron.right").accessibilityLabel("Siguiente / abrir") }
-                    Button("Hoy") { monthOffset = 0; select(DayKey.today()) }
-                    Spacer()
-                    legend
+                // Si no cabe la leyenda al lado del mes, va debajo.
+                ViewThatFits(in: .horizontal) {
+                    HStack { monthNavigation(first); Spacer(); legend }
+                    VStack(alignment: .leading, spacing: 8) { monthNavigation(first); legend }
                 }
                 HStack(spacing: 6) {
                     ForEach(["L", "M", "X", "J", "V", "S", "D"], id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity) }
@@ -70,10 +67,20 @@ struct CalendarioView: View {
 
     // MARK: Rejilla
 
+    private func monthNavigation(_ first: Date) -> some View {
+        HStack {
+            Button { monthOffset -= 1 } label: { Image(systemName: "chevron.left").accessibilityLabel("Anterior") }
+            Text(capitalizedFirst(DayKey.esLong(first, .dateTime.month(.wide).year()))).font(.title2.weight(.semibold)).frame(minWidth: 190)
+            Button { monthOffset += 1 } label: { Image(systemName: "chevron.right").accessibilityLabel("Siguiente / abrir") }
+            Button("Hoy") { monthOffset = 0; select(DayKey.today()) }
+        }
+    }
+
     private var legend: some View {
         HStack(spacing: 10) {
             ForEach([AgendaItem.Kind.task, .appointment, .doseNext, .weight, .birthday, .event], id: \.self) { k in
-                HStack(spacing: 3) { Circle().fill(k.color).frame(width: 7, height: 7); Text(label(k)).font(.caption2).foregroundStyle(.secondary) }
+                // Sin partir la palabra («pincha-zo») cuando falta sitio.
+                HStack(spacing: 3) { Circle().fill(k.color).frame(width: 7, height: 7); Text(label(k)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize() }
             }
         }
     }

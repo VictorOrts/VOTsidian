@@ -88,7 +88,7 @@ struct MantenimientoCard: View {
                     }.toggleStyle(.checkbox)
                 }
                 HStack {
-                    DatePicker("Primera vez", selection: $first, in: DayKey.today()..., displayedComponents: .date).frame(width: 240)
+                    DatePicker("Primera vez", selection: $first, in: DayKey.today()..., displayedComponents: .date).fixedSize()
                     Spacer()
                     Button("Añadir seleccionadas (\(picked.count))") {
                         store.addMaintenance(suggestions.filter { picked.contains($0.id) }, first: DayKey.calendar().startOfDay(for: first))
