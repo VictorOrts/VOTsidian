@@ -1,122 +1,144 @@
 # VOTsidian
 
-Agenda personal para Mac: tareas, hábitos, revisiones, notas, salud, dinero y casa, todo guardado como notas Markdown en una carpeta tuya. No necesita Obsidian, pero lee y escribe los mismos archivos, así que puedes usar los dos a la vez.
+**Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa y vehículo en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
 
-## Empezar
+[![tests](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml/badge.svg)](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml)
+![macOS 26+](https://img.shields.io/badge/macOS-26%2B-black)
+![Swift 6.3](https://img.shields.io/badge/Swift-6.3-orange)
+
+- **Tus datos, en texto plano.** No hay base de datos ni formato propio. Cada pantalla lee y escribe notas Markdown que puedes abrir con cualquier editor.
+- **Compatible con Obsidian.** Usa los mismos enlaces (`[[Nota]]`), propiedades YAML y tareas del plugin Tasks. Puedes usar las dos apps a la vez sobre la misma carpeta.
+- **Privada.** No hay cuentas, servidores ni analítica, y la app no hace peticiones de red. La sincronización, si la quieres, la pone iCloud Drive o la carpeta que elijas.
+- **Modular.** Activa solo lo que vas a usar. Cada módulo crea su nota con un formato documentado en la [guía](GUIA.md).
+
+![Las 10 plantillas de ejemplo; las que llevan gráfica, con datos de ejemplo](docs/plantillas.jpg)
+
+## Contenido
+
+- [Requisitos](#requisitos)
+- [Instalación](#instalación)
+- [Primeros pasos](#primeros-pasos)
+- [Funciones](#funciones)
+- [Módulos](#módulos)
+- [Atajos de teclado](#atajos-de-teclado)
+- [Tus datos](#tus-datos)
+- [Desarrollo](#desarrollo)
+
+## Requisitos
+
+- macOS 26 o posterior.
+- Para compilar: Xcode 26.6 o las herramientas de línea de comandos con Swift 6.3.
+
+## Instalación
+
+**Desde una release.** Cuando haya versiones publicadas, descarga el `.dmg` de [Releases](https://github.com/VictorOrts/VOTsidian/releases) y arrastra la app a Aplicaciones. Si esa versión no está notarizada, la primera vez ábrela con clic derecho → Abrir.
+
+**Desde el código.**
 
 ```bash
-./scripts/build-app.sh       # crea build/VOTsidian.app para abrirla con doble clic
-swift run VOTsidian          # o ábrela desde la terminal
+git clone https://github.com/VictorOrts/VOTsidian.git
+cd VOTsidian
+./scripts/build-app.sh       # crea build/VOTsidian.app
+open build/VOTsidian.app
 ```
 
-La primera vez sale el asistente «Empecemos». En él eliges la carpeta (por defecto `iCloud Drive/VOTsidian`) y los módulos que quieres, y la app crea las notas con su formato. El formato de cada nota está en [GUIA.md](GUIA.md).
+Para probar sin empaquetar, `swift run VOTsidian`. Las notificaciones de macOS solo funcionan en la app empaquetada.
 
-## Qué puedes hacer
+## Primeros pasos
 
-### Día a día
-- **Inicio:** saludo, lo que pide atención, lo de hoy y tarjetas de cada módulo. «Personalizar» las reordena y las oculta.
-- **Tareas:**
-  - fecha, prioridad y repetición («cada mes», «cada 2 semanas»);
-  - se escriben en lenguaje natural: «llamar al dentista el viernes», «pagar 25/11»;
-  - «Planificar semana» es un tablero de lunes a domingo donde se arrastran las tareas.
-- **Calendario:** tareas, citas, pagos, cumpleaños y caducidades, con la nota del día, el ánimo y el sueño.
-- **Revisiones:**
-  - semanal, con hábitos y su criterio, cumplimiento y racha;
-  - mensual, con aviso el último día del mes;
-  - «Cerrar el día» repasa lo pendiente y prepara mañana.
-- **Proyectos y Objetivos:** lista o tablero, tareas por proyecto y revisión trimestral.
-- **Captura rápida (⇧⌘N):** tarea, gasto, peso, toma de medicación o idea.
-- **Barra de menús:** tareas y hábitos de hoy, tomas de medicación, ánimo y añadir tareas, sin abrir la ventana.
-- **Avisos:**
-  - dentro de la app, ordenados por urgencia y con botón para resolverlos;
-  - también como eventos de Calendar y notificaciones de macOS (solo en la app compilada).
+1. Al abrir la app por primera vez sale el asistente **Empecemos**.
+2. Elige la carpeta de notas: por defecto `iCloud Drive/VOTsidian`, o una que ya tengas, como tu vault de Obsidian.
+3. Marca los módulos que quieres. La app crea una nota por módulo y no toca las que ya existen.
+
+Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica el formato de cada nota, por si prefieres escribirlas a mano.
+
+## Funciones
+
+### Organización
+
+| Función | Qué hace |
+|---|---|
+| **Inicio** | Lo que pide atención, lo de hoy y una tarjeta por módulo. «Personalizar» reordena y oculta las tarjetas. |
+| **Tareas** | Fecha, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes». |
+| **Planificar semana** | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
+| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, con la nota del día, el ánimo y el sueño. |
+| **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual y «Cerrar el día» para repasar lo pendiente y preparar mañana. |
+| **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
+| **Captura rápida** (⇧⌘N) | Tarea, gasto, peso, toma de medicación o idea, desde cualquier pantalla. |
+| **Barra de menús** | Tareas, hábitos y tomas de hoy, ánimo y añadir tareas sin abrir la ventana. |
+| **Avisos** | Lista por urgencia con botón para resolver cada aviso. También como eventos de Calendar y notificaciones de macOS. |
 
 ### Notas
-- **Editor:**
-  - pestañas y guardado automático;
-  - `[[` sugiere notas y `#` sugiere etiquetas;
-  - etiquetas, notas fijadas y exportar a PDF;
-  - si la nota cambia fuera de la app mientras la editas, avisa en vez de pisarla.
-- **Enlaces entre notas:** `![[Nota]]` o `![[Nota#Sección]]` incrustan otra nota y `![[foto.png]]` una imagen. «Enlazada desde» muestra la línea que enlaza, con vista previa.
-- **Plantillas:**
-  - 10 de ejemplo: Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro;
-  - pueden hacer preguntas al crear la nota (`{{?Destino}}`) y sugerir carpeta.
 
-  ![Las 10 plantillas de ejemplo; las que llevan gráfica, con datos de ejemplo](docs/plantillas.jpg)
-- **Gráficas en una nota:** un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta.
-- **Buscar (⌘K):**
-  - notas, tareas y pantallas, con sinónimos («médico» encuentra «doctor») y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»);
-  - órdenes directas: `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10`, `cintura 98`, `compra leche y pan`.
-- **Bases, Grafo y Enlaces rotos:**
-  - Bases es una tabla de propiedades por tipo de nota, con filtros y vistas guardadas;
-  - Grafo es el mapa de enlaces;
-  - Enlaces rotos sugiere con qué nota arreglar cada enlace.
+| Función | Qué hace |
+|---|---|
+| **Editor** | Pestañas, guardado automático, sugerencias al escribir `[[` y `#`, notas fijadas y exportación a PDF. Si la nota cambia fuera de la app mientras la editas, avisa en vez de pisarla. |
+| **Enlaces e incrustados** | `![[Nota]]`, `![[Nota#Sección]]` y `![[foto.png]]`. «Enlazada desde» muestra la línea que enlaza, con vista previa. |
+| **Plantillas** | 10 de ejemplo (Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro). Pueden hacer preguntas al crear la nota y sugerir carpeta. |
+| **Gráficas** | Un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta. |
+| **Búsqueda** (⌘K) | Notas, tareas y pantallas, con sinónimos y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»). |
+| **Órdenes rápidas** (⌘K) | `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10`, `cintura 98`, `compra leche y pan`. |
+| **Bases, Grafo y Enlaces rotos** | Tabla de propiedades por tipo de nota con vistas guardadas, mapa de enlaces y sugerencias para arreglar enlaces que no llevan a nada. |
 
-### Salud
-- **Peso:**
-  - tendencia suavizada y ritmo de 4 y 2 meses;
-  - fecha estimada de llegada al objetivo, tanto para bajar como para subir;
-  - hitos, cambio entre pesajes, medidas corporales y fotos de progreso.
-- **Correlaciones:** peso, hábitos, ánimo y sueño semana a semana.
-- **Plan nutricional:** calorías y macros, y reparto por comidas.
-- **Medicación:**
-  - varios medicamentos a la vez: pastillas diarias (una casilla por toma), inyecciones cada N días (con la zona alternada) y lo que se toma cuando hace falta;
-  - avisos por medicamento y hora, y cumplimiento de 30 días.
-- **Salud y médicos:**
-  - próximas citas, tratamientos, análisis en PDF y notas de cada visita;
-  - un resumen para copiar y llevar a la consulta.
+## Módulos
 
-### Dinero
-- **Gastos:**
-  - presupuesto mensual por partidas;
-  - se apunta escribiendo «22 € cena con Ana»: la app adivina la partida y aprende de tus correcciones;
-  - «Puedes gastar hoy», ritmo del mes y lo que sobrará;
-  - pagos fijos con aviso, cargos trimestrales o anuales y fondo de emergencia.
-- **Resumen del año:** ingresos, gastos y ahorro por mes, comparación con el año anterior y peso de cada partida. Se puede guardar como nota.
-- **Finanzas:** eventos y aportaciones (bodas, regalos…) que se dan por pagadas con un clic.
+Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Los ocultos no muestran pantallas, tarjetas ni avisos.
 
-### Casa y vida
-- **Casa:** reformas y compras en lista o tablero, electrodomésticos y tareas de mantenimiento sugeridas según tus aparatos.
-- **Compra:** lista por secciones con casillas.
-- **Ropa:** lo que quieres comprar, con precio, prioridad y estado.
-- **Mascota:** ficha, visitas y vacunas, con aviso de la próxima.
-- **Vehículo:**
-  - ITV, seguro e impuesto con aviso 30 días antes;
-  - mantenimiento cada tantos km o meses, con aviso cuando falta poco;
-  - repostajes, consumo medio y lo gastado en el año, que también se puede apuntar en Gastos.
-- **Personas:** cumpleaños y última vez que hablasteis.
-- **Documentos:** caducidades, con aviso 30 días antes.
+| Módulo | Lo principal |
+|---|---|
+| **Peso y medidas** | Tendencia suavizada, ritmo de 4 y 2 meses, fecha estimada de llegada al objetivo (para bajar o para subir), hitos, medidas corporales, fotos de progreso y correlaciones con hábitos, ánimo y sueño. |
+| **Plan nutricional** | Calorías y macros diarios y reparto por comidas. |
+| **Medicación** | Varios medicamentos a la vez: pastillas diarias con una casilla por toma, inyecciones cada N días con la zona alternada y tomas cuando hace falta. Avisos por medicamento y hora y cumplimiento de 30 días. |
+| **Salud y médicos** | Próximas citas, tratamientos, análisis en PDF, notas de cada visita y un resumen para llevar a la consulta. |
+| **Finanzas y gastos** | Presupuesto mensual por partidas. Los gastos se apuntan como frase («22 € cena con Ana») y la app adivina la partida y aprende de tus correcciones. «Puedes gastar hoy», ritmo del mes, pagos fijos con aviso, fondo de emergencia, eventos y aportaciones, y resumen del año comparado con el anterior. |
+| **Casa** | Reformas y compras en lista o tablero, electrodomésticos con garantía y mantenimiento sugerido según tus aparatos. |
+| **Lista de la compra** | Lista por secciones con casillas, también desde ⌘K. |
+| **Ropa** | Lo que quieres comprar, con precio, prioridad y estado. |
+| **Mascota** | Ficha, visitas y vacunas con aviso de la próxima. |
+| **Vehículo** | ITV, seguro e impuesto con aviso 30 días antes, mantenimiento cada tantos km o meses, repostajes, consumo medio y gasto del año. El gasto se puede apuntar también en Gastos. |
+| **Personas** | Cumpleaños y última vez que hablasteis. |
+| **Documentos** | Caducidades de DNI, pasaporte, seguros… con aviso 30 días antes. Solo la referencia, nunca el documento. |
+| **Objetivos** | Objetivos por área y revisión trimestral. |
 
-### Tus datos
-- **Copias de seguridad:**
-  - antes del primer cambio de cada día se copia toda la carpeta (se guardan 14 copias);
-  - se pueden cifrar con contraseña guardada en el Llavero;
-  - aviso si una copia falla o la última es vieja.
-- **Deshacer:** cualquier cambio se deshace con ⌥⌘Z.
-- **Recuperar:** el historial de una nota permite restaurar versiones anteriores, y una copia entera se puede restaurar (antes se guarda el estado actual).
-- **iCloud:** aviso si iCloud duplica una nota por conflicto o si hay archivos sin descargar.
-- **Exportar:** resumen del año en PDF, tus datos en CSV y todas las notas en .zip.
-- **Ajustes → Módulos:** muestra u oculta cada módulo (peso, medicación, gastos, mascota…) y permite cambiar la ruta de cada nota.
+## Atajos de teclado
 
-## Atajos
-
-| Atajo | Hace |
+| Atajo | Acción |
 |---|---|
 | ⌘K | Buscar y órdenes rápidas |
 | ⇧⌘N | Captura rápida |
-| ⌘1 … ⌘9 | Ir a una pantalla |
-| ⌘S | Guardar la nota |
-| ⌥⌘Z | Deshacer el último cambio |
-| ⌘T / ⌘W | Nueva pestaña / cerrar pestaña |
+| ⌘1 … ⌘9 | Ir a las nueve primeras pantallas visibles (menú «Ir a») |
+| ⌘S | Guardar la nota o la revisión |
+| ⌥⌘Z | Deshacer el último cambio de la app |
+| ⌘T / ⌘W | Nueva pestaña / cerrar pestaña en Notas |
+
+## Tus datos
+
+- **Copias automáticas.** Antes del primer cambio de cada día se copia la carpeta entera. Se guardan las últimas 14, fuera de iCloud, y se pueden cifrar con una contraseña guardada en el Llavero. La app avisa si una copia falla o la última es antigua.
+- **Deshacer.** Cualquier cambio hecho desde la app se deshace con ⌥⌘Z, también los que tocan varias notas a la vez.
+- **Recuperar.** El historial de una nota restaura versiones anteriores. También se puede restaurar una copia entera; antes, la app guarda el estado actual.
+- **iCloud.** Avisa de notas duplicadas por conflicto y de archivos que aún no se han descargado.
+- **Exportar.** Resumen del año en PDF, datos en CSV y todas las notas en `.zip`.
 
 ## Desarrollo
 
-```bash
-swift test                                        # tests (trabajan sobre copias temporales)
-VAULT_COPY=/ruta/a/tus/notas swift test           # además, tests sobre una copia de tus notas
-VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas de todas las pantallas
+Paquete de Swift sin dependencias externas: SwiftUI, Swift Charts y AppKit.
+
+```text
+Sources/VOTsidian/    app: modelos y lectura de notas (Parse, Edit), Store y una vista por pantalla
+Tests/VOTsidianTests/ tests con Swift Testing sobre carpetas temporales
+scripts/              build-app.sh (empaqueta y firma) y make-icon.swift (genera el icono)
 ```
 
-Para firmar de verdad: `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh`; sin él, usa tu certificado «Apple Development».
+```bash
+swift test                                                            # todos los tests
+VAULT_COPY=/ruta/a/tus/notas swift test                               # además, sobre una copia de tus notas
+VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas de cada pantalla, en claro y oscuro
+```
 
-Para publicar una versión: `git tag v1.2 && git push origin v1.2`. GitHub pasa los tests, crea `VOTsidian-1.2.dmg` y lo adjunta a una release. Si el repositorio tiene los secretos de firma y notarización (lista en [release.yml](.github/workflows/release.yml)), el .dmg sale firmado y notarizado.
+Los tests nunca tocan tus notas: trabajan sobre copias temporales.
+
+**Firma.** `build-app.sh` firma con el primer certificado «Apple Development» del llavero, o ad hoc si no hay ninguno. Para distribuir, `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh` firma con runtime endurecido y sello de tiempo, listo para notarizar.
+
+**Integración continua.** Cada push y cada pull request pasan los tests y empaquetan la app ([test.yml](.github/workflows/test.yml)).
+
+**Publicar una versión.** `git tag v1.2 && git push origin v1.2`. GitHub pasa los tests, crea `VOTsidian-1.2.dmg` y lo adjunta a una release ([release.yml](.github/workflows/release.yml)). Si el repositorio tiene los secretos de firma y notarización que lista ese archivo, el `.dmg` sale firmado y notarizado.

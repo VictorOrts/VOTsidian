@@ -1,6 +1,22 @@
 # Guía de VOTsidian
 
-VOTsidian es una agenda personal para Mac. Todo lo que apuntas se guarda en notas Markdown (archivos `.md`) dentro de una carpeta tuya. Esas mismas notas se pueden abrir con Obsidian o con cualquier editor de texto: la app no tiene una base de datos aparte.
+VOTsidian es una agenda personal para Mac. Todo lo que apuntas se guarda en notas Markdown (archivos `.md`) dentro de una carpeta tuya. Esas notas se abren igual con Obsidian o con cualquier editor de texto: la app no tiene una base de datos aparte.
+
+Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefieres escribirlas o arreglarlas a mano.
+
+## Contenido
+
+- [Empezar](#empezar)
+- [Módulos y sus notas](#módulos-y-sus-notas)
+- [Convenciones](#convenciones)
+- [Formato de cada nota](#formato-de-cada-nota)
+  - [Peso](#peso) · [Medidas](#medidas) · [Plan nutricional](#plan-nutricional) · [Medicación](#medicación) · [Salud y médicos](#salud-y-médicos)
+  - [Finanzas y gastos](#finanzas-y-gastos) · [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo)
+  - [Personas](#personas) · [Documentos](#documentos) · [Objetivos](#objetivos)
+- [Tareas](#tareas)
+- [Notas que crea la app](#notas-que-crea-la-app)
+- [Gráficas en una nota](#gráficas-en-una-nota)
+- [Copias y deshacer](#copias-y-deshacer)
 
 ## Empezar
 
@@ -12,9 +28,7 @@ VOTsidian es una agenda personal para Mac. Todo lo que apuntas se guarda en nota
 
 Si la carpeta ya tiene notas, no se cambia ninguna: solo se crean las que faltan.
 
-Siempre están **Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**.
-
-Todo se cambia después en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota.
+Siempre están **Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota.
 
 ## Módulos y sus notas
 
@@ -38,12 +52,23 @@ Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No
 
 Si tus notas tienen otros nombres o están en otras carpetas, ponlo en **Ajustes → Módulos → Rutas de las notas**. Cada ruta es relativa a la carpeta de notas, por ejemplo `Salud/Báscula.md`.
 
-## Formato de cada nota
+## Convenciones
 
-Lo más cómodo es apuntar desde la app. Si prefieres escribir a mano, esto es lo que la app lee. Fíjate en el formato de las fechas: en unas tablas va `DD/MM/AAAA` y en otras `AAAA-MM-DD`.
+Lo más cómodo es apuntar desde la app. Si escribes a mano, ten en cuenta esto:
 
 - **Encabezado.** Va entre dos líneas `---` al principio de la nota (es YAML). Si un valor lleva `:`, ponlo entre comillas.
 - **Tablas.** Las columnas se reconocen por su nombre, sin importar tildes ni mayúsculas. En Peso y Mascota cuenta además el orden.
+- **Números.** Se acepta coma decimal y punto de millares: `105,5`, `1.234,50 €`. En los km del vehículo, el punto es siempre de millares.
+- **Fechas.** Cada nota usa un formato. Donde pone «cualquiera», valen los dos.
+
+| Nota | Formato de fecha |
+|---|---|
+| Peso, Medidas | `DD/MM/AAAA` |
+| Mascota (`nacimiento`) | `DD/MM/AAAA` |
+| Mascota (tabla), Medicación, Personas, Salud, Gastos, Tareas | `AAAA-MM-DD` |
+| Documentos, Vehículo (Fechas) | cualquiera |
+
+## Formato de cada nota
 
 ### Peso
 
@@ -59,9 +84,23 @@ fecha_inicio: 01/09/2026
 | 01/09/2026 | 98 | |
 ```
 
-- Las fechas van en `DD/MM/AAAA`.
 - Si no pones peso inicial, cuenta el primer pesaje.
 - Si el objetivo está por encima del peso de partida (ganar músculo, recuperar peso), la app cuenta los kilos ganados, y la fecha estimada sale si el peso va subiendo.
+
+### Medidas
+
+```markdown
+| Fecha | Cintura (cm) | Cadera (cm) | Pecho (cm) | Brazo (cm) | Muslo (cm) | Grasa (%) | Notas |
+| :---- | -----------: | ----------: | ---------: | ---------: | ---------: | --------: | :---- |
+| 01/10/2026 | 98 | 104 | | | | | |
+```
+
+Mídete una vez al mes, en ayunas, en los mismos puntos. Desde ⌘K también vale `cintura 98`.
+
+### Plan nutricional
+
+- **Encabezado:** `kcal_objetivo`, `proteina_g`, `carbohidratos_g` y `grasas_g`.
+- **Tabla:** una sección `## Reparto del día` con las columnas `Comida | kcal | Proteína (g)`.
 
 ### Medicación
 
@@ -88,18 +127,73 @@ Lo cómodo es añadirlos en la pantalla Medicación, con «Añadir medicamento»
 | 2026-10-20 | Ozempic | 0,5 mg | Abdomen izquierdo | |
 ```
 
-En la tabla **Medicamentos**:
-- **Cada:** días entre tomas. `1` es cada día y `7`, cada semana. También vale `diaria`, `semanal` o `cada 2 semanas`. Para lo que tomas solo cuando hace falta, `Si hace falta`.
-- **Horas:** opcional. Con dos horas son dos tomas al día, y cada una tiene su casilla y su aviso. Sin horas, una toma al día, avisada a la hora de Avisos.
-- **Desde y Hasta:** en `AAAA-MM-DD`. Fuera de esas fechas, el medicamento no sale en «Hoy» ni avisa.
-- **Forma:** si contiene «Inyección», la toma lleva zona y la app sugiere el lado contrario al del último pinchazo.
+Columnas de **Medicamentos**:
 
-Cómo se usa cada día:
+| Columna | Qué poner |
+|---|---|
+| Cada | Días entre tomas: `1` es cada día y `7`, cada semana. También `diaria`, `semanal`, `cada 2 semanas` o `Si hace falta`. |
+| Horas | Opcional. Con dos horas son dos tomas al día, cada una con su casilla y su aviso. Sin horas, una toma al día, avisada a la hora de Avisos. |
+| Desde, Hasta | Fuera de esas fechas, el medicamento no sale en «Hoy» ni avisa. |
+| Forma | Si contiene «Inyección», la toma lleva zona y la app sugiere el lado contrario al del último pinchazo. |
+
+En el día a día:
 - **Hoy:** cada toma diaria tiene una casilla en la pantalla, en Inicio y en la barra de menús. Marcarla la apunta en el registro; desmarcarla quita la última de hoy.
 - **Lo periódico:** avisa dos días antes y cuando va tarde, con el botón «Me pinché hoy» o «Tomada hoy».
 - **Cumplimiento:** el de lo diario sale como días completos de los últimos 30, sin contar hoy.
 
-Una nota con una sola tabla `Fecha | Dosis | Zona | Notas` (y `nombre` y `cada_dias` en el encabezado) se lee como un único medicamento inyectable. Al añadir otro desde la app, la nota pasa sola a este formato, y se puede deshacer.
+Una nota con una sola tabla `Fecha | Dosis | Zona | Notas` (y `nombre` y `cada_dias` en el encabezado) se lee como un único medicamento inyectable. Al añadir otro desde la app, la nota pasa sola al formato de dos tablas, y se puede deshacer.
+
+### Salud y médicos
+
+Tiene tres secciones:
+- **`## Próximas citas`:** una tarea con fecha por cita, por ejemplo `- [ ] Dentista 📅 2026-11-02`.
+- **`## Tratamientos`:** una lista con `- `.
+- **`## Análisis`:** una tabla `Fecha | Prueba | Resultado | Notas`.
+
+Las notas de cada visita se crean desde la pantalla, con «Nueva nota de visita».
+
+### Finanzas y gastos
+
+Gastos crea sola una nota por mes en `Finanzas/Gastos/AAAA-MM.md`, con tres secciones:
+
+| Sección | Columnas |
+|---|---|
+| `## Ingresos` | Lo que entra en el mes. |
+| `## Partidas` | `Partida \| Previsto \| Tipo \| Pagado \| Día \| Cada \| Desde`. El tipo puede ser Fijo, Variable o Ahorro. |
+| `## Movimientos` | `Fecha \| Importe \| Partida \| Nota`. |
+
+El mes nuevo copia las partidas del anterior.
+
+`Finanzas/Finanzas.md` guarda los objetivos de ahorro y los pagos sueltos, como tareas en `## Objetivos de ahorro y pagos`.
+
+### Casa
+
+Cuatro secciones, cada una con su tabla:
+
+| Sección | Columnas |
+|---|---|
+| `## Reformas` | `Qué \| Estancia \| Prioridad \| Coste estimado \| Cuándo \| Estado` |
+| `## Compras` | `Qué \| Estancia \| Prioridad \| Precio estimado \| Dónde \| Estado` |
+| `## Electrodomésticos`, `## Pequeños electrodomésticos` | `Aparato \| Marca \| Modelo \| Comprado \| Garantía hasta`. Sirven para sugerir el mantenimiento. |
+
+### Lista de la compra
+
+Una sección `## …` por pasillo (Fruta y verdura, Despensa, Limpieza y hogar…) con una casilla por artículo:
+
+```markdown
+## Lácteos y huevos
+
+- [ ] Leche
+- [x] Huevos
+```
+
+Desde ⌘K, `compra leche y pan` los añade. «Vaciar comprados» quita lo que ya está marcado.
+
+### Ropa
+
+- **`## Por comprar`:** una tabla `Prenda | Modelo | Prioridad | Precio | Fecha objetivo | Estado`. Lo que tiene el estado «Comprado» o «Descartado» deja de contar en el presupuesto.
+- **`## Armario`:** una tabla libre.
+- **`## Estrategia`** y **`## Calzado y accesorios`:** listas.
 
 ### Mascota
 
@@ -117,8 +211,7 @@ comida: Pienso senior
 | 2026-10-01 | Vacuna | Rabia | 2027-10-01 | 40 |
 ```
 
-- `nacimiento` va en `DD/MM/AAAA`; las fechas de la tabla, en `AAAA-MM-DD`.
-- Con «Próxima», la app avisa cuando se acerca y cuando vence.
+Con «Próxima», la app avisa cuando se acerca y cuando vence.
 
 ### Vehículo
 
@@ -149,49 +242,22 @@ km: 114100
 | 2026-09-20 | 114.100 | 30 | 47,40 € |
 ```
 
-- **Fechas:** cualquier tabla con una columna `Vence`, en `AAAA-MM-DD` o `DD/MM/AAAA`. La app avisa 30 días antes.
-- **Mantenimiento:** la tabla con columna `Taller` o bajo `## Mantenimiento`. Con `Cada (km)` o `Cada (meses)`, la app cuenta desde la última vez que se hizo lo mismo (misma columna `Qué`) y avisa cuando faltan menos de 1.000 km o 30 días.
-- **Repostajes:** la tabla con columna `Litros`. El consumo sale de depósito lleno a depósito lleno, así que llena el depósito cada vez.
-- **Km:** el punto es siempre de millares (`100.000`). Los km actuales son los más altos entre la ficha, el taller y los repostajes.
+| Tabla | Cómo se lee |
+|---|---|
+| Fechas | Cualquier tabla con una columna `Vence`. Avisa 30 días antes. |
+| Mantenimiento | La tabla con columna `Taller` o bajo `## Mantenimiento`. Con `Cada (km)` o `Cada (meses)`, la app cuenta desde la última vez que se hizo lo mismo (misma columna `Qué`) y avisa cuando faltan menos de 1.000 km o 30 días. |
+| Repostajes | La tabla con columna `Litros`. El consumo sale de depósito lleno a depósito lleno, así que llena el depósito cada vez. |
+
+- Los km actuales son los más altos entre la ficha, el taller y los repostajes.
 - Al apuntar desde la pantalla, «Apuntar también en Gastos» añade el importe al mes, en la partida de transporte si la hay.
-
-### Plan nutricional
-
-- **Encabezado:** `kcal_objetivo`, `proteina_g`, `carbohidratos_g` y `grasas_g`.
-- **Tabla:** una sección `## Reparto del día` con las columnas `Comida | kcal | Proteína (g)`.
-
-### Salud y médicos
-
-Tiene tres secciones:
-- **`## Próximas citas`:** una tarea con fecha por cita, por ejemplo `- [ ] Dentista 📅 2026-11-02`.
-- **`## Tratamientos`:** una lista con `- `.
-- **`## Análisis`:** una tabla `Fecha | Prueba | Resultado | Notas`.
-
-Las notas de cada visita se crean desde la pantalla, con «Nueva nota de visita».
-
-### Casa
-
-Cuatro secciones, cada una con su tabla:
-- `## Reformas`: `Qué | Estancia | Prioridad | Coste estimado | Cuándo | Estado`.
-- `## Compras`: `Qué | Estancia | Prioridad | Precio estimado | Dónde | Estado`.
-- `## Electrodomésticos` y `## Pequeños electrodomésticos`: la primera columna es el aparato. Sirven para sugerir el mantenimiento.
-
-### Ropa
-
-- **`## Por comprar`:** una tabla `Prenda | Modelo | Prioridad | Precio | Fecha objetivo | Estado`. Lo que tiene el estado «Comprado» o «Descartado» deja de contar en el presupuesto.
-- **`## Armario`:** una tabla libre.
-- **`## Estrategia`** y **`## Calzado y accesorios`:** listas.
 
 ### Personas
 
-Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`:
-- `Cumpleaños` va en `AAAA-MM-DD`, o `MM-DD` si no sabes el año.
-- `Última vez` va en `AAAA-MM-DD`.
+Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`. `Cumpleaños` admite `MM-DD` si no sabes el año.
 
 ### Documentos
 
-- Pon cualquier tabla con una columna que contenga «caduca», por ejemplo `Documento | Número o referencia | Caduca / renueva | Notas`.
-- La fecha puede ir en `AAAA-MM-DD` o `DD/MM/AAAA`.
+- Cualquier tabla con una columna que contenga «caduca», por ejemplo `Documento | Número o referencia | Caduca / renueva | Notas`.
 - La app avisa 30 días antes de cada caducidad.
 - Apunta solo la referencia, nunca el documento.
 
@@ -206,17 +272,6 @@ Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última 
 - **Qué cambio o elimino:** 
 ```
 
-### Finanzas y gastos
-
-Gastos crea solo una nota por mes en `Finanzas/Gastos/AAAA-MM.md`, con tres secciones:
-- **`## Ingresos`**
-- **`## Partidas`:** `Partida | Previsto | Tipo | Pagado | Día | Cada | Desde`. El tipo puede ser Fijo, Variable o Ahorro.
-- **`## Movimientos`:** `Fecha | Importe | Partida | Nota`.
-
-El mes nuevo copia las partidas del anterior.
-
-`Finanzas/Finanzas.md` guarda los objetivos de ahorro y los pagos sueltos, como tareas en `## Objetivos de ahorro y pagos`.
-
 ## Tareas
 
 Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas desde la app van a `Organización/Inbox.md`. Se escriben igual que en el plugin Tasks de Obsidian:
@@ -230,11 +285,16 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 
 En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes».
 
-## Notas que crea la app sola
+## Notas que crea la app
 
-- **Revisión semanal:** `Revisiones/AAAA-Wnn.md`, con los hábitos de la semana.
-- **Nota del día:** `Diario/AAAA-MM-DD.md`, con el ánimo y el sueño.
-- **Plantillas:** van en la carpeta `Plantillas/`. El asistente puede crear 10 de ejemplo (Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro); también se crean desde «Nueva nota». Una plantilla puede hacer preguntas al crear la nota (`{{?Pregunta}}` o `{{?Pregunta|valor por defecto}}`) y sugerir carpeta con `plantilla_carpeta:` en el encabezado.
+| Nota | Dónde | Qué guarda |
+|---|---|---|
+| Revisión semanal | `Revisiones/AAAA-Wnn.md` | Los hábitos de la semana, logros y objetivos. |
+| Nota del día | `Diario/AAAA-MM-DD.md` | El ánimo, el sueño y lo que escribas. |
+| Gastos del mes | `Finanzas/Gastos/AAAA-MM.md` | El presupuesto y los movimientos del mes. |
+| Plantillas | `Plantillas/` | Las 10 de ejemplo, si las pides en el asistente o en «Nueva nota». |
+
+Una plantilla puede hacer preguntas al crear la nota (`{{?Pregunta}}` o `{{?Pregunta|valor por defecto}}`) y sugerir carpeta con `plantilla_carpeta:` en el encabezado.
 
 ## Gráficas en una nota
 
@@ -251,19 +311,23 @@ titulo: Cómo duermo
 ````
 
 Todas las líneas son opcionales:
-- **`tipo`:** `linea` (la de por defecto), `barras`, `area`, `puntos` o `tarta`.
-- **`tabla`:** el título de la sección donde está la tabla. Sin él, la primera tabla de la nota.
-- **`x`:** la columna del eje horizontal. Sin ella, la primera. Si son fechas (`01/10/2026` o `2026-10-01`), el eje es de tiempo y se ordena.
-- **`y`:** las columnas que se dibujan, separadas por comas. Sin ellas, todas las que tienen números (hasta 8).
 
-La app entiende números como «7,5», «1.234,5» y unidades detrás («12,50 €», «7,5 h»), y muestra la unidad en la gráfica.
+| Línea | Qué hace |
+|---|---|
+| `tipo` | `linea` (por defecto), `barras`, `area`, `puntos` o `tarta`. |
+| `tabla` | Título de la sección donde está la tabla. Sin él, la primera tabla de la nota. |
+| `x` | Columna del eje horizontal. Sin ella, la primera. Si son fechas (`01/10/2026` o `2026-10-01`), el eje es de tiempo y se ordena. |
+| `y` | Columnas que se dibujan, separadas por comas. Sin ellas, todas las que tienen números (hasta 8). |
+| `titulo` | Título encima de la gráfica. |
 
-En barras y tartas por categoría, las filas con la misma categoría se suman (por ejemplo, varios gastos de «Comida»). La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
-
-Si falta algo (la tabla o una columna), la nota lo dice en lugar de la gráfica.
+- La app entiende números como «7,5», «1.234,5» y unidades detrás («12,50 €», «7,5 h»), y muestra la unidad en la gráfica.
+- En barras y tartas por categoría, las filas con la misma categoría se suman (por ejemplo, varios gastos de «Comida»).
+- La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
+- Si falta la tabla o una columna, la nota lo dice en lugar de la gráfica.
 
 ## Copias y deshacer
 
-- La app copia toda la carpeta antes del primer cambio de cada día. Guarda las últimas 14 copias automáticas.
-- Cada cambio se deshace con ⌥⌘Z.
+- La app copia toda la carpeta antes del primer cambio de cada día y guarda las últimas 14 copias automáticas. Se pueden cifrar con contraseña en Ajustes.
+- Cada cambio hecho desde la app se deshace con ⌥⌘Z.
 - Para recuperar una versión antigua de una nota: Notas → ⋯ → Historial.
+- Para volver a una copia entera: Ajustes → Copias de seguridad. Antes de restaurar, la app guarda el estado actual.
