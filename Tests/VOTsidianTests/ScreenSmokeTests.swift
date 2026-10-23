@@ -40,6 +40,7 @@ import Testing
         case .personas: try render("Personas", PersonasView())
         case .documentos: try render("Documentos", DocumentosView())
         case .finanzas: try render("Finanzas", FinanzasView())
+        case .gastos: try render("Gastos", GastosView())
         case .notas: try render("Notas", NotasView())
         case .bases: try render("Bases", BasesView())
         case .grafo: try render("Grafo", GrafoView())

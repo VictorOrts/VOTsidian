@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta sin tocar el código:
 /// `defaults write <id de la app> vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"`
-/// (claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, revisiones).
+/// (claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones).
 enum VaultPath {
     static let defaults: [String: String] = [
         "peso": "Cambio físico/Peso.md",
@@ -21,6 +21,7 @@ enum VaultPath {
         "personas": "Organización/Personas.md",
         "objetivos": "Organización/Objetivos.md",
         "finanzas": "Finanzas/Finanzas.md",
+        "gastos": "Finanzas/Gastos",
         "revisiones": "Revisiones",
     ]
     static func path(_ key: String) -> String {

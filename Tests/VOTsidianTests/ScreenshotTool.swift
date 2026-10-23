@@ -13,10 +13,11 @@ import Testing
     _ = NSApplication.shared
     for scheme in [ColorScheme.light, .dark] {
         for screen in Screen.allCases {
+            if let only = ProcessInfo.processInfo.environment["VOT_SHOT_SCREEN"], String(describing: screen) != only { continue }
             store.screen = screen
             let host = NSHostingView(rootView: ContentView().environment(store).tint(Brand.accent)
                 .textFieldStyle(.roundedBorder).environment(\.colorScheme, scheme).preferredColorScheme(scheme))
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: Double(ProcessInfo.processInfo.environment["VOT_SHOT_HEIGHT"] ?? "") ?? 860), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
             window.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
             window.contentView = host
             window.orderFrontRegardless()
