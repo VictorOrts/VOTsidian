@@ -821,25 +821,59 @@ struct BudgetYear: Equatable {
         var spent: Double
         /// Mes que aún no ha empezado (nota creada por adelantado): sus cifras son previsión.
         var planned = false
+        /// Lo apartado en partidas de ahorro (ya incluido en lo que queda).
+        var saved: Double = 0
         var id: String { month }
         var left: Double { income - spent }
         var number: Int { Int(month.suffix(2)) ?? 1 }
+        /// Tasa de ahorro: lo que queda sobre lo que entró; `nil` sin ingresos.
+        var savingsRate: Double? { income > 0 ? left / income : nil }
+    }
+
+    /// Una partida sumada en todo el año. Se junta por nombre sin tildes ni mayúsculas y lleva el nombre del último mes.
+    struct Category: Identifiable, Equatable {
+        var name: String
+        /// `nil` = movimientos con una partida que no está en la tabla de ningún mes.
+        var kind: BudgetLine.Kind?
+        var planned: Double = 0
+        var spent: Double = 0
+        var id: String { MD.fold(name) }
+        /// Positivo = se gastó más de lo previsto.
+        var difference: Double { spent - planned }
     }
 
     var year: Int
     var months: [Month] = []
+    /// Partidas del año, de más a menos gasto. Lo gastado se cuenta igual que en `months`.
+    var categories: [Category] = []
     /// El mes en curso, si es de este año: aún no ha acabado.
     var current: String?
     /// Meses con nota que aún no han empezado (creados por adelantado).
     var future: [String] { months.filter(\.planned).map(\.month) }
+    /// Meses ya acabados: ni el que está en curso ni los previstos.
+    var closed: [Month] { months.filter { $0.month != current && !$0.planned } }
 
     var income: Double { months.reduce(0) { $0 + $1.income } }
     var spent: Double { months.reduce(0) { $0 + $1.spent } }
     var left: Double { income - spent }
+    var saved: Double { months.reduce(0) { $0 + $1.saved } }
+    var savingsRate: Double? { income > 0 ? left / income : nil }
+    /// Partidas de gasto (sin las de ahorro).
+    var expenseCategories: [Category] { categories.filter { $0.kind != .ahorro } }
     /// Gasto medio de los meses ya acabados; `nil` si aún no hay ninguno.
     var averageSpent: Double? {
-        let closed = months.filter { $0.month != current && !$0.planned }
+        let closed = closed
         return closed.isEmpty ? nil : closed.reduce(0) { $0 + $1.spent } / Double(closed.count)
+    }
+
+    /// Gasto de los meses acabados frente a los mismos meses (por número) acabados de `previous`; `nil` si no coincide
+    /// ninguno o antes no se gastó nada. Comparar años enteros engañaría con un año a medias.
+    func spentChange(from previous: BudgetYear) -> (months: [Int], now: Double, before: Double)? {
+        let before = Dictionary(previous.closed.map { ($0.number, $0.spent) }, uniquingKeysWith: +)
+        let shared = closed.filter { before[$0.number] != nil }
+        let then = shared.reduce(0) { $0 + before[$1.number]! }
+        guard !shared.isEmpty, then > 0 else { return nil }
+        return (shared.map(\.number), shared.reduce(0) { $0 + $1.spent }, then)
     }
 
     init(year: Int, budgets: [Budget], today: Date = DayKey.today()) {
@@ -850,10 +884,26 @@ struct BudgetYear: Equatable {
         // Un mes por venir cuenta lo previsto de cada partida (o lo ya pagado si es más): con lo gastado de verdad,
         // casi nada, sus ingresos inflarían lo que queda.
         months = mine.map { b in
-            guard b.month > now else { return Month(month: b.month, income: b.income, spent: b.spent) }
+            guard b.month > now else { return Month(month: b.month, income: b.income, spent: b.spent, saved: b.saved) }
             let spent = b.lines.filter { $0.kind != .ahorro }.reduce(b.unassigned) { $0 + max(b.real($1), $1.planned) }
-            return Month(month: b.month, income: b.income, spent: spent, planned: true)
+            let saved = b.lines.filter { $0.kind == .ahorro }.reduce(0) { $0 + max(b.real($1), $1.planned) }
+            return Month(month: b.month, income: b.income, spent: spent, planned: true, saved: saved)
         }
+        var byName: [String: Category] = [:]
+        for b in mine {
+            let ahead = b.month > now
+            for l in b.lines {
+                var c = byName[MD.fold(l.name)] ?? Category(name: l.name)
+                c.name = l.name; c.kind = l.kind
+                c.planned += l.planned
+                c.spent += ahead ? max(b.real(l), l.planned) : b.real(l)
+                byName[MD.fold(l.name)] = c
+            }
+            for u in b.unassignedByCategory {
+                byName[MD.fold(u.name), default: Category(name: u.name)].spent += u.total
+            }
+        }
+        categories = byName.values.sorted { $0.spent != $1.spent ? $0.spent > $1.spent : $0.name < $1.name }
     }
 }
 
@@ -863,13 +913,24 @@ extension Edit {
     static func budgetYearNote(_ y: BudgetYear, comments: String = "", today: Date = DayKey.today()) -> String {
         var out = ["---", "tipo: resumen-gastos", "año: \(y.year)", "actualizado: \(DayKey.string(today))", "---", "",
                    "# Gastos · Resumen \(y.year)", "", "[[Finanzas]] · se rehace desde la app (Gastos → Año); escribe lo tuyo en Comentarios.", "",
-                   "| Mes | Ingresos | Gastos | Queda |", "| :--- | ---: | ---: | ---: |"]
+                   "| Mes | Ingresos | Gastos | Queda | % ahorro |", "| :--- | ---: | ---: | ---: | ---: |"]
         for m in y.months {
             out.append(rowString(["[[\(m.month)|\(Budget.title(m.month))]]" + (m.month == y.current ? " (en curso)" : m.planned ? " (previsto)" : ""),
-                                  Money.format(m.income), Money.format(m.spent), Money.format(m.left)]))
+                                  Money.format(m.income), Money.format(m.spent), Money.format(m.left), m.savingsRate.map(Money.percent) ?? "–"]))
         }
-        out.append(rowString(["**Total**", Money.format(y.income), Money.format(y.spent), Money.format(y.left)]))
-        if let avg = y.averageSpent { out += ["", "Gasto medio de los meses acabados: \(Money.format(avg))."] }
+        out.append(rowString(["**Total**", Money.format(y.income), Money.format(y.spent), Money.format(y.left), y.savingsRate.map(Money.percent) ?? "–"]))
+        var notes: [String] = []
+        if let avg = y.averageSpent { notes.append("Gasto medio de los meses acabados: \(Money.format(avg)).") }
+        if y.saved > 0 { notes.append("Apartado en partidas de ahorro: \(Money.format(y.saved)) (incluido en lo que queda).") }
+        if !notes.isEmpty { out += [""] + notes.map { "- " + $0 } }
+        let cats = y.categories.filter { $0.spent != 0 || $0.planned != 0 }
+        if !cats.isEmpty {
+            out += ["", "## Por partida", "", "| Partida | Tipo | Previsto | Gastado | Diferencia |", "| :--- | :--- | ---: | ---: | ---: |"]
+            for c in cats {
+                out.append(rowString([c.name, c.kind?.rawValue ?? "Sin partida", c.planned == 0 ? "–" : Money.format(c.planned), Money.format(c.spent),
+                                      c.planned == 0 ? "–" : Money.signed(c.difference)]))
+            }
+        }
         let kept = comments.trimmingCharacters(in: .whitespacesAndNewlines)
         out += ["", "## Comentarios", ""] + (kept.isEmpty ? [] : [kept, ""])
         return out.joined(separator: "\n")

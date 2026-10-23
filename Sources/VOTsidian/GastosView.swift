@@ -537,7 +537,7 @@ struct GastosView: View {
 }
 
 /// Barra de progreso con el color que se le da (la de sistema lo pierde en ventanas inactivas).
-private struct MiniBar: View {
+struct MiniBar: View {
     let value: Double
     let color: Color
 

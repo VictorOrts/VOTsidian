@@ -534,7 +534,8 @@ extension URL {
     #expect(store.budgetYears == [2026] && store.budgetYear(2025).months.isEmpty)
 
     let note = Edit.budgetYearNote(y, today: try #require(DayKey.date("2026-10-23")))
-    #expect(note.contains("| Mes | Ingresos | Gastos | Queda |"))
+    #expect(note.contains("| Mes | Ingresos | Gastos | Queda | % ahorro |"))
+    #expect(note.contains("| **Total** | \(Money.format(2000)) | \(Money.format(140)) | \(Money.format(1860)) | 93 % |"))
     #expect(note.contains("| [[2026-09\\|Septiembre de 2026]] |"))
     #expect(store.writeYearSummary(2026) && store.noteTexts[store.yearSummaryPath(2026)] != nil)
     // La nota del resumen no se toma por un mes.
@@ -650,4 +651,47 @@ extension URL {
     let files = try store.exportData(to: out)
     let csv = try String(contentsOf: try #require(files.first { $0.lastPathComponent == "resumen_mensual.csv" }), encoding: .utf8)
     #expect(csv == "mes,ingresos_eur,gastos_eur,queda_eur,previsto\n2026-09,900,40,860,0\n")
+    let cats = try String(contentsOf: try #require(files.first { $0.lastPathComponent == "resumen_partidas.csv" }), encoding: .utf8)
+    #expect(cats.hasPrefix("año,partida,tipo,previsto_eur,gastado_eur\n2026,Transporte,Variable,") && cats.contains(",40\n"))
+}
+
+@MainActor @Test func yearSummaryAddsUpCategoriesSavingsAndComparesWithLastYear() throws {
+    let store = try undoVault()
+    // 2025: marzo y abril; 2026: marzo, abril y mayo (este, en curso, no se compara).
+    for (date, amount) in [("2025-03-10", 200.0), ("2025-04-10", 200), ("2026-03-10", 250), ("2026-04-10", 250), ("2026-05-02", 999)] {
+        store.addExpense(amount, category: "Alimentación", note: "", date: try #require(DayKey.date(date)))
+    }
+    store.addExpense(30, category: "Transporte", note: "", date: try #require(DayKey.date("2026-03-12")))
+    let mar = try #require(store.budget("2026-03"))
+    let ahorro = try #require(mar.lines.first { $0.kind == .ahorro })
+    store.addExpense(100, category: ahorro.name, note: "", date: try #require(DayKey.date("2026-03-15")))
+    // Una partida que no está en la tabla cuenta igual, con su nombre.
+    store.edit(mar.path) { $0 + "| 2026-03-20 | 15 | Regalos | cumple |\n" }
+
+    let today = try #require(DayKey.date("2026-05-20"))
+    let all = store.budgetMonths.compactMap { store.budget($0) }
+    let y = BudgetYear(year: 2026, budgets: all, today: today), before = BudgetYear(year: 2025, budgets: all, today: today)
+    let food = try #require(y.categories.first { $0.name == "Alimentación" })
+    #expect(food.spent == 250 + 250 + 999 && food.kind == .variable)
+    #expect(y.categories.first { $0.name == "Regalos" }.map { $0.kind == nil && $0.spent == 15 } == true)
+    // Las partidas suman lo mismo que los meses, y el ahorro va aparte.
+    #expect(abs(y.expenseCategories.reduce(0) { $0 + $1.spent } - y.spent) < 0.001)
+    #expect(y.saved == 100 && y.months.first?.saved == 100 && !y.expenseCategories.contains { $0.kind == .ahorro })
+    #expect(y.categories.map(\.spent) == y.categories.map(\.spent).sorted(by: >))
+
+    // Marzo y abril frente a los de 2025; mayo, en curso, se queda fuera.
+    let c = try #require(y.spentChange(from: before))
+    #expect(c.months == [3, 4] && c.now == 250 + 30 + 15 + 250 && c.before == 400)
+    #expect(y.spentChange(from: BudgetYear(year: 2024, budgets: all, today: today)) == nil)
+
+    let note = Edit.budgetYearNote(y, today: today)
+    #expect(note.contains("## Por partida") && note.contains("| Regalos | Sin partida | – | \(Money.format(15)) | – |"))
+    #expect(note.contains("Apartado en partidas de ahorro: \(Money.format(100))"))
+    // Los comentarios siguen al final, después de las partidas.
+    #expect(Edit.yearNoteComments(Edit.budgetYearNote(y, comments: "Ojo con la comida.")) == "Ojo con la comida.")
+}
+
+@Test func moneyShowsSignedDifferencesAndPercentages() {
+    #expect(Money.signed(120) == "+" + Money.format(120) && Money.signed(-80.4) == "−" + Money.format(80) && Money.signed(0.3) == Money.format(0))
+    #expect(Money.percent(0.284) == "28 %" && Money.percent(-0.1) == "-10 %")
 }

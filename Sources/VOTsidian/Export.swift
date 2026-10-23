@@ -96,6 +96,11 @@ extension Store {
         if !months.isEmpty {
             try write("resumen_mensual.csv", CSV.file(["mes", "ingresos_eur", "gastos_eur", "queda_eur", "previsto"],
                                                      months.map { [$0.month, CSV.num($0.income), CSV.num($0.spent), CSV.num($0.left), $0.planned ? "1" : "0"] }))
+            // Y por partida, cada año: lo mismo que «Por partida» en Gastos → Año.
+            let rows = budgetYears.sorted().flatMap { y in
+                budgetYear(y).categories.map { [String(y), $0.name, $0.kind?.rawValue ?? "", CSV.num($0.planned), CSV.num($0.spent)] }
+            }
+            try write("resumen_partidas.csv", CSV.file(["año", "partida", "tipo", "previsto_eur", "gastado_eur"], rows))
         }
         var diary: [[String]] = []
         for n in notes where n.path.hasPrefix("Diario/") {

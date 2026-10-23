@@ -54,6 +54,15 @@ enum Money {
         f.maximumFractionDigits = 2
         return f.string(from: NSNumber(value: v)) ?? format(v)
     }
+
+    /// Diferencia con signo («+120 €», «−80 €»); lo que redondea a 0 es «0 €».
+    static func signed(_ v: Double) -> String {
+        let r = v.rounded()
+        return r == 0 ? format(0) : (r > 0 ? "+" : "−") + format(abs(r))
+    }
+
+    /// Proporción como porcentaje entero («28 %»).
+    static func percent(_ r: Double) -> String { "\(Int((r * 100).rounded())) %" }
 }
 
 extension Parse {
