@@ -29,6 +29,7 @@ const x = "| 01/01/2020 | 999 |";
 let medicacionFixture = """
 ---
 tipo: medicacion
+nombre: Ozempic
 cada_dias: 9
 ---
 ## Registro
@@ -68,9 +69,27 @@ tipo: revision_semanal
 
 
 func tempVaultCopy(_ path: String) throws -> URL {
-    let dest = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/Vault")
-    try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try FileManager.default.copyItem(at: URL(fileURLWithPath: path), to: dest)
+    let fm = FileManager.default
+    let dest = fm.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/Vault")
+    try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try fm.copyItem(at: URL(fileURLWithPath: path), to: dest)
+    // Los tests usan las rutas por defecto. Si la app tiene rutas propias (Ajustes → Módulos), en la copia esas notas
+    // se mueven a las de por defecto, con lo que va junto a ellas («Menú y compra» junto al plan).
+    let appID = ProcessInfo.processInfo.environment["VOT_APP_ID"] ?? "com.votsidian.app"
+    let custom = (UserDefaults(suiteName: appID)?.dictionary(forKey: "vaultPathOverrides") as? [String: String]) ?? [:]
+    let beside = ["plan": ["Menú y compra.md"]]
+    for (key, rel) in custom {
+        guard let target = VaultPath.defaults[key], target != rel, fm.fileExists(atPath: dest.appendingPathComponent(rel).path),
+              !fm.fileExists(atPath: dest.appendingPathComponent(target).path) else { continue }
+        let to = dest.appendingPathComponent(target)
+        try fm.createDirectory(at: to.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fm.moveItem(at: dest.appendingPathComponent(rel), to: to)
+        for name in beside[key] ?? [] {
+            let from = dest.appendingPathComponent(rel).deletingLastPathComponent().appendingPathComponent(name)
+            let next = to.deletingLastPathComponent().appendingPathComponent(name)
+            if fm.fileExists(atPath: from.path), !fm.fileExists(atPath: next.path) { try fm.moveItem(at: from, to: next) }
+        }
+    }
     return dest
 }
 
@@ -99,7 +118,7 @@ let casaFixture = """
 
 @MainActor func undoVault() throws -> Store {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
-    try FileManager.default.createDirectory(at: dir.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: dir.appendingPathComponent(VaultPath.folder("peso")), withIntermediateDirectories: true)
     try pesoFixture.write(to: dir.appendingPathComponent(VaultPath.peso), atomically: true, encoding: .utf8)
     try "# A\nver [[B]]\n".write(to: dir.appendingPathComponent("A.md"), atomically: true, encoding: .utf8)
     try "# B\n".write(to: dir.appendingPathComponent("B.md"), atomically: true, encoding: .utf8)

@@ -85,15 +85,13 @@ struct Medication: Identifiable, Equatable {
 }
 
 struct MedicacionData: Equatable {
-    /// Nombre de la pantalla: «Medicación», o el del medicamento en una nota de antes («nombre:» o `legacyName`).
+    /// Nombre de la pantalla: «Medicación», o el de su único medicamento en una nota de una sola tabla («nombre:»).
     var name = "Medicación"
-    /// Nombre de las notas de la primera versión, que no llevan «nombre:».
-    static let legacyName = "Mounjaro"
     var meds: [Medication] = []
     /// Todas las tomas, de la más vieja a la más nueva.
     var intakes: [Dose] = []
-    /// Nota de antes: un solo medicamento, sin tabla de medicamentos ni columna «Medicamento».
-    var legacy = false
+    /// Nota de una sola tabla: un solo medicamento, sin tabla de medicamentos ni columna «Medicamento».
+    var singleTable = false
 
     func active(on day: Date = DayKey.today()) -> [Medication] { meds.filter { $0.isActive(on: day) } }
 
@@ -144,7 +142,7 @@ struct MedicacionData: Equatable {
 
     var main: Medication? {
         let periodic = active().filter { !$0.asNeeded && $0.every > 1 }
-        return periodic.first(where: \.isInjection) ?? periodic.first ?? (legacy ? meds.first : nil)
+        return periodic.first(where: \.isInjection) ?? periodic.first ?? (singleTable ? meds.first : nil)
     }
     var everyDays: Int { main?.every ?? 9 }
     var doses: [Dose] { main.map(intakes(of:)) ?? [] }
@@ -180,9 +178,9 @@ extension Parse {
         let fm = MD.frontmatter(text)
         let lines = MD.lines(text)
         let (list, log) = medicationTables(text)
-        d.legacy = list == nil
-        let legacyName = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? MedicacionData.legacyName
-        if d.legacy { d.name = legacyName }
+        d.singleTable = list == nil
+        let singleName = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? d.name
+        if d.singleTable { d.name = singleName }
         if let list {
             for r in list.rows {
                 let name = list.value(r, "medicamento").trimmingCharacters(in: .whitespaces)
@@ -202,12 +200,12 @@ extension Parse {
                 // En las notas de antes las columnas iban por posición: fecha, dosis, zona, notas.
                 func named(_ name: String, _ position: Int) -> String { log.col(name).map { cell($0) } ?? (medCol == nil ? cell(position) : "") }
                 d.intakes.append(Dose(date: date, dose: named("dosis", 1), site: named("zona", 2), note: named("nota", 3), line: r.line,
-                                      med: medCol.map { cell($0) } ?? legacyName, raw: r.line < lines.count ? lines[r.line] : ""))
+                                      med: medCol.map { cell($0) } ?? singleName, raw: r.line < lines.count ? lines[r.line] : ""))
             }
         }
         d.intakes.sort { ($0.date, $0.line) < ($1.date, $1.line) }
-        if d.legacy {
-            d.meds = [Medication(name: legacyName, dose: d.intakes.last?.dose ?? "", form: "Inyección",
+        if d.singleTable {
+            d.meds = [Medication(name: singleName, dose: d.intakes.last?.dose ?? "", form: "Inyección",
                                  every: fm["cada_dias"].flatMap { Int($0) } ?? 9)]
         }
         return d
@@ -336,7 +334,7 @@ extension Store {
     }
 
     func addMedication(_ m: Medication) {
-        let current = medicacion.legacy ? medicacion.meds.first : nil
+        let current = medicacion.singleTable ? medicacion.meds.first : nil
         guard edit(VaultPath.medicacion, { Edit.addMedication($0, m, current: current) }) else {
             if medicacion.meds.contains(where: { MD.fold($0.name) == MD.fold(m.name) }) { message = "Ya hay un medicamento llamado «\(m.name)»." }
             return

@@ -20,7 +20,7 @@ Todo se cambia después en **Ajustes → Módulos**: mostrar u ocultar módulos,
 
 Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No hace falta pulsarlo: la nota se crea sola la primera vez que apuntas algo desde la pantalla.
 
-| Módulo | Pantallas | Nota en una carpeta nueva |
+| Módulo | Pantallas | Nota (ruta por defecto) |
 |---|---|---|
 | Peso y medidas | Peso, Correlaciones | `Salud/Peso.md` (y `Salud/Medidas.md` al activar las medidas; las fotos, en `Salud/Fotos`) |
 | Plan nutricional | Plan nutricional | `Salud/Plan nutricional.md` |
@@ -34,8 +34,6 @@ Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No
 | Personas | Personas | `Organización/Personas.md` |
 | Documentos | Documentos | `Organización/Documentos.md` |
 | Objetivos | Objetivos | `Organización/Objetivos.md` |
-
-Las carpetas que ya usaban la primera versión de la app (`Cambio físico/Peso.md`, `Nala/Nala.md`, `Organización/Médico/Médico.md`…) siguen con esas rutas: el asistente solo pone las nuevas para las notas que no existen todavía.
 
 Si tus notas tienen otros nombres o están en otras carpetas, ponlo en **Ajustes → Módulos → Rutas de las notas**. Cada ruta es relativa a la carpeta de notas, por ejemplo `Salud/Báscula.md`.
 
@@ -100,7 +98,7 @@ Cómo se usa cada día:
 - **Lo periódico:** avisa dos días antes y cuando va tarde, con el botón «Me pinché hoy» o «Tomada hoy».
 - **Cumplimiento:** el de lo diario sale como días completos de los últimos 30, sin contar hoy.
 
-Una nota de la versión anterior (solo `Fecha | Dosis | Zona | Notas` y `cada_dias` en el encabezado) se lee como un único medicamento inyectable. Al añadir otro desde la app, la nota pasa sola a este formato, y se puede deshacer.
+Una nota con una sola tabla `Fecha | Dosis | Zona | Notas` (y `nombre` y `cada_dias` en el encabezado) se lee como un único medicamento inyectable. Al añadir otro desde la app, la nota pasa sola a este formato, y se puede deshacer.
 
 ### Mascota
 

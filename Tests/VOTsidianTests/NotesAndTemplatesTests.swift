@@ -40,7 +40,7 @@ import Testing
     store.togglePin("Casa/Casa.md")
     #expect(!store.pinned.contains("Casa/Casa.md"))
     #expect(store.snippets["Casa/Casa.md"]?.isEmpty == false)
-    print("MENCIONES de Peso:", store.unlinkedMentions(of: "Cambio físico/Peso.md").map(\.name))
+    print("MENCIONES de Peso:", store.unlinkedMentions(of: VaultPath.peso).map(\.name))
 }
 
 // MARK: - Prioridad, plantillas y ánimo

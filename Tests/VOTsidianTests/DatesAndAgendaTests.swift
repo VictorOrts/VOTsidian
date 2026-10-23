@@ -56,7 +56,7 @@ import Testing
     #expect(broken.contains { $0.target == "Inexistente" && $0.suggestion == nil })
     #expect(store.repairLinks() == 1)
     #expect(store.read("Revisiones/Revisión semanal 2026-W43.md").contains("[[Médico]]"))
-    #expect(store.fuzzyResolve("Medicos") == "Organización/Médico/Médico.md")
+    #expect(store.fuzzyResolve("Medicos") == VaultPath.medico)
 }
 
 @Test func recurringTasks() throws {

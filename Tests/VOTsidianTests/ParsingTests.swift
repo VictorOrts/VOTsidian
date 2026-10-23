@@ -94,7 +94,7 @@ import Testing
     let today = DayKey.date("2026-10-19")!
     let ev = ICS.events(ReminderSources(medicacion: m, tasks: tasks), plan: ReminderPlan(), today: today)
     let med = ev.first { $0.uid.hasPrefix("med-") }
-    #expect(med?.rule == "FREQ=DAILY;INTERVAL=9" && med?.title == "Pinchazo Mounjaro (7,5 mg)")
+    #expect(med?.rule == "FREQ=DAILY;INTERVAL=9" && med?.title == "Pinchazo Ozempic (7,5 mg)")
     #expect(med.map { DayKey.string($0.start) } == "2026-10-19") // atrasado: empieza hoy
     #expect(ev.contains { $0.title == "Dentista" && $0.minutes == nil })
     let ics = ICS.build(ev)
@@ -143,7 +143,7 @@ import Testing
           "HABITOS", store.habitNames, "NOTAS", store.notes.count, "NALA", store.mascota.visits.count, "PLAN", store.plan.kcal,
           "HITOS", store.milestones.count)
     #expect(!store.weight.records.isEmpty && !store.medicacion.doses.isEmpty && !store.habitNames.isEmpty)
-    print("LINKS", store.outLinks.values.reduce(0) { $0 + $1.count }, "INICIO->", store.outLinks["Inicio.md"]?.count ?? 0, "BACK(Peso)", store.backLinks["Cambio físico/Peso.md"]?.count ?? 0, "CASA", store.casa.reformas.rows.count, store.casa.compras.rows.count, store.casa.electros.rows.count)
+    print("LINKS", store.outLinks.values.reduce(0) { $0 + $1.count }, "INICIO->", store.outLinks["Inicio.md"]?.count ?? 0, "BACK(Peso)", store.backLinks[VaultPath.peso]?.count ?? 0, "CASA", store.casa.reformas.rows.count, store.casa.compras.rows.count, store.casa.electros.rows.count)
     #expect(store.outLinks.values.reduce(0) { $0 + $1.count } >= 15)
     #expect(!store.casa.reformas.rows.isEmpty)
     store.addWeight(date: DayKey.date("2026-10-31")!, kg: 104.9, note: "prueba")

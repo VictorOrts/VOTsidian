@@ -60,9 +60,16 @@ struct FinanzasView: View {
                          tint: pending > 0 || unknown > 0 ? Brand.warn : Brand.accent)
                 }
                 gastosCard
-                if let u = store.attachmentURL("Simple.numbers") {
-                    Card(title: "Hoja antigua de Numbers", icon: "tablecells.badge.ellipsis", info: "Gastos ya lleva el presupuesto mensual que hacía esta hoja. La app no puede leer ni editar el formato de Numbers.") {
-                        Button { NSWorkspace.shared.open(u) } label: { Label("Abrir Simple.numbers en Numbers", systemImage: "arrow.up.forward.app") }
+                // Hojas de cálculo que haya en la carpeta de Finanzas (de antes de llevar el presupuesto en Gastos).
+                let folder = VaultPath.folder("finanzas")
+                let sheets = store.attachments.values.filter { rel in
+                    (folder.isEmpty || rel.hasPrefix(folder + "/")) && ["numbers", "xlsx", "xls", "ods"].contains((rel as NSString).pathExtension.lowercased())
+                }.sorted()
+                if !sheets.isEmpty {
+                    Card(title: "Hojas de cálculo", icon: "tablecells.badge.ellipsis", info: "La app no lee hojas de cálculo: se abren con su programa. El presupuesto de cada mes se lleva en Gastos.") {
+                        ForEach(sheets, id: \.self) { rel in
+                            Button { NSWorkspace.shared.open(store.url(rel)) } label: { Label("Abrir \((rel as NSString).lastPathComponent)", systemImage: "arrow.up.forward.app") }
+                        }
                     }
                 }
                 ForEach(eventos, id: \.path) { e in

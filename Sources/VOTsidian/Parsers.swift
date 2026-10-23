@@ -22,7 +22,7 @@ enum Parse {
     static func mascota(_ text: String) -> MascotaData {
         let fm = MD.frontmatter(text)
         var d = MascotaData()
-        d.name = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : MascotaData.legacyName)   // como en `medicacion`
+        d.name = fm["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? d.name
         d.birth = fm["nacimiento"].flatMap(DayKey.dmyDate)
         d.food = fm["comida"] ?? ""
         for (line, c) in MD.tableRows(MD.lines(text)) where c.count >= 2 {

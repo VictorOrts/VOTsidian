@@ -56,8 +56,8 @@ import Testing
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)")
     let vault = tmp.appendingPathComponent("Notas")
     let backups = tmp.appendingPathComponent("Copias")
-    try FileManager.default.createDirectory(at: vault.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
-    try "---\nobjetivo_peso_kg: 90\n---\n| Fecha | Peso |\n|--|--|\n| 01/01/2026 | 100 |\n".write(to: vault.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
+    try FileManager.default.createDirectory(at: vault.appendingPathComponent(VaultPath.folder("peso")), withIntermediateDirectories: true)
+    try "---\nobjetivo_peso_kg: 90\n---\n| Fecha | Peso |\n|--|--|\n| 01/01/2026 | 100 |\n".write(to: vault.appendingPathComponent(VaultPath.peso), atomically: true, encoding: .utf8)
     try FileManager.default.createDirectory(at: backups, withIntermediateDirectories: true)
     // 20 copias automáticas viejas, una manual y una carpeta ajena
     for d in 1...20 { try FileManager.default.createDirectory(at: backups.appendingPathComponent(String(format: "Notas-auto-2026-09-%02d", d)), withIntermediateDirectories: true) }
@@ -73,11 +73,11 @@ import Testing
     #expect(store.autoBackups().contains { $0.lastPathComponent.hasPrefix("Notas-auto-2026-1") || $0.lastPathComponent.contains(DayKey.string(Date())) })
     // la copia de hoy tiene el contenido de antes del cambio
     let today = try #require(store.autoBackups().first { $0.lastPathComponent.hasSuffix(DayKey.string(Date())) })
-    #expect(try String(contentsOf: today.appendingPathComponent("Cambio físico/Peso.md"), encoding: .utf8).contains("| 01/01/2026 | 100 |"))
-    #expect(!(try String(contentsOf: today.appendingPathComponent("Cambio físico/Peso.md"), encoding: .utf8)).contains("99"))
+    #expect(try String(contentsOf: today.appendingPathComponent(VaultPath.peso), encoding: .utf8).contains("| 01/01/2026 | 100 |"))
+    #expect(!(try String(contentsOf: today.appendingPathComponent(VaultPath.peso), encoding: .utf8)).contains("99"))
     let manual = try #require(store.backupNow())
     for _ in 0..<300 where !FileManager.default.fileExists(atPath: manual.path) { Thread.sleep(forTimeInterval: 0.1) }
-    #expect(FileManager.default.fileExists(atPath: manual.appendingPathComponent("Cambio físico/Peso.md").path))
+    #expect(FileManager.default.fileExists(atPath: manual.appendingPathComponent(VaultPath.peso).path))
     #expect(manual.lastPathComponent.contains("-manual-") && manual.deletingLastPathComponent().resolvingSymlinksInPath().path == backups.resolvingSymlinksInPath().path)
 }
 
