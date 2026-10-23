@@ -20,20 +20,22 @@ Todo se cambia después en **Ajustes → Módulos**: mostrar u ocultar módulos,
 
 Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No hace falta pulsarlo: la nota se crea sola la primera vez que apuntas algo desde la pantalla.
 
-| Módulo | Pantallas | Nota (ruta por defecto) |
+| Módulo | Pantallas | Nota en una carpeta nueva |
 |---|---|---|
-| Peso y medidas | Peso, Correlaciones | `Cambio físico/Peso.md` (y `Cambio físico/Medidas.md` al activar las medidas) |
-| Plan nutricional | Plan nutricional | `Cambio físico/Plan Nutricional.md` |
-| Medicación inyectable | (nombre del medicamento) | `Cambio físico/Mounjaro.md` |
-| Salud y médicos | Salud y médicos | `Organización/Médico/Médico.md` |
+| Peso y medidas | Peso, Correlaciones | `Salud/Peso.md` (y `Salud/Medidas.md` al activar las medidas; las fotos, en `Salud/Fotos`) |
+| Plan nutricional | Plan nutricional | `Salud/Plan nutricional.md` |
+| Medicación inyectable | (nombre del medicamento) | `Salud/Medicación.md` |
+| Salud y médicos | Salud y médicos | `Salud/Médico.md` (las notas de visita y los PDF de análisis, en `Salud/`) |
 | Finanzas y gastos | Finanzas, Gastos | `Finanzas/Finanzas.md` y una nota por mes en `Finanzas/Gastos/` |
 | Casa | Casa | `Casa/Casa.md` |
-| Lista de la compra | Compra | `Cambio físico/Lista de la compra.md` |
+| Lista de la compra | Compra | `Casa/Lista de la compra.md` |
 | Ropa | Moda | `Moda/Armario.md` |
-| Mascota | (nombre de la mascota) | `Nala/Nala.md` |
+| Mascota | (nombre de la mascota) | `Mascota/Mascota.md` |
 | Personas | Personas | `Organización/Personas.md` |
 | Documentos | Documentos | `Organización/Documentos.md` |
 | Objetivos | Objetivos | `Organización/Objetivos.md` |
+
+Las carpetas que ya usaban la primera versión de la app (`Cambio físico/Peso.md`, `Nala/Nala.md`, `Organización/Médico/Médico.md`…) siguen con esas rutas: el asistente solo pone las nuevas para las notas que no existen todavía.
 
 Si tus notas tienen otros nombres o están en otras carpetas, ponlo en **Ajustes → Módulos → Rutas de las notas**. Cada ruta es relativa a la carpeta de notas, por ejemplo `Salud/Báscula.md`.
 

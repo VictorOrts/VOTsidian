@@ -90,7 +90,7 @@ enum ICS {
             let first = cal.dateInterval(of: .month, for: today)!.start
             let end = DayKey.adding(days: -1, to: cal.date(byAdding: .month, value: 1, to: first)!)
             out.append(ICSEvent(uid: "peso-mensual", title: "Pesaje mensual",
-                                notes: "En ayunas. Anótalo en Cambio físico/Peso.",
+                                notes: "En ayunas. Anótalo en \(VaultPath.peso).",
                                 start: end, minutes: plan.weightMinutes, rule: "FREQ=MONTHLY;BYMONTHDAY=-1"))
         }
         if plan.tasks {

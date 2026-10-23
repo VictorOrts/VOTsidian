@@ -49,7 +49,7 @@ struct PesoView: View {
 
                 if w.records.count > 1 { changeChart(w) }
 
-                Card(title: "Registrar peso", icon: "plus.circle", info: "Se añade una fila a Cambio físico/Peso.md. Pésate una vez al mes, en ayunas.") {
+                Card(title: "Registrar peso", icon: "plus.circle", info: "Se añade una fila a \(VaultPath.peso). Pésate una vez al mes, en ayunas.") {
                     HStack {
                         DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).fixedSize()
                         TextField("kg", text: $kg).frame(width: 80)
@@ -200,7 +200,7 @@ struct PesoView: View {
 
     private func milestonesCard(_ w: WeightData, rate: Double?) -> some View {
         Card(title: "Hitos", icon: "flag") {
-            if store.milestones.isEmpty { EmptyNote("Sin hitos en Proyectos/Cambio físico 2026.") }
+            if store.milestones.isEmpty { EmptyNote("Sin hitos. Se ponen en la sección «Hitos» de \(VaultPath.proyecto): nombre, kg y ✅ al llegar.") }
             ForEach(store.milestones) { m in
                 let hit = w.records.first { $0.kg <= m.kg }
                 HStack {

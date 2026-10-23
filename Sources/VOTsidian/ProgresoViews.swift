@@ -132,7 +132,7 @@ struct FotosCard: View {
     @State private var a = 0
     @State private var b = -1
 
-    private var folder: URL { store.url("Cambio físico/Fotos") }
+    private var folder: URL { store.url(VaultPath.beside("peso", "Fotos")) }
 
     private var photos: [(url: URL, date: Date?)] {
         _ = store.revision
@@ -144,7 +144,7 @@ struct FotosCard: View {
 
     var body: some View {
         let list = photos
-        Card(title: "Fotos de progreso", icon: "camera", info: "Se copian a Cambio físico/Fotos con la fecha en el nombre.") {
+        Card(title: "Fotos de progreso", icon: "camera", info: "Se copian a \(VaultPath.beside("peso", "Fotos")) con la fecha en el nombre.") {
             HStack {
                 DatePicker("Día", selection: $date, in: ...Date(), displayedComponents: .date).frame(width: 200)
                 Button { add() } label: { Label("Añadir fotos…", systemImage: "plus") }

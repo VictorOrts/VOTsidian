@@ -30,6 +30,24 @@ enum VaultPath {
         let custom = UserDefaults.standard.dictionary(forKey: "vaultPathOverrides")?[key] as? String
         return custom.flatMap { $0.isEmpty ? nil : $0 } ?? defaults[key] ?? key
     }
+    /// Rutas para una carpeta nueva: las de `defaults` son las de la primera carpeta de la app («Cambio físico», «Nala»…),
+    /// que se mantienen para quien ya las usa. El asistente pone estas solo para las notas que aún no existen.
+    static let fresh: [String: String] = [
+        "peso": "Salud/Peso.md",
+        "medidas": "Salud/Medidas.md",
+        "mounjaro": "Salud/Medicación.md",
+        "plan": "Salud/Plan nutricional.md",
+        "medico": "Salud/Médico.md",
+        "proyecto": "Proyectos/Objetivo de peso.md",
+        "compra": "Casa/Lista de la compra.md",
+        "nala": "Mascota/Mascota.md",
+    ]
+
+    /// Carpeta de la nota de `key` («Cambio físico» para peso), o `""` si está en la raíz.
+    static func folder(_ key: String) -> String { (path(key) as NSString).deletingLastPathComponent }
+    /// `name` en la misma carpeta que la nota de `key`: las fotos junto al peso, los análisis junto a Médico…
+    static func beside(_ key: String, _ name: String) -> String { folder(key).isEmpty ? name : folder(key) + "/" + name }
+
     /// Rutas cambiadas (Ajustes → Módulos), por clave.
     static var overrides: [String: String] {
         (UserDefaults.standard.dictionary(forKey: "vaultPathOverrides") as? [String: String]) ?? [:]
@@ -99,7 +117,7 @@ final class Store {
     }
     var lastChange: Change?
     /// Con una raíz explícita (tests) los módulos no se leen ni se guardan en las preferencias de la app.
-    @ObservationIgnored private var persistsModules = true
+    @ObservationIgnored private(set) var persistsModules = true
     /// Módulos que no se usan: sus pantallas, tarjetas y avisos no salen.
     var hiddenModules: Set<Module> = Set((UserDefaults.standard.stringArray(forKey: "hiddenModules") ?? []).compactMap(Module.init)) {
         didSet { if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") } }

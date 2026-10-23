@@ -81,7 +81,7 @@ enum NoteTemplates {
         switch template {
         case "Reforma o compra": "Casa"
         case "Proyecto": "Proyectos"
-        case "Cita médica": "Organización/Médico"
+        case "Cita médica": VaultPath.folder("medico")
         case "Evento": "Finanzas"
         default: ""
         }

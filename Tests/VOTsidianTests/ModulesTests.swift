@@ -144,3 +144,20 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
         #expect(r.cgImage != nil)
     }
 }
+
+@Test func newFoldersGetNeutralPathsButOldNotesKeepTheirs() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("rutas-\(UUID().uuidString)")
+    let fresh = VaultPath.freshOverrides(root: root)   // la carpeta ni existe
+    #expect(fresh["peso"] == "Salud/Peso.md" && fresh["nala"] == "Mascota/Mascota.md" && fresh["mounjaro"] == "Salud/Medicación.md")
+    #expect(fresh["casa"] == nil && fresh["inbox"] == nil)   // las que no eran personales no cambian
+    #expect(fresh.values.allSatisfy { !$0.contains("Cambio físico") && !$0.contains("Nala") })
+    // una carpeta con notas de antes conserva esas rutas, también si iCloud aún no las ha descargado
+    try FileManager.default.createDirectory(at: root.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: root.appendingPathComponent("Nala"), withIntermediateDirectories: true)
+    try "x".write(to: root.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
+    try "x".write(to: root.appendingPathComponent("Nala/.Nala.md.icloud"), atomically: true, encoding: .utf8)
+    let mixed = VaultPath.freshOverrides(root: root)
+    #expect(mixed["peso"] == nil && mixed["nala"] == nil && mixed["mounjaro"] == "Salud/Medicación.md")
+    // lo que va junto a cada nota sigue su carpeta
+    #expect(VaultPath.beside("peso", "Fotos") == "Cambio físico/Fotos" && VaultPath.folder("medico") == "Organización/Médico")
+}

@@ -29,7 +29,7 @@ extension Store {
 
     /// Añade a la lista lo que falte de la sección «Lista de la compra» de Menú y compra. Devuelve cuántos artículos añadió.
     func generateShoppingFromMenu() -> Int {
-        let groups = Shopping.fromMenu(read("Cambio físico/Menú y compra.md"))
+        let groups = Shopping.fromMenu(read(VaultPath.beside("plan", "Menú y compra.md")))
         guard !groups.isEmpty else { return 0 }
         ensureShoppingList()
         var total = 0

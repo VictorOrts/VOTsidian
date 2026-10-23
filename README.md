@@ -20,6 +20,7 @@ La carpeta de notas por defecto es `iCloud Drive/VOTsidian`. Se cambia en Ajuste
 - La nota de un módulo se crea sola al apuntar lo primero (con deshacer); mientras no existe, su pantalla lo dice con un botón «Crear la nota».
 - **Ajustes → Módulos**: mostrar u ocultar módulos (también quita sus tarjetas de Inicio, sus avisos y sus entradas en ⌘K y en el menú Ir a), crear las notas que falten y cambiar la ruta de cada nota sin `defaults write`.
 - Medicación y mascota toman el nombre de su nota (`nombre:`); las notas de antes sin ese campo siguen saliendo como «Mounjaro» y «Nala».
+- En una carpeta nueva el asistente usa rutas neutras (`Salud/Peso.md`, `Salud/Medicación.md`, `Mascota/Mascota.md`, `Casa/Lista de la compra.md`…, en `VaultPath.fresh`) para las notas que no existen ya en su ruta de siempre; las fotos, los análisis, las citas médicas y «Menú y compra» van junto a su nota. Una carpeta con `Cambio físico/…` sigue igual.
 
 ## Seguridad de los datos
 

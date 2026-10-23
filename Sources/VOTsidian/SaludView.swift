@@ -103,7 +103,7 @@ struct SaludView: View {
                 if analyses != nil {
                     NoteTables(file: file, icon: "doc.text.magnifyingglass", include: { $0.title.localizedCaseInsensitiveContains("nálisis") })
                     Button { addAnalysis(analyses!) } label: { Label("Añadir análisis (PDF)…", systemImage: "doc.badge.plus") }
-                        .help("Los PDF se copian a Organización/Médico/Análisis y se abren desde el enlace de la tabla.")
+                        .help("Los PDF se copian a \(VaultPath.beside("medico", "Análisis")) y se abren desde el enlace de la tabla.")
                 }
             }
             .padding(24)
@@ -113,7 +113,7 @@ struct SaludView: View {
         .sheet(item: $spec) { RowSheet(spec: $0) }
         .sheet(isPresented: $showSummary) { SummarySheet(text: store.doctorSummary()) }
         .sheet(isPresented: $showNewVisit) {
-            NewNoteSheet(folders: ["Organización/Médico"], template0: "Cita médica", folder0: "Organización/Médico") { store.pendingNote = $0 }
+            NewNoteSheet(folders: [VaultPath.folder("medico")], template0: "Cita médica", folder0: VaultPath.folder("medico")) { store.pendingNote = $0 }
         }
     }
 
@@ -137,7 +137,7 @@ struct SaludView: View {
         panel.allowedContentTypes = [.pdf, .image]
         panel.message = "Elige el PDF o la imagen del análisis"
         guard panel.runModal() == .OK, let src = panel.url else { return }
-        let dir = store.url("Organización/Médico/Análisis")
+        let dir = store.url(VaultPath.beside("medico", "Análisis"))
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let dest = dir.appendingPathComponent(src.lastPathComponent)
         if !FileManager.default.fileExists(atPath: dest.path) { try? FileManager.default.copyItem(at: src, to: dest) }
