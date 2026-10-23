@@ -163,7 +163,7 @@ struct SemanaView: View {
         let end = DayKey.adding(days: 6, to: monday)
         let done = store.tasks.filter { t in t.done && (t.completed.map { $0 >= monday && $0 <= end } ?? false) }
         return Card(title: "Hecho esta semana", icon: "checkmark.seal") {
-            if done.isEmpty { Text("Ninguna tarea completada con fecha en estos días.").foregroundStyle(.secondary) }
+            if done.isEmpty { EmptyNote("Ninguna tarea completada con fecha en estos días.", icon: "checkmark.seal") }
             ForEach(done) { t in
                 HStack { Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.accent); Text(MDParser.inline(t.text)); Spacer(); Text(t.noteName).font(.caption).foregroundStyle(.secondary) }
             }

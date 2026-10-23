@@ -46,7 +46,7 @@ struct ProyectosView: View {
                                 move: { id, col in store.setProperty(id, key: "estado", value: col) })
                 }
                 ForEach(board ? [] : items) { r in
-                    Card(title: r.name, icon: "rocket", actionTitle: "Abrir nota", action: { store.pendingNote = r.path }) {
+                    Card(title: r.name, icon: "folder", actionTitle: "Abrir nota", action: { store.pendingNote = r.path }) {
                         HStack(spacing: 18) {
                             labeled("Estado") { PropertyPicker(file: r.path, key: "estado", options: ["activo", "pausado", "completado"]) }
                             labeled("Prioridad") { PropertyPicker(file: r.path, key: "prioridad", options: ["alta", "media", "baja"], width: 110) }

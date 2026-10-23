@@ -9,8 +9,9 @@ struct DocumentosView: View {
         let today = DayKey.today()
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Card(title: "Caducidades", icon: "clock.badge.exclamationmark") {
-                    if docs.isEmpty { Text("Ningún documento tiene fecha. Pon la fecha en la columna “Caduca / renueva” (AAAA-MM-DD).").foregroundStyle(.secondary) }
+                Card(title: "Caducidades", icon: "clock.badge.exclamationmark",
+                     info: "Anota solo la referencia del documento, no el documento. Al activar los avisos se crean eventos 30 días antes de cada caducidad.") {
+                    if docs.isEmpty { EmptyNote("Ningún documento tiene fecha. Pon la fecha en la columna «Caduca / renueva» (AAAA-MM-DD).", icon: "calendar") }
                     ForEach(Array(docs.enumerated()), id: \.offset) { _, d in
                         let n = DayKey.days(from: today, to: d.date)
                         HStack {
@@ -21,13 +22,11 @@ struct DocumentosView: View {
                             Text(d.section).font(.caption).foregroundStyle(.secondary)
                             Spacer()
                             Text(DayKey.dmy(d.date)).monospacedDigit().foregroundStyle(.secondary)
-                            Text(n < 0 ? "caducado" : relativeDays(n)).frame(width: 100, alignment: .trailing)
+                            Text(n < 0 ? "caducó \(relativeDays(n))" : relativeDays(n)).frame(width: 100, alignment: .trailing)
                         }
                     }
                 }
                 NoteTables(file: file, icon: "doc.text")
-                Text("Anota solo la referencia del documento, no el documento. Al activar los avisos se crean eventos 30 días antes de cada caducidad.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
             .readableWidth()

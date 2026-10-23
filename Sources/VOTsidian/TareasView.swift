@@ -48,10 +48,11 @@ struct TareasView: View {
                         .pickerStyle(.segmented).labelsHidden().frame(width: 420)
                     TextField("Buscar tarea o nota", text: $search).frame(width: 220)
                     Toggle("Agrupar por nota", isOn: $byNote).toggleStyle(.checkbox)
+                    InfoButton(text: "Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). Pasa el ratón por una tarea para aplazarla o editarla; el nombre de la nota abre esa nota.")
                 }
                 if byNote {
                     ForEach(Dictionary(grouping: open, by: \.noteName).keys.sorted(), id: \.self) { n in
-                        section(n, open.filter { $0.noteName == n }.sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }, empty: "")
+                        section(n, open.filter { $0.noteName == n }.sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) })
                     }
                 } else {
                     let today = DayKey.today()
@@ -64,16 +65,15 @@ struct TareasView: View {
                         ("Sin fecha", undated),
                     ]
                     ForEach(groups.filter { !$0.1.isEmpty }, id: \.0) { g in
-                        section(g.0, g.1.sorted { a, b in a.priority != b.priority ? a.priority > b.priority : (a.due ?? .distantFuture) < (b.due ?? .distantFuture) }, empty: "")
+                        section(g.0, g.1.sorted { a, b in a.priority != b.priority ? a.priority > b.priority : (a.due ?? .distantFuture) < (b.due ?? .distantFuture) })
                     }
-                    if open.isEmpty { Text("Ninguna tarea en este filtro.").foregroundStyle(.secondary) }
+                    if open.isEmpty { EmptyNote("Ninguna tarea en este filtro.", icon: "checkmark.circle") }
                 }
                 if !done.isEmpty {
                     DisclosureGroup("Completadas (\(done.count))") {
                         VStack(alignment: .leading, spacing: 6) { ForEach(done.prefix(30)) { TaskRow(task: $0) } }.padding(.top, 6)
                     }
                 }
-                Text("Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). Pasa el ratón por una tarea para aplazarla o editarla; el nombre de la nota abre esa nota.").font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
             .readableWidth()
@@ -88,10 +88,10 @@ struct TareasView: View {
         text = ""; hasDue = false
     }
 
-    @ViewBuilder private func section(_ title: String, _ items: [TaskItem], empty: String) -> some View {
+    private func section(_ title: String, _ items: [TaskItem]) -> some View {
         LazyVStack(alignment: .leading, spacing: 8) {
-            Text("\(title) (\(items.count))").font(.headline)
-            if items.isEmpty { Text(empty).foregroundStyle(.secondary) } else { ForEach(items) { TaskRow(task: $0) } }
+            Text("\(title) (\(items.count))").font(.headline).foregroundStyle(title == "Vencidas" ? Brand.bad : .primary)
+            ForEach(items) { TaskRow(task: $0) }
         }
     }
 }

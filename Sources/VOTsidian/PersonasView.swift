@@ -14,7 +14,7 @@ struct PersonasView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Card(title: "Próximos cumpleaños", icon: "gift") {
-                    if upcoming.isEmpty { Text("Añade fechas de cumpleaños en la tabla de abajo.").foregroundStyle(.secondary) }
+                    if upcoming.isEmpty { EmptyNote("Añade fechas de cumpleaños en la tabla de abajo.", icon: "gift") }
                     ForEach(upcoming.prefix(6), id: \.0.id) { p, date, age, days in
                         HStack {
                             Text(p.name).fontWeight(.medium)
@@ -35,7 +35,7 @@ struct PersonasView: View {
                             Spacer()
                             if let d = p.lastContact {
                                 let n = DayKey.days(from: d, to: today)
-                                Text("hace \(n) días").foregroundStyle(n > 60 ? Brand.warn : .secondary)
+                                Text(relativeDays(-n)).foregroundStyle(n > 60 ? Brand.warn : .secondary)
                             } else { Text("sin registro").foregroundStyle(.secondary) }
                             Button("Hablé hoy") { markContact(p) }.controlSize(.small)
                         }

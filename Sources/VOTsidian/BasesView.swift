@@ -35,7 +35,6 @@ struct BasesView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Cada nota con la propiedad «tipo» forma parte de una base. Edita las celdas sin abrir la nota.").foregroundStyle(.secondary)
                 // Los tipos se reparten en varias líneas en vez de cortarse por la derecha.
                 FlowLayout(spacing: 6) {
                     ForEach(all, id: \.name) { t in
@@ -61,7 +60,7 @@ struct BasesView: View {
                     }
                 }
                 Card(title: current.isEmpty ? "Sin bases" : Self.pretty(current), icon: "square.grid.3x3",
-                     info: all.isEmpty ? nil : "Las propiedades se guardan en el encabezado de cada nota. Para crear una propiedad nueva, ábrela en Notas y añádela en «Propiedades».") {
+                     info: all.isEmpty ? nil : "Cada nota con la propiedad «tipo» forma parte de una base. Edita las celdas sin abrir la nota. Las propiedades se guardan en el encabezado de cada nota. Para crear una propiedad nueva, ábrela en Notas y añádela en «Propiedades».") {
                     if notes.isEmpty { EmptyNote("No hay notas de este tipo.") }
                     ScrollView(.horizontal) {
                         Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
