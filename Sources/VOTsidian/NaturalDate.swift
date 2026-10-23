@@ -6,8 +6,18 @@ enum NaturalDate {
     private static let months = ["enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7,
                                  "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12]
 
+    /// Qué se escribió, para saber cómo llevar la fecha al pasado (un gasto) cuando cae en el futuro.
+    enum Kind { case none, exact, dayMonth, dayOfMonth, weekday, relative }
+
     /// Devuelve el texto sin la expresión de fecha y la fecha, si la hay.
     static func extract(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?) {
+        let r = extractKind(input, today: today)
+        return (r.text, r.date)
+    }
+
+    /// Como `extract`, y además el tipo de expresión: `dayMonth` («22/10», «3 de mayo», sin año), `dayOfMonth` («el 20»),
+    /// `weekday` («el viernes»), `exact` (con año) o `relative` («ayer», «en 3 días»).
+    static func extractKind(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?, kind: Kind) {
         let cal = DayKey.calendar()
         // Plegado carácter a carácter para que los rangos coincidan con el original.
         let folded = String(input.map { ch -> Character in
@@ -40,30 +50,36 @@ enum NaturalDate {
             m.range(at: i).location == NSNotFound ? nil : ns.substring(with: m.range(at: i))
         }
 
-        let rules: [(String, (NSTextCheckingResult) -> Date?)] = [
-            (#"\b(\d{4})-(\d{2})-(\d{2})\b"#, { m in date(Int(group(m, 1)!), Int(group(m, 2)!)!, Int(group(m, 3)!)!) }),
-            (#"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b"#, { m in date(group(m, 3).flatMap { Int($0) }, Int(group(m, 2)!)!, Int(group(m, 1)!)!) }),
-            (#"\b(\d{1,2}) de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de (\d{4}))?\b"#,
-             { m in date(group(m, 3).flatMap { Int($0) }, months[group(m, 2)!]!, Int(group(m, 1)!)!) }),
-            (#"\b(?:anteayer|antes de ayer)\b"#, { _ in DayKey.adding(days: -2, to: today) }),
-            (#"\bayer\b"#, { _ in DayKey.adding(days: -1, to: today) }),
-            (#"\bpasado manana\b"#, { _ in DayKey.adding(days: 2, to: today) }),
-            (#"\bmanana\b"#, { _ in DayKey.adding(days: 1, to: today) }),
-            (#"\bhoy\b"#, { _ in today }),
-            (#"\ben (\d{1,4}) (dias?|semanas?|meses?)\b"#, { m in
+        // El tipo de las fechas sin año depende de si se escribió el año: se apunta al resolver.
+        var yearGiven = false
+        let rules: [(String, Kind, (NSTextCheckingResult) -> Date?)] = [
+            (#"\b(\d{4})-(\d{2})-(\d{2})\b"#, .exact, { m in date(Int(group(m, 1)!), Int(group(m, 2)!)!, Int(group(m, 3)!)!) }),
+            (#"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b"#, .dayMonth, { m in
+                yearGiven = group(m, 3) != nil
+                return date(group(m, 3).flatMap { Int($0) }, Int(group(m, 2)!)!, Int(group(m, 1)!)!) }),
+            (#"\b(\d{1,2}) de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de (\d{4}))?\b"#, .dayMonth,
+             { m in
+                yearGiven = group(m, 3) != nil
+                return date(group(m, 3).flatMap { Int($0) }, months[group(m, 2)!]!, Int(group(m, 1)!)!) }),
+            (#"\b(?:anteayer|antes de ayer)\b"#, .relative, { _ in DayKey.adding(days: -2, to: today) }),
+            (#"\bayer\b"#, .relative, { _ in DayKey.adding(days: -1, to: today) }),
+            (#"\bpasado manana\b"#, .relative, { _ in DayKey.adding(days: 2, to: today) }),
+            (#"\bmanana\b"#, .relative, { _ in DayKey.adding(days: 1, to: today) }),
+            (#"\bhoy\b"#, .relative, { _ in today }),
+            (#"\ben (\d{1,4}) (dias?|semanas?|meses?)\b"#, .relative, { m in
                 let n = Int(group(m, 1)!)!
                 let unit = group(m, 2)!
                 if unit.hasPrefix("semana") { return DayKey.adding(days: 7 * n, to: today) }
                 if unit.hasPrefix("mes") { return cal.date(byAdding: .month, value: n, to: today) }
                 return DayKey.adding(days: n, to: today)
             }),
-            (#"\b(?:(?:el|este|proximo) )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b"#, { m in
+            (#"\b(?:(?:el|este|proximo) )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b"#, .weekday, { m in
                 let target = weekdays[group(m, 1)!]!
                 var delta = (target - cal.component(.weekday, from: today) + 7) % 7
                 if delta == 0 { delta = 7 }
                 return DayKey.adding(days: delta, to: today)
             }),
-            (#"\bel (\d{1,2})\b"#, { m in
+            (#"\bel (\d{1,2})\b"#, .dayOfMonth, { m in
                 let d = Int(group(m, 1)!)!
                 let month = cal.component(.month, from: today)
                 // El próximo día `d` que exista: «el 31» en noviembre es el 31 de diciembre, no el 1.
@@ -76,10 +92,10 @@ enum NaturalDate {
                 return nil
             }),
         ]
-        for (pattern, resolve) in rules {
-            if let (text, d) = apply(pattern, resolve) { return (text, d) }
+        for (pattern, kind, resolve) in rules {
+            if let (text, d) = apply(pattern, resolve) { return (text, d, kind == .dayMonth && yearGiven ? .exact : kind) }
         }
-        return (input.trimmingCharacters(in: .whitespaces), nil)
+        return (input.trimmingCharacters(in: .whitespaces), nil, .none)
     }
 
     struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0 }

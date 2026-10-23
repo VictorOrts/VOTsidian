@@ -10,11 +10,15 @@ extension MD {
 }
 
 enum DayKey {
-    static func calendar() -> Calendar {
+    /// Se crea una vez: se pide en cada fecha que se analiza o se pinta. La zona horaria sigue a la del sistema.
+    private static let shared: Calendar = {
         var cal = Calendar(identifier: .gregorian)
         cal.firstWeekday = 2
+        cal.timeZone = .autoupdatingCurrent
         return cal
-    }
+    }()
+
+    static func calendar() -> Calendar { shared }
 
     static func string(_ date: Date) -> String {
         let c = calendar().dateComponents([.year, .month, .day], from: date)
@@ -123,6 +127,17 @@ enum MD {
             .map { $0.replacingOccurrences(of: "\u{1}", with: "|").trimmingCharacters(in: .whitespaces) }
     }
 
+    /// Trozos de una fila separados por las `|` de verdad: un `\|` (como en `[[Nota\|alias]]`) se queda dentro de su celda.
+    static func rawCells(_ line: String) -> [String] {
+        line.replacingOccurrences(of: "\\|", with: "\u{1}").components(separatedBy: "|")
+            .map { $0.replacingOccurrences(of: "\u{1}", with: "\\|") }
+    }
+
+    /// Escapa las `|` sueltas de un valor para que no partan la celda; las ya escapadas se dejan.
+    static func escapeCell(_ value: String) -> String {
+        value.replacingOccurrences(of: #"(?<!\\)\|"#, with: #"\\|"#, options: .regularExpression).replacingOccurrences(of: "\n", with: " ")
+    }
+
     static func isTable(_ line: String) -> Bool { line.trimmingCharacters(in: .whitespaces).hasPrefix("|") }
 
     /// Índices de línea que están dentro de un bloque de código.
@@ -151,10 +166,21 @@ enum MD {
         return h
     }
 
+    /// Primer número del texto. Entiende coma decimal («105,5») y separador de miles («1.234,5», «1.234.567», «1,234.5»).
     static func number(_ s: String) -> Double? {
-        let t = s.replacingOccurrences(of: ",", with: ".")
-        guard let m = t.firstMatch(of: /-?\d+(\.\d+)?/) else { return nil }
-        return Double(String(m.0))
+        guard let m = s.firstMatch(of: /-?\d+(?:[.,]\d+)*/) else { return nil }
+        var t = String(m.0)
+        let commas = t.filter { $0 == "," }.count, dots = t.filter { $0 == "." }.count
+        if commas > 0, dots > 0 {
+            // El separador que va último es el decimal; el otro, de miles.
+            let decimal: Character = t.lastIndex(of: ",")! > t.lastIndex(of: ".")! ? "," : "."
+            t = t.filter { $0 != (decimal == "," ? "." : ",") }.replacingOccurrences(of: ",", with: ".")
+        } else if dots > 1 || commas > 1 {
+            t = t.replacingOccurrences(of: dots > 1 ? "." : ",", with: "")
+        } else {
+            t = t.replacingOccurrences(of: ",", with: ".")
+        }
+        return Double(t)
     }
 
     /// Líneas tras un encabezado (que contiene `title`) hasta el siguiente encabezado.
@@ -169,11 +195,11 @@ enum MD {
 
     /// Cambia el contenido de la columna `col` (0 = primera) conservando el ancho de la celda.
     static func setCell(_ line: String, col: Int, value: String) -> String {
-        var parts = line.components(separatedBy: "|")
+        var parts = rawCells(line)
         let idx = col + 1
         guard idx < parts.count - 1 else { return line }
         let width = parts[idx].count
-        let content = value
+        let content = escapeCell(value)
         if width >= content.count + 2 {
             let total = width - content.count
             let left = total / 2

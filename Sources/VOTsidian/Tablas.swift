@@ -153,8 +153,15 @@ extension Parse {
 
 enum Recurrence {
     /// Separa «month on the 31st» en la regla base («month») y el día fijo del mes (31; -1 = el último).
+    /// `🔁 every …` hasta el siguiente campo de la tarea (fechas, prioridad, `[completion::]`).
+    static let pattern = #"🔁\s*every\s+[^📅⏳🛫➕✅⏫🔼🔽\[]+"#
+
+    /// «every week when done» (Obsidian Tasks): la siguiente se cuenta desde el día en que se completa, no desde la fecha.
+    static func isWhenDone(_ rule: String) -> Bool { rule.lowercased().contains("when done") }
+
     static func split(_ rule: String) -> (base: String, day: Int?) {
-        let r = rule.lowercased().trimmingCharacters(in: .whitespaces)
+        let r = rule.lowercased().replacingOccurrences(of: "when done", with: "")
+            .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
         guard let on = r.range(of: " on the ") else { return (r, nil) }
         let spec = r[on.upperBound...].trimmingCharacters(in: .whitespaces)
         let day = spec.hasPrefix("last") ? -1 : spec.firstMatch(of: /^(\d{1,2})/).flatMap { Int($0.1) }.flatMap { (1...31).contains($0) ? $0 : nil }
@@ -181,7 +188,7 @@ enum Recurrence {
     /// Se cuenta siempre desde `due` (n, 2n, 3n…), no saltando de fecha en fecha: así el 31 de enero + 3 meses es el 30 de abril, no el 28.
     static func next(after due: Date?, rule: String, today: Date = DayKey.today()) -> Date? {
         let cal = DayKey.calendar()
-        let anchor = due ?? today
+        let anchor = isWhenDone(rule) ? today : due ?? today
         if isWeekday(rule) {
             var d = anchor
             repeat { d = DayKey.adding(days: 1, to: d) } while d < today || cal.isDateInWeekend(d)

@@ -108,7 +108,6 @@ extension Store {
         ensureBackup()
         let name = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
         pinned.removeAll { $0 == rel }
-        fileCache.removeAll()
         var trashed: NSURL?
         do { try FileManager.default.trashItem(at: url(rel), resultingItemURL: &trashed); message = nil }
         catch { message = "No se pudo mover a la papelera: \(error.localizedDescription)"; return }
@@ -116,6 +115,8 @@ extension Store {
         let homonym = notes.contains { $0.path != rel && MD.fold($0.name) == MD.fold(name) }
         var links: [(rel: String, previous: String)] = [], failed: [String] = []
         if !homonym { (links, failed) = rewriteLinks { Edit.unlink($0, name: name) } }
+        // Solo se vuelven a leer la nota borrada y las que cambiaron sus enlaces.
+        for r in [rel] + links.map(\.rel) { fileCache[r] = nil }
         if let t = trashed as URL? { push(.trash(rel: rel, trashed: t, links: links)) }
         if !failed.isEmpty { message = "La nota se movió, pero no se pudieron actualizar los enlaces en: \(failed.joined(separator: ", "))." }
         lastChange = Change(file: rel, undoable: trashed != nil)
@@ -151,13 +152,28 @@ extension Store {
         do { try FileManager.default.moveItem(at: url(rel), to: url(newRel)) }
         catch { message = "No se pudo renombrar: \(error.localizedDescription)"; return nil }
         pinned = pinned.map { $0 == rel ? newRel : $0 }
-        fileCache.removeAll()
         let (links, failed) = rewriteLinks(except: rel) { Edit.renameLinks($0, old: oldName, new: clean, folder: dir) }
+        for r in [rel, newRel] + links.map(\.rel) { fileCache[r] = nil }
         push(.rename(old: rel, new: newRel, links: links))
         if !failed.isEmpty { message = "Se renombró, pero no se pudieron actualizar los enlaces en: \(failed.joined(separator: ", "))." }
         lastChange = Change(file: newRel, undoable: true)
         reload()
         return newRel
+    }
+
+    /// Guarda `text` junto a la nota como «Nombre (copia en conflicto AAAA-MM-DD HHmm).md», para no perderlo cuando
+    /// no se puede guardar encima (la nota cambió fuera de la app). Sale en Avisos como copia en conflicto.
+    @discardableResult
+    func saveConflictCopy(_ rel: String, text: String) -> String? {
+        let dir = (rel as NSString).deletingLastPathComponent
+        let name = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
+        let base = "\(name) (copia en conflicto \(Store.stamp("yyyy-MM-dd HHmm")))"
+        var copy = (dir.isEmpty ? "" : dir + "/") + base + ".md"
+        var n = 2
+        while FileManager.default.fileExists(atPath: url(copy).path) { copy = (dir.isEmpty ? "" : dir + "/") + "\(base) \(n).md"; n += 1 }
+        guard writeNote(copy, text: text) else { return nil }
+        message = "«\(name)» cambió fuera de la app. Lo que escribiste quedó en «\((copy as NSString).lastPathComponent)»."
+        return copy
     }
 
     func setProperty(_ rel: String, key: String, value: String, quiet: Bool = false) {

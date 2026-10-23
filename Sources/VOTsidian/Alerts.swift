@@ -16,12 +16,13 @@ struct Alert: Identifiable {
             }
         }
     }
-    var id = UUID()
     var level: Level
     var icon: String
     var text: String
     var screen: Screen
     var action: Action? = nil
+    /// Estable entre recálculos: SwiftUI no vuelve a pintar la lista entera cada vez que se piden los avisos.
+    var id: String { "\(screen.rawValue)|\(text)" }
 }
 
 extension Store {
@@ -71,6 +72,12 @@ extension Store {
             }
         }
         out += budgetAlerts(today: today)
+        // Solo en la app (la que hace copias al abrir): un fallo de hoy o una copia demasiado vieja.
+        if let f = backupFailure {
+            out.append(Alert(level: .urgent, icon: "externaldrive.badge.exclamationmark", text: f, screen: .ajustes))
+        } else if dailyBackupDay != nil, backupJob.wait(timeout: .now()) == .success, let days = daysSinceLastBackup(today: today), days > 2 {
+            out.append(Alert(level: .soon, icon: "externaldrive.badge.exclamationmark", text: "La última copia de seguridad es de hace \(days) días", screen: .ajustes))
+        }
         if !pendingDownloads.isEmpty { out.append(Alert(level: .soon, icon: "icloud.and.arrow.down", text: "\(pendingDownloads.count) archivos de iCloud sin descargar en este Mac (no entran en las copias)", screen: .ajustes)) }
         if !unreadableFiles.isEmpty { out.append(Alert(level: .soon, icon: "exclamationmark.triangle", text: "\(unreadableFiles.count) \(unreadableFiles.count == 1 ? "nota no se puede leer" : "notas no se pueden leer"): \(unreadableFiles.prefix(2).joined(separator: ", "))", screen: .ajustes)) }
         let conflicts = conflictCopies
@@ -82,7 +89,9 @@ extension Store {
         if let r = reviews[wk], r.totalDone == 0, weekday == 1 || weekday >= 5 {
             out.append(Alert(level: .info, icon: "calendar.badge.checkmark", text: "Sin hábitos marcados en la semana \(wk.suffix(3))", screen: .semana))
         }
-        return out.sorted { $0.level.rawValue < $1.level.rawValue }
+        // Dos avisos iguales (mismo texto y pantalla) son uno: además comparten id.
+        var seen = Set<String>()
+        return out.filter { seen.insert($0.id).inserted }.sorted { $0.level.rawValue < $1.level.rawValue }
     }
 }
 

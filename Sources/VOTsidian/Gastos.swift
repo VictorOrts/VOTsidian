@@ -409,11 +409,12 @@ enum ExpenseParser {
 
     static func parse(_ input: String, categories: [String], people: [String] = [], learned: [String: String] = [:], today: Date = DayKey.today()) -> Result? {
         // La fecha va primero: en «22/10 gasolina 40» o «el 12 pan 3» el número de la fecha no es el importe.
-        let dated = NaturalDate.extract(input.trimmingCharacters(in: .whitespaces), today: today)
+        let dated = NaturalDate.extractKind(input.trimmingCharacters(in: .whitespaces), today: today)
         var rest = dated.text
         // «1.200» son mil doscientos (punto de miles), «12,50» y «12.5» llevan decimales.
-        guard let m = rest.firstMatch(of: /(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/)
-                ?? rest.firstMatch(of: /(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)/) else { return nil }
+        // El número empieza en límite de palabra: en «gym o2 40» el importe es 40, no el 2 de «o2».
+        guard let m = rest.firstMatch(of: /\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/)
+                ?? rest.firstMatch(of: /\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)/) else { return nil }
         let amount = Money.parse(String(m.1))
         guard amount > 0 else { return nil }
         rest.removeSubrange(m.range)
@@ -447,19 +448,29 @@ enum ExpenseParser {
                 break
             }
         }
-        return Result(amount: amount, category: category, note: rest, person: person, date: pastDate(dated.date, input: input, today: today) ?? today)
+        return Result(amount: amount, category: category, note: rest, person: person, date: pastDate(dated.date, kind: dated.kind, today: today) ?? today)
     }
 
-    /// Las fechas de las tareas miran al futuro («el viernes» es el próximo); un gasto ya pasó: «el viernes» es el último
-    /// y «22/10» es el de este año. «mañana» o «en 3 días» se respetan (un pago que se apunta por adelantado).
-    private static func pastDate(_ d: Date?, input: String, today: Date) -> Date? {
+    /// Las fechas de las tareas miran al futuro («el viernes» es el próximo); un gasto ya pasó: «el viernes» es el último,
+    /// «22/10» es el de este año y «el 20» el de este mes. «mañana», «en 3 días» o un día de los próximos 7 se respetan
+    /// (un pago que se apunta por adelantado).
+    private static func pastDate(_ d: Date?, kind: NaturalDate.Kind, today: Date) -> Date? {
         guard let d, d > today else { return d }
         let cal = DayKey.calendar()
-        let folded = MD.fold(input)
-        if ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"].contains(where: { folded.contains($0) }) {
+        switch kind {
+        case .weekday:
             return DayKey.adding(days: -7, to: d)
+        case .dayMonth where DayKey.days(from: today, to: d) > 7:
+            if let back = cal.date(byAdding: .year, value: -1, to: d), back <= today { return back }
+        case .dayOfMonth where DayKey.days(from: today, to: d) > 7:
+            // El último día con ese número que ya pasó (saltando meses en que no existe, como el 31).
+            let day = cal.component(.day, from: d)
+            for k in 0...12 {
+                guard let m = cal.date(byAdding: .month, value: -k, to: cal.dateInterval(of: .month, for: today)!.start) else { break }
+                if let back = DayKey.make(cal.component(.year, from: m), cal.component(.month, from: m), day), back <= today { return back }
+            }
+        default: break
         }
-        if DayKey.days(from: today, to: d) > 7, let back = cal.date(byAdding: .year, value: -1, to: d), back <= today { return back }
         return d
     }
 }
@@ -467,7 +478,7 @@ enum ExpenseParser {
 // MARK: - Store
 
 extension Store {
-    static var gastosFolder: String { VaultPath.path("gastos") }
+    static var gastosFolder: String { VaultPath.gastos }
     func budgetPath(_ month: String) -> String { "\(Store.gastosFolder)/\(month).md" }
 
     /// Meses con nota de presupuesto, del más viejo al más nuevo.
@@ -479,10 +490,14 @@ extension Store {
         }.sorted()
     }
 
+    /// Se analiza una vez por recarga: la pantalla de Gastos y los avisos lo piden muchas veces en cada pintado.
     func budget(_ month: String) -> Budget? {
         let p = budgetPath(month)
+        if let b = budgetCache[p] { return b }
         guard let t = noteTexts[p] else { return nil }
-        return Parse.budget(t, month: month, path: p)
+        let b = Parse.budget(t, month: month, path: p)
+        budgetCache[p] = b
+        return b
     }
 
     /// Los `limit` meses con nota anteriores a `month`, del más reciente al más viejo.
@@ -494,6 +509,16 @@ extension Store {
     @discardableResult
     func createBudget(_ month: String) -> Bool {
         guard budget(month) == nil else { return true }
+        // La nota puede existir aunque la app aún no la haya leído (recién llegada de iCloud o sin descargar): no se pisa.
+        let u = url(budgetPath(month))
+        let placeholder = u.deletingLastPathComponent().appendingPathComponent(".\(u.lastPathComponent).icloud")
+        if FileManager.default.fileExists(atPath: u.path) || FileManager.default.fileExists(atPath: placeholder.path) {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: u)
+            reload()
+            if budget(month) != nil { return true }
+            message = "La nota \(budgetPath(month)) ya existe pero aún no se puede leer (¿la está descargando iCloud?). No se creó otra."
+            return false
+        }
         let previous = budgetMonths.last { $0 < month }.flatMap { budget($0) } ?? budgetMonths.last.flatMap { budget($0) }
         return writeNote(budgetPath(month), text: Edit.budgetNote(month: month, from: previous))
     }
@@ -596,10 +621,16 @@ extension Store {
     func transferLeftover(_ b: Budget, amount: Double) {
         guard amount > 0, let saving = b.lines.first(where: { $0.kind == .ahorro }), let first = Budget.firstDay(b.month),
               let last = DayKey.calendar().date(byAdding: DateComponents(month: 1, day: -1), to: first) else { return }
-        edit(b.path) { Edit.addBudgetMove($0, date: last, amount: amount, category: saving.name, note: "sobrante del mes") }
-        let now = Money.parse(noteMeta[VaultPath.finanzas]?["fondo_emergencia_eur"] ?? "")
-        if FileManager.default.fileExists(atPath: url(VaultPath.finanzas).path) {
-            setProperty(VaultPath.finanzas, key: "fondo_emergencia_eur", value: Edit.budgetNumber(now + amount))
+        // Los dos cambios se deshacen juntos; si el movimiento no se pudo apuntar, el fondo no se toca.
+        grouped {
+            guard edit(b.path, { Edit.addBudgetMove($0, date: last, amount: amount, category: saving.name, note: "sobrante del mes") }),
+                  FileManager.default.fileExists(atPath: url(VaultPath.finanzas).path) else { return }
+            edit(VaultPath.finanzas) { t in
+                let key = "fondo_emergencia_eur"
+                let value = Edit.budgetNumber(Money.parse(MD.frontmatter(t)[key] ?? "") + amount)
+                // Sin propiedades en la nota, se crean.
+                return Edit.setFrontmatter(t, key: key, value: value) ?? "---\n\(key): \(value)\n---\n" + t
+            }
         }
     }
 

@@ -8,6 +8,9 @@ extension Store {
 
     static func stamp(_ format: String) -> String {
         let f = DateFormatter()
+        // Siempre gregoriano y con cifras occidentales, sea cual sea el calendario del sistema: los nombres de las copias dependen de ello.
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = format
         return f.string(from: Date())
     }
@@ -20,8 +23,31 @@ extension Store {
         guard lastBackupDay != day else { return }
         lastBackupDay = day
         backupJob.wait()
-        if !autoBackupExists(day) { Store.makeBackup(from: root, to: autoBackupURL(day), password: backupPassword) }
+        if !autoBackupExists(day) {
+            let started = Store.makeBackup(from: root, to: autoBackupURL(day), password: backupPassword) { [weak self] ok in
+                DispatchQueue.main.async { self?.backupFinished(ok: ok, day: day) }
+            }
+            if !started { backupFinished(ok: false, day: day) }
+        }
         pruneAutoBackups()
+    }
+
+    /// Al terminar una copia automática: si falló se avisa (Avisos e Inicio); si fue bien se quitan las viejas.
+    func backupFinished(ok: Bool, day: String) {
+        if ok {
+            backupFailure = nil
+            pruneAutoBackups()
+        } else {
+            let when = DayKey.date(day).map(DayKey.dmy) ?? day
+            backupFailure = "La copia de seguridad del \(when) no se pudo hacer. Prueba «Hacer copia ahora» en Ajustes."
+        }
+    }
+
+    /// Días desde la copia más reciente de esta carpeta (automática o manual), o `nil` si no hay ninguna.
+    func daysSinceLastBackup(today: Date = DayKey.today()) -> Int? {
+        let prefix = "\(vaultName)-"
+        let dates = backupEntries().filter { $0.name.hasPrefix(prefix) }.compactMap(\.date)
+        return dates.max().map { DayKey.days(from: $0, to: today) }
     }
 
     /// Hace la copia de hoy en segundo plano nada más abrir, para que el primer cambio no espere a copiar toda la carpeta.
@@ -32,7 +58,7 @@ extension Store {
         guard dailyBackupDay != day else { return }
         dailyBackupDay = day
         let dest = autoBackupURL(day)
-        guard !autoBackupExists(day) else { lastBackupDay = day; return }
+        guard !autoBackupExists(day) else { lastBackupDay = day; pruneAutoBackups(); return }
         // Los archivos que iCloud no tiene en este Mac solo se copiarían como marcadores vacíos: se piden ya,
         // y lo que no haya llegado queda avisado en Avisos («no entran en las copias»).
         for rel in pendingDownloads { try? FileManager.default.startDownloadingUbiquitousItem(at: url(rel)) }
@@ -40,10 +66,35 @@ extension Store {
         let password = backupPassword
         let job = backupJob
         job.enter()
-        DispatchQueue.global(qos: .utility).async {
-            Store.makeBackup(from: src, to: dest, password: password)
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let started = Store.makeBackup(from: src, to: dest, password: password) { ok in
+                DispatchQueue.main.async { self?.backupFinished(ok: ok, day: day) }
+            }
+            if !started { DispatchQueue.main.async { self?.backupFinished(ok: false, day: day) } }
             job.leave()
         }
+    }
+
+    /// Fuera de Documentos (que puede ir a iCloud con «Escritorio y Documentos»): las copias no ocupan iCloud ni se sincronizan.
+    nonisolated static var defaultBackupsFolder: URL {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+        return support.appendingPathComponent("VOTsidian/Copias")
+    }
+
+    /// Lleva las copias de la carpeta de antes (`Documentos/Copias VOTsidian`) a la de ahora. Las que no se puedan mover se quedan donde estaban.
+    func moveOldBackups() {
+        let fm = FileManager.default
+        let old = fm.homeDirectoryForCurrentUser.appendingPathComponent("Documents/Copias VOTsidian")
+        guard old.standardizedFileURL != backupsFolder.standardizedFileURL,
+              let items = try? fm.contentsOfDirectory(at: old, includingPropertiesForKeys: nil), !items.isEmpty else { return }
+        try? fm.createDirectory(at: backupsFolder, withIntermediateDirectories: true)
+        for u in items where !u.lastPathComponent.hasPrefix(".") {
+            let dest = backupsFolder.appendingPathComponent(u.lastPathComponent)
+            if !fm.fileExists(atPath: dest.path) { try? fm.moveItem(at: u, to: dest) }
+        }
+        let left = ((try? fm.contentsOfDirectory(at: old, includingPropertiesForKeys: nil)) ?? []).filter { !$0.lastPathComponent.hasPrefix(".") }
+        if left.isEmpty { try? fm.removeItem(at: old) }
     }
 
     /// Con contraseña la copia es una imagen cifrada `.dmg`; sin ella, una carpeta.
@@ -72,32 +123,41 @@ extension Store {
 
     /// Sin contraseña copia la carpeta. Con contraseña hace primero un clon rápido (APFS) y cifra desde él en segundo plano,
     /// así quien llama solo espera al clon y los cambios posteriores no entran en la copia.
+    /// Devuelve si la copia se pudo empezar; `completion` recibe si terminó bien (también tras cifrar), solo si empezó.
     @discardableResult
-    nonisolated static func makeBackup(from src: URL, to dest: URL, password: String?) -> Bool {
-        guard let password else { copyVault(from: src, to: dest); return FileManager.default.fileExists(atPath: dest.path) }
+    nonisolated static func makeBackup(from src: URL, to dest: URL, password: String?, completion: (@Sendable (Bool) -> Void)? = nil) -> Bool {
+        guard let password else {
+            let ok = copyVault(from: src, to: dest)
+            if ok { completion?(true) }
+            return ok
+        }
         let fm = FileManager.default
         let staging = stagingURL(for: dest)
         try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
         guard !fm.fileExists(atPath: dest.path), !fm.fileExists(atPath: staging.path) else { return false }
         do { try fm.copyItem(at: src, to: staging) } catch { try? fm.removeItem(at: staging); return false }
         DispatchQueue.global(qos: .utility).async {
-            _ = EncryptedBackup.create(from: staging, to: dest, password: password)
+            let ok = EncryptedBackup.create(from: staging, to: dest, password: password)
             try? FileManager.default.removeItem(at: staging)
+            completion?(ok)
         }
         return true
     }
 
     /// Copia a una carpeta temporal y la renombra al final, para que una copia a medias no pase por completa.
-    nonisolated static func copyVault(from src: URL, to dest: URL) {
+    /// Devuelve si la copia existe al terminar.
+    @discardableResult
+    nonisolated static func copyVault(from src: URL, to dest: URL) -> Bool {
         let fm = FileManager.default
         try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-        guard !fm.fileExists(atPath: dest.path) else { return }
+        guard !fm.fileExists(atPath: dest.path) else { return true }
         let partial = dest.deletingLastPathComponent().appendingPathComponent(".\(dest.lastPathComponent).partial")
         try? fm.removeItem(at: partial)
         do {
             try fm.copyItem(at: src, to: partial)
             try fm.moveItem(at: partial, to: dest)
         } catch { try? fm.removeItem(at: partial) }
+        return fm.fileExists(atPath: dest.path)
     }
 
     /// Las copias automáticas de esta carpeta se llaman `<vault>-auto-AAAA-MM-DD` (más `.dmg` si van cifradas); las manuales, las de otras carpetas y cualquier otra cosa no se tocan.
@@ -126,18 +186,22 @@ extension Store {
     }
 
     /// Lee el archivo recién del disco, aplica el cambio y lo guarda. Así no se pisan cambios hechos desde otro programa.
-    func edit(_ rel: String, quiet: Bool = false, _ transform: (String) -> String?) {
+    /// Devuelve `false` si no se pudo (el motivo queda en `message`).
+    @discardableResult
+    func edit(_ rel: String, quiet: Bool = false, _ transform: (String) -> String?) -> Bool {
         let u = url(rel)
-        guard let text = try? String(contentsOf: u, encoding: .utf8) else { message = "No se pudo leer \(rel)."; return }
-        guard let new = transform(text) else { message = "No encontré dónde cambiar \(rel). No se modificó."; return }
-        guard new != text else { return }
+        guard let text = try? String(contentsOf: u, encoding: .utf8) else { message = "No se pudo leer \(rel)."; return false }
+        guard let new = transform(text) else { message = "No encontré dónde cambiar \(rel). No se modificó."; return false }
+        guard new != text else { return true }
         ensureBackup()
+        var ok = true
         do {
             try new.write(to: u, atomically: true, encoding: .utf8)
             message = nil
             record(rel, previous: text, written: new, quiet: quiet)
-        } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)" }
+        } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)"; ok = false }
         reload(changed: [rel])
+        return ok
     }
 
     func dismissChange(_ id: UUID) { if lastChange?.id == id { lastChange = nil } }

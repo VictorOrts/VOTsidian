@@ -11,7 +11,7 @@ struct MeasureRecord: Identifiable, Equatable {
 }
 
 enum Measures {
-    static let file = "Cambio físico/Medidas.md"
+    static var file: String { VaultPath.medidas }
     static let fields = ["Cintura", "Cadera", "Pecho", "Brazo", "Muslo", "Grasa"]
     static let units = ["Cintura": "cm", "Cadera": "cm", "Pecho": "cm", "Brazo": "cm", "Muslo": "cm", "Grasa": "%"]
 

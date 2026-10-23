@@ -14,7 +14,7 @@ La carpeta de notas por defecto es `iCloud Drive/VOTsidian`. Se cambia en Ajuste
 
 ## Seguridad de los datos
 
-- Antes del primer cambio de cada día se copia toda la carpeta a `~/Documents/<carpeta>-backup-AAAA-MM-DD`.
+- Al abrir la app (y antes del primer cambio de cada día) se copia toda la carpeta a la carpeta de copias. Si una copia falla, o la última tiene más de 2 días, sale un aviso.
 - Cada cambio se puede deshacer (⌥⌘Z o el botón del aviso).
 - Los tests de escritura trabajan sobre copias temporales. Para probar con tus notas: `VAULT_COPY=/ruta/a/una/copia swift test`.
 
@@ -34,7 +34,7 @@ Lo que escribes se guarda solo 1,5 s después de dejar de teclear (notas, revisi
 
 Filtros por tipo (pantallas, notas, tareas, texto), por carpeta y, para tareas, por fecha (vencidas, hoy, 7 días, sin fecha). Flechas ↑↓ para moverse e intro para abrir.
 
-Las copias van a `~/Documents/Copias VOTsidian`. La app conserva las últimas 14 automáticas (`…-auto-AAAA-MM-DD`) y borra las más viejas; las manuales (`…-manual-…`) no se borran solas.
+Las copias van a `~/Library/Application Support/VOTsidian/Copias` (Ajustes → «Ver copias en Finder»), fuera de Documentos para que no ocupen iCloud; las que había en `~/Documents/Copias VOTsidian` se mueven solas al abrir. La app conserva las últimas 14 automáticas (`…-auto-AAAA-MM-DD`) y borra las más viejas; las manuales (`…-manual-…`) no se borran solas.
 
 ## Qué hay dentro (resumen)
 
@@ -92,7 +92,7 @@ Las rutas de los archivos que usa cada pantalla (peso, Mounjaro, Inbox…) está
 defaults write com.victor.votsidian vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"
 ```
 
-Claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, revisiones. Una carpeta es válida si tiene el archivo de peso o cualquier nota; las pantallas sin su archivo salen vacías.
+Claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas. Una carpeta es válida si tiene el archivo de peso o cualquier nota; las pantallas sin su archivo salen vacías.
 
 ## Estructura del código
 

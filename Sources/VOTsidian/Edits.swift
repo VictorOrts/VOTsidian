@@ -12,7 +12,7 @@ enum Edit {
 
     static func addWeight(_ text: String, date: Date, kg: Double, note: String) -> String? {
         let key = DayKey.dmy(date)
-        let row = "| \(key) | \(MD.formatNumber(kg)) | \(note) |"
+        let row = rowString([key, MD.formatNumber(kg), note])
         var lines = MD.lines(text)
         if let same = MD.tableRows(lines).first(where: { DayKey.dmyDate($0.cells[0]).map(DayKey.dmy) == key }) {
             lines[same.index] = row
@@ -22,7 +22,7 @@ enum Edit {
     }
 
     static func addDose(_ text: String, date: Date, dose: Double, site: String, note: String) -> String? {
-        let row = "| \(DayKey.string(date)) | \(MD.formatNumber(dose, comma: true)) mg | \(site) | \(note) |"
+        let row = rowString([DayKey.string(date), "\(MD.formatNumber(dose, comma: true)) mg", site, note])
         var lines = MD.lines(text)
         if let same = MD.tableRows(lines).first(where: { DayKey.date($0.cells[0]).map(DayKey.string) == DayKey.string(date) }) {
             lines[same.index] = row
@@ -32,7 +32,7 @@ enum Edit {
     }
 
     static func addNalaVisit(_ text: String, date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) -> String? {
-        let row = "| \(DayKey.string(date)) | \(tipo) | \(detalle) | \(proxima.map(DayKey.string) ?? "") | \(coste) |"
+        let row = rowString([DayKey.string(date), tipo, detalle, proxima.map(DayKey.string) ?? "", coste])
         return insertRow(text, row: row) { DayKey.date($0[0]) != nil }
     }
 
@@ -87,12 +87,12 @@ enum Edit {
         var lines = MD.lines(text)
         guard let i = MD.index(of: task.raw, in: lines, near: task.line) else { return nil }
         var l = lines[i]
-        guard let box = l.firstMatch(of: /^(\s*- \[)[ xX](\])/) else { return nil }
+        guard let box = l.firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\])/) else { return nil }
         l = String(box.1) + (done ? "x" : " ") + String(box.2) + l[box.range.upperBound...]
         if done {
-            if !l.contains("[completion::") { l += " [completion:: \(DayKey.string(day))]" }
+            if !l.contains("[completion::"), l.range(of: #"✅\s*\d{4}-\d{2}-\d{2}"#, options: .regularExpression) == nil { l += " [completion:: \(DayKey.string(day))]" }
         } else {
-            l = l.replacingOccurrences(of: #"\s*\[completion::[^\]]*\]"#, with: "", options: .regularExpression)
+            l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*\d{4}-\d{2}-\d{2})"#, with: "", options: .regularExpression)
         }
         lines[i] = l
         return lines.joined(separator: "\n")
@@ -144,7 +144,7 @@ extension Edit {
         var lines = MD.lines(done)
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
-        let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
+        let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
         lines.insert(prefix + task.text + priorityMark(task.priority) + " 📅 \(DayKey.string(next)) 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
     }
@@ -188,10 +188,10 @@ extension Edit {
             guard let found = MD.index(of: expect, in: lines, near: line) else { return nil }
             line = found
         }
-        guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[)([ xX])(\].*)$/) else { return nil }
+        guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)([ xX])(\].*)$/) else { return nil }
         let wasDone = m.2 != " "
         var l = String(m.1) + (wasDone ? " " : "x") + String(m.3)
-        if wasDone { l = l.replacingOccurrences(of: #"\s*\[completion::[^\]]*\]"#, with: "", options: .regularExpression) }
+        if wasDone { l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*\d{4}-\d{2}-\d{2})"#, with: "", options: .regularExpression) }
         else if completion, !l.contains("[completion::") { l += " [completion:: \(DayKey.string(day))]" }
         lines[line] = l
         return lines.joined(separator: "\n")
@@ -202,12 +202,14 @@ extension Edit {
     /// `priority`: -1 la deja como está, 0 la quita, 1 a 3 la cambia.
     static func updateTask(_ text: String, task: TaskItem, newText: String, due: Date?, priority: Int = -1) -> String? {
         var lines = MD.lines(text)
-        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
+        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
         let body = String(m.2)
         var tail = ""
-        if let r = body.range(of: #"⏳\s*\d{4}-\d{2}-\d{2}"#, options: .regularExpression) { tail += " " + body[r] }
-        if let r = body.range(of: #"\[completion::[^\]]*\]"#, options: .regularExpression) { tail += " " + body[r] }
-        if let r = body.range(of: #"🔁\s*every\s+[^📅⏳\[]+"#, options: .regularExpression) { tail = " " + body[r].trimmingCharacters(in: .whitespaces) + tail }
+        // Se conservan las demás fechas de Obsidian Tasks (programada, inicio, creada, hecha) y la marca de completada.
+        for pattern in [#"⏳\s*\d{4}-\d{2}-\d{2}"#, #"🛫\s*\d{4}-\d{2}-\d{2}"#, #"➕\s*\d{4}-\d{2}-\d{2}"#, #"✅\s*\d{4}-\d{2}-\d{2}"#, #"\[completion::[^\]]*\]"#] {
+            if let r = body.range(of: pattern, options: .regularExpression) { tail += " " + body[r] }
+        }
+        if let r = body.range(of: Recurrence.pattern, options: .regularExpression) { tail = " " + body[r].trimmingCharacters(in: .whitespaces) + tail }
         let prio = priority < 0 ? task.priority : priority
         lines[i] = String(m.1) + newText.trimmingCharacters(in: .whitespaces) + priorityMark(prio) + (due.map { " 📅 \(DayKey.string($0))" } ?? "") + tail
         return lines.joined(separator: "\n")

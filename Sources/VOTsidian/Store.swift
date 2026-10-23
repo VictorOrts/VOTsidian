@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta sin tocar el código:
 /// `defaults write <id de la app> vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"`
-/// (claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones).
+/// (claves: peso, mounjaro, plan, proyecto, nala, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
 enum VaultPath {
     static let defaults: [String: String] = [
         "peso": "Cambio físico/Peso.md",
@@ -23,6 +23,8 @@ enum VaultPath {
         "finanzas": "Finanzas/Finanzas.md",
         "gastos": "Finanzas/Gastos",
         "revisiones": "Revisiones",
+        "compra": "Cambio físico/Lista de la compra.md",
+        "medidas": "Cambio físico/Medidas.md",
     ]
     static func path(_ key: String) -> String {
         let custom = UserDefaults.standard.dictionary(forKey: "vaultPathOverrides")?[key] as? String
@@ -42,6 +44,9 @@ enum VaultPath {
     static var objetivos: String { path("objetivos") }
     static var finanzas: String { path("finanzas") }
     static var revisiones: String { path("revisiones") }
+    static var gastos: String { path("gastos") }
+    static var compra: String { path("compra") }
+    static var medidas: String { path("medidas") }
 }
 
 struct NoteFile: Identifiable, Hashable {
@@ -104,8 +109,16 @@ final class Store {
         case write(rel: String, previous: String?, written: String?)
         case trash(rel: String, trashed: URL, links: [(rel: String, previous: String)])
         case rename(old: String, new: String, links: [(rel: String, previous: String)])
+        /// Varios pasos que se deshacen juntos (un cambio que toca más de un archivo).
+        case batch([UndoStep])
     }
     var undoStack: [UndoStep] = []
+    /// Mientras no es `nil`, los pasos de deshacer se juntan aquí para guardarse como uno solo (`grouped`).
+    @ObservationIgnored var collectingUndo: [UndoStep]?
+    /// Presupuestos ya analizados en esta recarga, por ruta.
+    @ObservationIgnored var budgetCache: [String: Budget] = [:]
+    /// Por qué falló la última copia de seguridad automática; `nil` si fue bien.
+    var backupFailure: String?
     var lastQuietWrite: (rel: String, at: Date)?
     private(set) var pendingDownloads: [String] = []
     /// Notas que existen pero no se pudieron leer (no son UTF-8, permisos…): la app no las ve, y se avisa.
@@ -153,10 +166,10 @@ final class Store {
 
     init(root: URL? = nil, backups: URL? = nil) {
         self.backupsFolder = backups ?? (root == nil
-            ? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents/Copias VOTsidian")
+            ? Store.defaultBackupsFolder
             : FileManager.default.temporaryDirectory.appendingPathComponent("votsidian-backups-\(UUID().uuidString)"))
         self.root = root ?? Store.defaultRoot()
-        if root == nil { backupPassword = BackupKeychain.load(); moveLooseBackups() }
+        if root == nil { backupPassword = BackupKeychain.load(); moveOldBackups(); moveLooseBackups() }
         reload()
         if root == nil {
             removeStaleStaging()
@@ -288,6 +301,7 @@ final class Store {
     private func apply(_ scan: Scan) {
         revision += 1
         agendaCache = [:]
+        budgetCache = [:]
         let allTasks = scan.tasks
         let files = scan.files
         let texts = scan.texts

@@ -109,7 +109,7 @@ struct ShoppingItem: Identifiable, Equatable {
 }
 
 enum Shopping {
-    static let file = "Cambio físico/Lista de la compra.md"
+    static var file: String { VaultPath.compra }
     static let defaultCategories = ["Proteína", "Carbohidratos", "Verdura y fruta", "Grasas", "Otros"]
 
     static var template: String {

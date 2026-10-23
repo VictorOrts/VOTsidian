@@ -611,7 +611,7 @@ struct LinkPreview: View {
 
 extension View {
     /// Ejecuta `action` cuando `value` lleva `delay` segundos sin cambiar (autoguardado). Se cancela si cambia antes.
-    /// Si la app se cierra antes de que pase el plazo, se guarda igualmente (`PendingSaves`).
+    /// Si la vista desaparece (cambias de pantalla) o la app se cierra antes de que pase el plazo, se guarda igualmente (`PendingSaves`).
     func autosave<V: Equatable>(on value: V, delay: Double = 1.5, _ action: @escaping () -> Void) -> some View {
         modifier(Autosave(value: value, delay: delay, action: action))
     }
@@ -632,7 +632,7 @@ private struct Autosave<V: Equatable>: ViewModifier {
                 PendingSaves.actions[id] = nil
                 action()
             }
-            .onDisappear { PendingSaves.actions[id] = nil }
+            .onDisappear { PendingSaves.actions.removeValue(forKey: id)?() }
     }
 }
 
@@ -688,13 +688,17 @@ struct DiaryNumberField: View {
     var body: some View {
         TextField(placeholder, text: $text).frame(width: 60)
             .onAppear { text = current; seen = current }
-            .onChange(of: day) { text = current; seen = current }
+            .onChange(of: day) { old, _ in
+                // Lo escrito para el día anterior se guarda en ese día antes de mostrar el nuevo.
+                if text != seen { save(on: old) }
+                text = current; seen = current
+            }
             .onChange(of: store.revision) { if text == seen { text = current }; seen = current }
-            .onSubmit(save)
-            .autosave(on: text) { if text != current { save() } }
+            .onSubmit { save(on: day) }
+            .autosave(on: text) { if text != current { save(on: day) } }
     }
 
-    private func save() {
+    private func save(on day: Date) {
         let t = text.trimmingCharacters(in: .whitespaces)
         if t.isEmpty { store.setDiaryValue(day, key, nil) } else if let v = MD.number(t) { store.setDiaryValue(day, key, v) }
     }

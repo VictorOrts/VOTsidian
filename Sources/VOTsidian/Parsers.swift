@@ -50,7 +50,7 @@ enum Parse {
         let fence = MD.fenced(lines)
         var out: [TaskItem] = []
         for (i, line) in lines.enumerated() where !fence.contains(i) {
-            guard let m = line.firstMatch(of: /^\s*- \[([ xX])\] (.*)$/) else { continue }
+            guard let m = line.firstMatch(of: /^\s*(?:[-*+]|\d+\.)\s+\[([ xX])\]\s+(.*)$/) else { continue }
             let body = String(m.2)
             func date(_ emoji: String) -> Date? {
                 guard let r = body.range(of: "\(emoji)\\s*\\d{4}-\\d{2}-\\d{2}", options: .regularExpression) else { return nil }
@@ -59,10 +59,10 @@ enum Parse {
             var clean = body
             let priority = body.contains("⏫") ? 3 : body.contains("🔼") ? 2 : body.contains("🔽") ? 1 : 0
             var recurrence: String?
-            if let r = body.range(of: #"🔁\s*every\s+[^📅⏳\[]+"#, options: .regularExpression) {
+            if let r = body.range(of: Recurrence.pattern, options: .regularExpression) {
                 recurrence = String(body[r]).replacingOccurrences(of: "🔁", with: "").replacingOccurrences(of: "every", with: "").trimmingCharacters(in: .whitespaces)
             }
-            for pattern in [#"📅\s*\d{4}-\d{2}-\d{2}"#, #"⏳\s*\d{4}-\d{2}-\d{2}"#, #"\[completion::[^\]]*\]"#, #"🔁\s*every\s+[^📅⏳\[]+"#, "⏫", "🔼", "🔽"] {
+            for pattern in [#"[📅⏳🛫➕✅]\s*\d{4}-\d{2}-\d{2}"#, #"\[completion::[^\]]*\]"#, Recurrence.pattern, "⏫", "🔼", "🔽"] {
                 clean = clean.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
             }
             clean = clean.trimmingCharacters(in: .whitespaces)
@@ -70,6 +70,8 @@ enum Parse {
             var completed: Date?
             if let r = body.range(of: #"\[completion::\s*\d{4}-\d{2}-\d{2}\]"#, options: .regularExpression) {
                 completed = DayKey.date(String(body[r].dropLast().suffix(10)))
+            } else if let r = body.range(of: #"✅\s*\d{4}-\d{2}-\d{2}"#, options: .regularExpression) {
+                completed = DayKey.date(String(body[r].suffix(10)))
             }
             out.append(TaskItem(file: file, line: i, raw: line, text: clean, due: date("📅"), scheduled: date("⏳"),
                                 done: m.1 != " ", completed: completed, recurrence: recurrence, priority: priority))

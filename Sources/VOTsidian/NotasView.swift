@@ -67,7 +67,8 @@ struct NotasView: View {
     }
 
     private func closeTab(_ path: String) {
-        if path == selected { _ = saveIfDirty() }
+        // Si no se pudo guardar (la nota cambió fuera), la pestaña sigue abierta con el aviso de conflicto.
+        if path == selected { guard saveIfDirty() else { return } }
         let r = TabLogic.close(tabs, active: selected, path: path)
         tabs = r.tabs
         if path == selected {
@@ -148,7 +149,10 @@ struct NotasView: View {
         .onAppear { restoreTabs(); consumePending() }
         .onChange(of: tabs) { tabsRaw = tabs.joined(separator: "\n") }
         .onChange(of: selected) { activeRaw = selected ?? "" }
-        .onDisappear { saveIfDirty() }
+        .onDisappear {
+            // Al salir con un conflicto pendiente, lo escrito se guarda aparte en vez de perderse con la pantalla.
+            if !saveIfDirty(), dirty, let p = selected { store.saveConflictCopy(p, text: draft) }
+        }
         .autosave(on: draft) { autosaveNote() }
         .onChange(of: store.pendingNote) { consumePending() }
         .onChange(of: store.revision) {

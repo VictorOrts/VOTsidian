@@ -30,8 +30,8 @@ extension Store {
             // Las notas que tienen pantalla propia abren esa pantalla; el resto, el lector de notas.
             let screens: [String: Screen] = [VaultPath.peso: .peso, VaultPath.mounjaro: .mounjaro, VaultPath.plan: .nutricion, VaultPath.casa: .casa,
                                              VaultPath.nala: .nala, VaultPath.moda: .moda, VaultPath.medico: .salud, VaultPath.inbox: .tareas,
-                                             "Organización/Personas.md": .personas, "Organización/Documentos.md": .documentos,
-                                             "Organización/Objetivos.md": .objetivos, "Finanzas/Finanzas.md": .finanzas]
+                                             VaultPath.personas: .personas, VaultPath.documentos: .documentos,
+                                             VaultPath.objetivos: .objetivos, VaultPath.finanzas: .finanzas]
             if let sc = screens[p] { screen = sc } else { pendingNote = p }
         } else if let a = attachmentURL(target) { NSWorkspace.shared.open(a) }
         else if let sc = screenAlias(target) { screen = sc }
@@ -90,7 +90,11 @@ extension Store {
         ensureInbox()
         edit(VaultPath.inbox) { text in
             var out: String? = text
-            for (t, due) in items where !text.contains("- [ ] \(t)") { out = out.flatMap { Edit.addInboxTask($0, task: t, due: due) } }
+            // Se mira el texto que se va formando: así tampoco se repiten las que vienen dos veces en `items`.
+            for (t, due) in items {
+                guard let cur = out, !cur.contains("- [ ] \(t)") else { continue }
+                out = Edit.addInboxTask(cur, task: t, due: due)
+            }
             return out
         }
     }

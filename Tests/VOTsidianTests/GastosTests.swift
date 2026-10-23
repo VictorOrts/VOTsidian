@@ -340,7 +340,8 @@ mes: 2026-10
     #expect(alerts.contains { $0.contains("Mañana se paga Seguro vida") })
 }
 
-private extension URL {
+extension URL {
+    /// Crea la carpeta del archivo y devuelve el mismo URL, para escribir en una ruta nueva en una sola línea.
     func creatingParent() throws -> URL {
         try FileManager.default.createDirectory(at: deletingLastPathComponent(), withIntermediateDirectories: true)
         return self
