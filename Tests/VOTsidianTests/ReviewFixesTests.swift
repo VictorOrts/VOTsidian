@@ -25,7 +25,7 @@ import Testing
 }
 
 @Test func expenseAmountAndDayOfMonth() throws {
-    let cats = Edit.defaultBudgetLines.map(\.0)
+    let cats = testBudgetLines.map(\.0)
     let today = try #require(DayKey.date("2026-10-23"))
     let gym = try #require(ExpenseParser.parse("gym o2 40", categories: cats, today: today))
     #expect(gym.amount == 40 && gym.category == "Gym + O2")

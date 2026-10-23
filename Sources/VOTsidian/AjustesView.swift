@@ -73,7 +73,7 @@ struct AjustesView: View {
                     }
                 }
                 brokenLinksCard
-                Card(title: "Exportar", icon: "square.and.arrow.up", info: "El CSV incluye peso, pinchazos, medidas, hábitos, tareas, gastos y ánimo y sueño; se abre con Numbers o Excel. El resumen sirve para enseñarlo en una consulta.") {
+                Card(title: "Exportar", icon: "square.and.arrow.up", info: "El CSV incluye peso, medicación, medidas, hábitos, tareas, gastos y ánimo y sueño (lo que lleves); se abre con Numbers o Excel. El resumen sirve para enseñarlo en una consulta.") {
                     HStack {
                         Picker("Año", selection: $exportYear) { ForEach(Array((exportYear - 4)...(Calendar.current.component(.year, from: Date()) + 0)), id: \.self) { Text(String($0)).tag($0) } }.frame(width: 140)
                         Button("Resumen del año (PDF)…") { exportYearPDF() }
@@ -85,12 +85,12 @@ struct AjustesView: View {
                     if !exportMessage.isEmpty { Text(exportMessage).font(.callout).foregroundStyle(.secondary) }
                 }
                 Card(title: "Barra de menús", icon: "menubar.rectangle") {
-                    Toggle("Mostrar peso y próximo pinchazo en la barra de menús", isOn: $menuBar)
+                    Toggle("Mostrar el resumen de hoy en la barra de menús (tareas, hábitos, medicación y peso)", isOn: $menuBar)
                 }
                 Card(title: "Atajos", icon: "keyboard") {
                     Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 4) {
                         shortcut("⌘K", "Buscar notas, pantallas y acciones")
-                        shortcut("⇧⌘N", "Captura rápida: tarea, peso, pinchazo o idea")
+                        shortcut("⇧⌘N", "Captura rápida: tarea, gasto, peso, toma o idea")
                         shortcut("⌘1 … ⌘9", "Ir a una pantalla")
                         shortcut("⌘S", "Guardar la nota que editas")
                         shortcut("⌥⌘Z", "Deshacer el último cambio de la app")

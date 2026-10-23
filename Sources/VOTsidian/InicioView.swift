@@ -275,7 +275,7 @@ struct InicioView: View {
                         Text(DayKey.dmy(l.date) + (w.previous.map { " · \(fmtDelta(l.kg - $0.kg)) vs el anterior" } ?? ""))
                             .font(.callout).foregroundStyle(.secondary)
                         HStack(spacing: 14) {
-                            Label("\(fmt(w.lostKg)) kg perdidos", systemImage: "arrow.down.right").foregroundStyle(Brand.accent)
+                            Label("\(fmt(w.achievedKg)) kg \(w.achievedWord)", systemImage: w.gaining ? "arrow.up.right" : "arrow.down.right").foregroundStyle(Brand.accent)
                             Text("faltan \(fmt(w.remainingKg)) kg")
                         }.font(.callout)
                     }

@@ -27,17 +27,17 @@ import Testing
 
 @Test func shoppingListLogic() throws {
     let list = Shopping.template
-    let a = Shopping.addItems(list, items: ["pollo", "Leche", "pollo", "  "], category: "Proteína")
-    #expect(a.added == 2 && a.text.contains("## Proteína\n- [ ] Pollo\n- [ ] Leche\n"))
-    let b = Shopping.addItems(a.text, items: ["POLLO", "pavo"], category: "Proteína")          // no repite, aunque cambie la capitalización
+    let a = Shopping.addItems(list, items: ["pollo", "Leche", "pollo", "  "], category: "Carne y pescado")
+    #expect(a.added == 2 && a.text.contains("## Carne y pescado\n- [ ] Pollo\n- [ ] Leche\n"))
+    let b = Shopping.addItems(a.text, items: ["POLLO", "pavo"], category: "Carne y pescado")          // no repite, aunque cambie la capitalización
     #expect(b.added == 1)
-    let c = Shopping.addItems(b.text, items: ["velas"], category: "Hogar")                      // categoría nueva antes del pie
-    #expect(c.added == 1 && c.text.contains("## Hogar\n- [ ] Velas") && c.text.hasSuffix("## Hogar\n- [ ] Velas\n\n---\n"))
+    let c = Shopping.addItems(b.text, items: ["velas"], category: "Fiesta")                      // categoría nueva antes del pie
+    #expect(c.added == 1 && c.text.contains("## Fiesta\n- [ ] Velas") && c.text.hasSuffix("## Fiesta\n- [ ] Velas\n\n---\n"))
     // sin pie, la sección nueva va al final y no dentro del encabezado
-    let bare = Shopping.addItems("---\ntipo: compra\n---\n\n## Fruta\n", items: ["peras"], category: "Hogar")
-    #expect(bare.text.hasPrefix("---\ntipo: compra\n---\n") && Shopping.parse(bare.text).map(\.category) == ["Hogar"])
+    let bare = Shopping.addItems("---\ntipo: compra\n---\n\n## Fruta\n", items: ["peras"], category: "Fiesta")
+    #expect(bare.text.hasPrefix("---\ntipo: compra\n---\n") && Shopping.parse(bare.text).map(\.category) == ["Fiesta"])
     var items = Shopping.parse(c.text)
-    #expect(items.map(\.text) == ["Pollo", "Leche", "Pavo", "Velas"] && items.map(\.category) == ["Proteína", "Proteína", "Proteína", "Hogar"])
+    #expect(items.map(\.text) == ["Pollo", "Leche", "Pavo", "Velas"] && items.map(\.category) == ["Carne y pescado", "Carne y pescado", "Carne y pescado", "Fiesta"])
     let checked = try #require(Edit.toggleCheckbox(c.text, line: items[0].line, expect: items[0].raw))
     items = Shopping.parse(checked)
     #expect(items[0].done && !items[1].done)

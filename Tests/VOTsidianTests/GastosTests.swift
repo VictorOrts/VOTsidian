@@ -77,7 +77,8 @@ mes: 2026-10
     #expect(b.incomes.allSatisfy { $0.real == nil })
     #expect(b.line(named: "Gastos comunidad")?.day == 28)
     let first = Parse.budget(Edit.budgetNote(month: "2026-10", from: nil), month: "2026-10", path: "z")
-    #expect(first.lines.count == 14 && first.lines.contains { $0.kind == .ahorro })
+    #expect(first.lines.count == Edit.defaultBudgetLines.count && first.lines.contains { $0.kind == .ahorro })
+    #expect(!first.lines.contains { MD.fold($0.name).contains("prestamo") || $0.name.contains("O2") })   // genéricas, no las de nadie
 
     let added = try #require(Edit.addBudgetMove(text, date: DayKey.date("2026-11-03")!, amount: 22.5, category: "Alimentación", note: "pan"))
     let after = Parse.budget(added, month: "2026-11", path: "y")
@@ -87,7 +88,7 @@ mes: 2026-10
 }
 
 @Test func expensePhrasesAreUnderstood() throws {
-    let cats = Edit.defaultBudgetLines.map(\.0)
+    let cats = testBudgetLines.map(\.0)
     let today = try #require(DayKey.date("2026-10-23"))
     let a = try #require(ExpenseParser.parse("22 € cena con Ana", categories: cats, people: ["Ana", "Luis"], today: today))
     #expect(a.amount == 22 && a.category == "Restaurantes, viajes, entretenimiento" && a.person == "Ana")
@@ -123,7 +124,7 @@ mes: 2026-10
     let store = try undoVault()
     store.addExpense(22, category: "Alimentación", note: "pan", date: try #require(DayKey.date("2026-09-14")))
     let b = try #require(store.budget("2026-09"))
-    #expect(b.moves.count == 1 && b.lines.count == 14)
+    #expect(b.moves.count == 1 && b.lines.count == 12)
     #expect(store.budgetMonths == ["2026-09"])
     store.setBudgetCell(b, section: "Partidas", line: try #require(b.line(named: "Alimentación")).line, name: "Alimentación", column: "Previsto", value: "350")
     #expect(store.budget("2026-09")?.line(named: "Alimentación")?.planned == 350)
@@ -173,43 +174,43 @@ mes: 2026-10
         .replacingOccurrences(of: #"(\|[^\n]*\|)  \|  \|"#, with: "$1", options: .regularExpression) }
     #expect(!(store.read(path).contains("Cada")))
     let b = try #require(store.budget("2026-09"))
-    let seguro = try #require(b.line(named: "Seguro vida"))
+    let seguro = try #require(b.line(named: "Seguros"))
     store.setBudgetFrequency(b, seguro, every: 3, start: "2026-11")
-    let after = try #require(store.budget("2026-09")?.line(named: "Seguro vida"))
+    let after = try #require(store.budget("2026-09")?.line(named: "Seguros"))
     #expect(after.every == 3 && after.start == "2026-11" && after.planned == 0)
-    #expect(store.budget("2026-09")?.lines.count == 14 && store.budget("2026-09")?.moves.count == 1)
+    #expect(store.budget("2026-09")?.lines.count == 12 && store.budget("2026-09")?.moves.count == 1)
 
     // Una fila escrita a mano con menos celdas también se puede marcar como pagada.
-    store.edit(path) { $0.replacingOccurrences(of: #"\| Ordenador \|[^\n]*"#, with: "| Ordenador | 60 | Fijo |", options: .regularExpression) }
-    let short = try #require(store.budget("2026-09")?.line(named: "Ordenador"))
+    store.edit(path) { $0.replacingOccurrences(of: #"\| Internet y móvil \|[^\n]*"#, with: "| Internet y móvil | 60 | Fijo |", options: .regularExpression) }
+    let short = try #require(store.budget("2026-09")?.line(named: "Internet y móvil"))
     store.setBudgetCell(try #require(store.budget("2026-09")), section: "Partidas", line: short.line, name: short.name, column: "Pagado", value: "✅")
-    #expect(store.budget("2026-09")?.line(named: "Ordenador")?.paid == true)
+    #expect(store.budget("2026-09")?.line(named: "Internet y móvil")?.paid == true)
 }
 
 @MainActor @Test func linesCanBeAddedRenamedAndRemoved() throws {
     let store = try undoVault()
-    store.addExpense(30, category: "Vivienda (alquiler, hipoteca, impuestos, seguro)", note: "", date: try #require(DayKey.date("2026-11-03")))
+    store.addExpense(30, category: "Vivienda (alquiler o hipoteca)", note: "", date: try #require(DayKey.date("2026-11-03")))
     var b = try #require(store.budget("2026-11"))
     store.addBudgetLine(b, name: "Seguro vivienda", amount: 0, kind: .fijo, every: 12, start: "2027-03")
     b = try #require(store.budget("2026-11"))
     let seguro = try #require(b.line(named: "Seguro vivienda"))
     #expect(seguro.every == 12 && seguro.start == "2027-03" && !seguro.isDue("2026-11") && seguro.isDue("2027-03") && seguro.isDue("2028-03"))
     store.addBudgetLine(b, name: "seguro vivienda", amount: 0, kind: .fijo, every: 1, start: nil)
-    #expect(store.budget("2026-11")?.lines.count == 15 && store.message?.contains("Ya hay") == true)
+    #expect(store.budget("2026-11")?.lines.count == 13 && store.message?.contains("Ya hay") == true)
 
-    let viv = try #require(b.line(named: "Vivienda (alquiler, hipoteca, impuestos, seguro)"))
+    let viv = try #require(b.line(named: "Vivienda (alquiler o hipoteca)"))
     store.renameBudgetLine(b, viv, to: "Vivienda (alquiler, hipoteca, impuestos)")
     b = try #require(store.budget("2026-11"))
     let renamed = try #require(b.line(named: "Vivienda (alquiler, hipoteca, impuestos)"))
     #expect(b.real(renamed) == 30 && b.unassigned == 0)
 
-    store.removeBudgetLine(b, try #require(b.line(named: "Ordenador")))
-    #expect(store.budget("2026-11")?.line(named: "Ordenador") == nil && store.budget("2026-11")?.lines.count == 14)
+    store.removeBudgetLine(b, try #require(b.line(named: "Internet y móvil")))
+    #expect(store.budget("2026-11")?.line(named: "Internet y móvil") == nil && store.budget("2026-11")?.lines.count == 12)
 }
 
 @Test func reviewFixesForExpenses() throws {
     let today = try #require(DayKey.date("2026-10-23"))
-    let cats = Edit.defaultBudgetLines.map(\.0) + ["Seguro vivienda"]
+    let cats = testBudgetLines.map(\.0) + ["Seguro vivienda"]
     // La fecha no se toma por importe; si hay varios números, gana el que lleva €.
     let a = try #require(ExpenseParser.parse("22/10 gasolina 40", categories: cats, today: today))
     #expect(a.amount == 40 && DayKey.string(a.date) == "2026-10-22" && a.category == "Transporte")
@@ -251,7 +252,7 @@ mes: 2026-10
 
 @Test func secondReviewOfExpenses() throws {
     let today = try #require(DayKey.date("2026-10-23"))
-    let cats = Edit.defaultBudgetLines.map(\.0)
+    let cats = testBudgetLines.map(\.0)
     #expect(ExpenseParser.parse("1.200 € alquiler", categories: cats, today: today)?.amount == 1200)
     #expect(ExpenseParser.parse("alquiler 1.250,50", categories: cats, today: today)?.amount == 1250.5)
     #expect(ExpenseParser.parse("pan 2.5", categories: cats, today: today)?.amount == 2.5)
@@ -295,7 +296,7 @@ mes: 2026-10
 }
 
 @Test func learnedCorrectionsWinAndQuickCommandAddsExpenses() throws {
-    let cats = Edit.defaultBudgetLines.map(\.0)
+    let cats = testBudgetLines.map(\.0)
     let today = try #require(DayKey.date("2026-10-23"))
     #expect(ExpenseParser.parse("40 dentista", categories: cats, today: today)?.category == "Imprevistos / otros")
     let learned = Dictionary(uniqueKeysWithValues: ExpenseParser.keywords("dentista").map { ($0, "Seguro vida") })
@@ -328,7 +329,7 @@ mes: 2026-10
     // Avisos: un pago con día pasado sin marcar, y el de mañana.
     store.addExpense(5, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-10-02")))
     var oct = try #require(store.budget("2026-10"))
-    for (name, day) in [("Gym + O2", "1"), ("Seguro vida", "6")] {
+    for (name, day) in [("Suscripciones", "1"), ("Seguros", "6")] {
         let l = try #require(oct.line(named: name))
         store.setBudgetCell(oct, section: "Partidas", line: l.line, name: name, column: "Previsto", value: "50")
         oct = try #require(store.budget("2026-10"))
@@ -336,8 +337,8 @@ mes: 2026-10
         oct = try #require(store.budget("2026-10"))
     }
     let alerts = store.budgetAlerts(today: try #require(DayKey.date("2026-10-05"))).map(\.text)
-    #expect(alerts.contains { $0.contains("Gym + O2") && $0.contains("sin marcar") })
-    #expect(alerts.contains { $0.contains("Mañana se paga Seguro vida") })
+    #expect(alerts.contains { $0.contains("Suscripciones") && $0.contains("sin marcar") })
+    #expect(alerts.contains { $0.contains("Mañana se paga Seguros") })
 }
 
 extension URL {
@@ -353,7 +354,7 @@ extension URL {
     let today = try #require(DayKey.date("2026-10-05"))
     store.addExpense(5, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-10-02")))
     var oct = try #require(store.budget("2026-10"))
-    for (name, day) in [("Gym + O2", "1"), ("Seguro vida", "20")] {
+    for (name, day) in [("Suscripciones", "1"), ("Seguros", "20")] {
         let l = try #require(oct.line(named: name))
         store.setBudgetCell(oct, section: "Partidas", line: l.line, name: name, column: "Previsto", value: "50")
         oct = try #require(store.budget("2026-10"))
@@ -361,18 +362,18 @@ extension URL {
         oct = try #require(store.budget("2026-10"))
     }
     // «Pagado» desde el aviso marca la partida.
-    let gym = try #require(store.budgetAlerts(today: today).first { $0.text.contains("Gym + O2") })
-    #expect(gym.action == .markPaid(month: "2026-10", line: try #require(oct.line(named: "Gym + O2")).line, name: "Gym + O2"))
+    let gym = try #require(store.budgetAlerts(today: today).first { $0.text.contains("Suscripciones") })
+    #expect(gym.action == .markPaid(month: "2026-10", line: try #require(oct.line(named: "Suscripciones")).line, name: "Suscripciones"))
     #expect(store.perform(try #require(gym.action)))
-    #expect(store.budget("2026-10")?.line(named: "Gym + O2")?.paid == true)
-    #expect(!store.budgetAlerts(today: today).contains { $0.text.contains("Gym + O2") })
+    #expect(store.budget("2026-10")?.line(named: "Suscripciones")?.paid == true)
+    #expect(!store.budgetAlerts(today: today).contains { $0.text.contains("Suscripciones") })
 
     // Recordatorios: el seguro de este mes (20 oct) y los dos del mes que viene, aunque noviembre no tenga nota.
     let pays = store.upcomingPayments(today: today).map { "\($0.name) \(DayKey.string($0.date))" }
-    #expect(pays == ["Seguro vida 2026-10-20", "Gym + O2 2026-11-01", "Seguro vida 2026-11-20"])
+    #expect(pays == ["Seguros 2026-10-20", "Suscripciones 2026-11-01", "Seguros 2026-11-20"])
     let events = ICS.events(ReminderSources(payments: store.upcomingPayments(today: today)), plan: ReminderPlan(), today: today)
     let pay = try #require(events.first { $0.uid.hasPrefix("pago-") })
-    #expect(pay.title.hasPrefix("Pagar: Seguro vida") && pay.extraTriggers == ["-P1D"])
+    #expect(pay.title.hasPrefix("Pagar: Seguros") && pay.extraTriggers == ["-P1D"])
     #expect(Notifier.plan([pay], now: today, today: today).contains { $0.body.hasPrefix("Mañana.") })
     var off = ReminderPlan(); off.payments = false
     #expect(!ICS.events(ReminderSources(payments: store.upcomingPayments(today: today)), plan: off, today: today).contains { $0.uid.hasPrefix("pago-") })
@@ -442,7 +443,7 @@ extension URL {
 
 @Test func thirdReviewOfExpensePhrases() throws {
     let today = try #require(DayKey.date("2026-10-23"))
-    let cats = Edit.defaultBudgetLines.map(\.0)
+    let cats = testBudgetLines.map(\.0)
     let a = try #require(ExpenseParser.parse("€12 pan", categories: cats, today: today))
     #expect(a.amount == 12 && a.note == "pan")
     #expect(ExpenseParser.parse("2 cafés 3,50", categories: cats, today: today)?.amount == 3.5)
@@ -572,7 +573,7 @@ extension URL {
 
 @Test func fourthReviewOfExpenses() throws {
     let today = try #require(DayKey.date("2026-10-23"))
-    let cats = Edit.defaultBudgetLines.map(\.0)
+    let cats = testBudgetLines.map(\.0)
     // «abono» es el abono de transporte, no una devolución.
     let a = try #require(ExpenseParser.parse("abono transporte 20", categories: cats, today: today))
     #expect(a.amount == 20 && a.category == "Transporte")
@@ -702,4 +703,14 @@ extension URL {
     #expect(m.key == "alimentacion")
     m.category = "Ocio"
     #expect(m.key == "ocio")
+}
+
+@Test func defaultLinesKeepGymAndPhoneApart() {
+    let cats = Edit.defaultBudgetLines.map(\.0)
+    let today = DayKey.date("2026-10-20")!
+    #expect(ExpenseParser.parse("O2 35", categories: cats, today: today)?.category == "Internet y móvil")
+    #expect(ExpenseParser.parse("gimnasio 40", categories: cats, today: today)?.category == "Salud y deporte")
+    #expect(ExpenseParser.parse("dentista 60", categories: cats, today: today)?.category == "Salud y deporte")
+    // con una partida que lleva «O2» en el nombre, va a esa
+    #expect(ExpenseParser.parse("o2 40", categories: testBudgetLines.map(\.0), today: today)?.category == "Gym + O2")
 }

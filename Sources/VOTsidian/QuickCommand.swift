@@ -113,7 +113,8 @@ struct ShoppingItem: Identifiable, Equatable {
 
 enum Shopping {
     static var file: String { VaultPath.compra }
-    static let defaultCategories = ["Proteína", "Carbohidratos", "Verdura y fruta", "Grasas", "Otros"]
+    /// Secciones de una lista nueva, como los pasillos del súper. Se añaden más al apuntar en otra.
+    static let defaultCategories = ["Fruta y verdura", "Carne y pescado", "Lácteos y huevos", "Despensa", "Congelados", "Bebidas", "Limpieza y hogar", "Higiene", "Otros"]
 
     static var template: String {
         "---\ntipo: compra\ntags:\n  - compra\n---\n\n# Lista de la compra\n\n> Se marca al comprar. «Vaciar comprados» quita lo que ya tienes.\n\n"

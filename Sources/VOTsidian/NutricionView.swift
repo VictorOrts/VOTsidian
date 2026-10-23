@@ -50,7 +50,7 @@ struct NutricionView: View {
                     if let l = w.last {
                         let mid = (l.kg + w.goalKg) / 2
                         let toGoal = w.hasGoal ? "; sobre el punto medio a tu objetivo (\(fmt(mid, 0)) kg) son \(fmt(p.protein / mid)) g/kg" : ""
-                        Label("Con \(fmt(l.kg, unit: " kg")) son \(fmt(p.protein / l.kg)) g/kg de proteína\(toGoal). El rango recomendado para conservar músculo es 1,6–2,2 g/kg.",
+                        Label("Con \(fmt(l.kg, unit: " kg")) son \(fmt(p.protein / l.kg)) g/kg de proteína\(toGoal).",
                               systemImage: "info.circle").font(.callout)
                     }
                 }

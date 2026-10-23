@@ -6,21 +6,31 @@ import SwiftUI
 extension Store {
     // MARK: Datos derivados
 
+    /// Lo que puede avisar en Calendar y en las notificaciones. Los módulos ocultos no avisan.
     func reminderSources() -> ReminderSources {
         var casaDates: [(name: String, date: Date)] = []
-        for t in [casa.reformas, casa.compras] {
+        for t in isVisible(.casa) ? [casa.reformas, casa.compras] : [] {
             for r in t.rows {
                 if let d = DayKey.date(t.value(r, "Cuándo")), let n = r.cells.first, !n.isEmpty { casaDates.append((n, d)) }
             }
         }
-        for t in Parse.tables(read(VaultPath.moda)) where MD.fold(t.title).contains("por comprar") {
+        for t in isVisible(.moda) ? Parse.tables(read(VaultPath.moda)) : [] where MD.fold(t.title).contains("por comprar") {
             for r in t.rows where !MD.fold(t.value(r, "estado")).contains("comprado") && !MD.fold(t.value(r, "estado")).contains("descartado") {
                 if let d = DayKey.date(t.value(r, "fecha objetivo")), let n = r.cells.first, !n.isEmpty { casaDates.append(("Comprar: " + n, d)) }
             }
         }
-        return ReminderSources(medicacion: medicacion, tasks: tasks, mascota: mascota, people: people,
-                               documents: documents.map { ($0.name, $0.date) },
-                               events: events.map { ($0.name, $0.date) } + casaDates, payments: upcomingPayments())
+        return ReminderSources(medicacion: isVisible(.medicacion) ? medicacion : MedicacionData(), tasks: tasks,
+                               mascota: isVisible(.mascota) ? mascota : MascotaData(), people: isVisible(.personas) ? people : [],
+                               documents: isVisible(.documentos) ? documents.map { ($0.name, $0.date) } : [],
+                               events: (isVisible(.finanzas) ? events.map { ($0.name, $0.date) } : []) + casaDates,
+                               payments: isVisible(.gastos) ? upcomingPayments() : [])
+    }
+
+    /// El plan de avisos sin lo de los módulos ocultos que no depende de sus notas (el pesaje mensual).
+    func reminderPlan(_ plan: ReminderPlan = .stored) -> ReminderPlan {
+        var p = plan
+        if !isVisible(.peso) { p.monthlyWeight = false }
+        return p
     }
 
     /// Abre un enlace `votsidian://note/Nombre`: salta a la nota o abre el adjunto con su programa.

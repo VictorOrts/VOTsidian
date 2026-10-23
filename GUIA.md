@@ -62,6 +62,7 @@ fecha_inicio: 01/09/2026
 
 - Las fechas van en `DD/MM/AAAA`.
 - Si no pones peso inicial, cuenta el primer pesaje.
+- Si el objetivo está por encima del peso de partida (ganar músculo, recuperar peso), la app cuenta los kilos ganados, y la fecha estimada sale si el peso va subiendo.
 
 ### Medicación
 

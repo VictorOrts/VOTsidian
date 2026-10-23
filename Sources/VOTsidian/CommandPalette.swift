@@ -45,7 +45,7 @@ struct CommandPalette: View {
         var out: [PaletteItem] = []
         func go(_ s: Screen) -> () -> Void { { store.screen = s; dismiss() } }
         var actions: [PaletteItem] = [
-            PaletteItem(icon: "plus.circle", title: "Captura rápida", subtitle: "Tarea, peso, pinchazo o idea", tag: "Acción") { dismiss(); store.showQuickAdd = true },
+            PaletteItem(icon: "plus.circle", title: "Captura rápida", subtitle: "Tarea, gasto, peso, toma o idea", tag: "Acción") { dismiss(); store.showQuickAdd = true },
             PaletteItem(icon: "note.text", title: "Nota de hoy", subtitle: "Abre o crea Diario/hoy.md", tag: "Acción") { store.openToday(); dismiss() },
             PaletteItem(icon: "moon.stars", title: "Cerrar el día", subtitle: "Revisa lo pendiente y prepara mañana", tag: "Acción") { dismiss(); store.showCierre = true },
             PaletteItem(icon: "square.and.pencil", title: "Nueva nota", subtitle: "Ir a Notas", tag: "Acción", run: go(.notas)),

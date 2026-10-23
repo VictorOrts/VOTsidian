@@ -372,19 +372,19 @@ extension Edit {
         v == v.rounded() ? String(Int(v)) : String(format: "%.2f", v).replacingOccurrences(of: ".", with: ",")
     }
 
-    /// Las partidas de tu hoja de Numbers, para el primer mes.
+    /// Partidas del primer mes, para empezar: luego se renombran, se quitan o se añaden. Los meses siguientes copian las del anterior.
     static let defaultBudgetLines: [(String, BudgetLine.Kind)] = [
-        ("Vivienda (alquiler, hipoteca, impuestos, seguro)", .fijo), ("Alimentación", .variable), ("Transporte", .variable),
-        ("Suministros agua y luz", .fijo), ("Restaurantes, viajes, entretenimiento", .variable), ("Préstamo padre", .fijo),
-        ("Préstamo personal", .fijo), ("Ordenador", .fijo), ("Seguro vida", .fijo), ("Gym + O2", .fijo), ("Gastos comunidad", .fijo),
-        ("Imprevistos / otros", .variable), ("Ahorro / fondo de emergencia", .ahorro), ("Suscripciones (Music + iCloud)", .fijo),
+        ("Vivienda (alquiler o hipoteca)", .fijo), ("Suministros (luz, agua, gas)", .fijo), ("Internet y móvil", .fijo),
+        ("Alimentación", .variable), ("Transporte", .variable), ("Restaurantes y ocio", .variable), ("Salud y deporte", .variable),
+        ("Ropa y cuidado personal", .variable), ("Seguros", .fijo), ("Suscripciones", .fijo), ("Imprevistos / otros", .variable),
+        ("Ahorro / fondo de emergencia", .ahorro),
     ]
 
     /// Nota de un mes nuevo. Copia ingresos, partidas, lo previsto y los días del mes anterior; «Real» y «Pagado» empiezan vacíos.
-    static func budgetNote(month: String, from previous: Budget?) -> String {
+    static func budgetNote(month: String, from previous: Budget?, defaults: [(String, BudgetLine.Kind)] = defaultBudgetLines) -> String {
         let incomes = previous?.incomes.map { ($0.name, $0.planned) } ?? [("Nómina", 0), ("Ingresos adicionales", 0)]
         let lines = previous?.lines.map { ($0.name, $0.amount, $0.kind, $0.day, $0.every, $0.start) }
-            ?? defaultBudgetLines.map { ($0.0, 0, $0.1, nil, 1, nil) }
+            ?? defaults.map { ($0.0, 0, $0.1, nil, 1, nil) }
         var out = ["---", "tipo: presupuesto", "mes: \(month)", "---", "", "# Gastos · \(Budget.title(month))", "",
                    "## Ingresos", "| Concepto | Previsto | Real |", "| :--- | ---: | ---: |"]
         out += incomes.map { rowString([$0.0, budgetNumber($0.1), ""]) }
@@ -483,8 +483,11 @@ enum ExpenseParser {
         (["cena", "comida fuera", "restaurante", "bar", "cafe", "copas", "cine", "concierto", "viaje", "hotel", "vuelo", "entrada"], ["restaurante", "ocio", "entreten"]),
         (["gasolina", "metro", "taxi", "uber", "cabify", "bus", "autobus", "parking", "tren", "peaje", "renfe"], ["transporte"]),
         (["mercadona", "super", "supermercado", "compra", "carrefour", "lidl", "fruta", "aldi", "alcampo", "eroski", "consum"], ["alimenta", "comida"]),
-        (["luz", "agua", "gas", "factura", "endesa", "iberdrola"], ["suministro", "luz"]),
-        (["gym", "gimnasio", "o2"], ["gym"]),
+        (["luz", "agua", "gas", "factura", "endesa", "iberdrola", "naturgy"], ["suministro", "luz"]),
+        (["fibra", "internet", "movil", "telefono", "movistar", "vodafone", "orange", "digi", "o2", "pepephone", "lowi", "simyo"], ["internet", "movil"]),
+        (["gym", "gimnasio"], ["gym", "deporte"]),
+        (["farmacia", "dentista", "fisio", "medico"], ["salud"]),
+        (["ropa", "zapatos", "zara", "peluqueria"], ["ropa"]),
         (["spotify", "netflix", "icloud", "music", "hbo", "disney", "suscripcion"], ["suscrip"]),
         (["comunidad"], ["comunidad"]),
         (["ahorro", "fondo"], ["ahorro"]),

@@ -423,7 +423,7 @@ final class Store {
         if let latest = found.keys.sorted().last(where: { !(found[$0]?.habits.isEmpty ?? true) }), let r = found[latest] {
             habitDefs = r.habits.map { HabitDef(name: $0.name, criterion: $0.criterion) }
         } else {
-            habitDefs = ["Proteína", "Pasos", "Agua", "Sueño", "Creatina"].map { HabitDef(name: $0) }
+            habitDefs = ["Ejercicio", "Agua", "Sueño", "Leer"].map { HabitDef(name: $0) }
         }
     }
 
@@ -444,7 +444,7 @@ final class Store {
         let day = Store.stamp("yyyy-MM-dd")
         guard force || notificationsDay != day else { return }
         notificationsDay = day
-        let events = ICS.events(reminderSources(), plan: ReminderPlan.stored)
+        let events = ICS.events(reminderSources(), plan: reminderPlan())
         Task { _ = await Notifier.schedule(events) }
     }
 

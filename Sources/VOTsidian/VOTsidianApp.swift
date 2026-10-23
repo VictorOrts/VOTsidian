@@ -56,9 +56,11 @@ struct VOTsidianApp: App {
         MenuBarExtra(isInserted: $menuBar) {
             MenuBarPanel().environment(store).tint(Brand.accent).textFieldStyle(.roundedBorder)
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "scalemass")
-                Text(store.weight.last.map { fmt($0.kg) } ?? "")
+            // Con el módulo de peso, la báscula y el último peso; si no, solo el icono de la app en la barra.
+            if store.isVisible(.peso), let kg = store.weight.last?.kg {
+                HStack(spacing: 4) { Image(systemName: "scalemass"); Text(fmt(kg)) }
+            } else {
+                Image(systemName: "checklist")
             }
         }
         .menuBarExtraStyle(.window)

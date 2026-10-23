@@ -37,24 +37,39 @@ struct MenuBarPanel: View {
 
     // MARK: Partes
 
-    private var header: some View {
+    /// Peso y medicación periódica, si se usan; si no, la fecha de hoy.
+    @ViewBuilder private var header: some View {
+        let showWeight = store.isVisible(.peso) && store.weight.last != nil
+        let showMed = store.isVisible(.medicacion) && store.medicacion.main != nil
+        if !showWeight && !showMed {
+            Text(capitalizedFirst(longDate(Date()))).font(.headline)
+        } else {
+            medsAndWeight(showWeight: showWeight, showMed: showMed)
+        }
+    }
+
+    private func medsAndWeight(showWeight: Bool, showMed: Bool) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("PESO").font(.caption2).foregroundStyle(.secondary)
-                Text(store.weight.last.map { fmt($0.kg, unit: " kg") } ?? "–").font(.system(size: 22, weight: .bold, design: .rounded)).monospacedDigit()
-                Text("faltan \(fmt(store.weight.remainingKg)) kg").font(.caption).foregroundStyle(.secondary)
+            if showWeight {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PESO").font(.caption2).foregroundStyle(.secondary)
+                    Text(store.weight.last.map { fmt($0.kg, unit: " kg") } ?? "–").font(.system(size: 22, weight: .bold, design: .rounded)).monospacedDigit()
+                    if store.weight.hasGoal { Text("faltan \(fmt(store.weight.remainingKg)) kg").font(.caption).foregroundStyle(.secondary) }
+                }
             }
-            Divider().frame(height: 44)
-            VStack(alignment: .leading, spacing: 2) {
-                Text((store.medicacion.main?.act ?? "medicación").uppercased()).font(.caption2).foregroundStyle(.secondary)
-                if let n = store.medicacion.next, let d = store.medicacion.daysUntilNext {
-                    Text(shortDate(n)).font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(d < 0 ? Brand.bad : d == 0 ? Brand.warn : Color.primary)
-                    Text(relativeDays(d)).font(.caption).foregroundStyle(.secondary)
-                } else { Text("–").font(.title2) }
+            if showWeight && showMed { Divider().frame(height: 44) }
+            if showMed {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text((store.medicacion.main?.act ?? "medicación").uppercased()).font(.caption2).foregroundStyle(.secondary)
+                    if let n = store.medicacion.next, let d = store.medicacion.daysUntilNext {
+                        Text(shortDate(n)).font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(d < 0 ? Brand.bad : d == 0 ? Brand.warn : Color.primary)
+                        Text(relativeDays(d)).font(.caption).foregroundStyle(.secondary)
+                    } else { Text("–").font(.title2) }
+                }
             }
             Spacer()
-            if let main = store.medicacion.main, let d = store.medicacion.daysUntilNext, d <= 1, store.medicacion.last?.date != today {
+            if showMed, let main = store.medicacion.main, let d = store.medicacion.daysUntilNext, d <= 1, store.medicacion.last?.date != today {
                 Button(main.isInjection ? "Me pinché hoy" : "Tomada hoy") { store.injectToday(); message = main.isInjection ? "Pinchazo registrado" : "Toma registrada" }
                     .controlSize(.small).buttonStyle(.borderedProminent)
             }

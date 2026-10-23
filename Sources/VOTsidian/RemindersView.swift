@@ -47,7 +47,7 @@ struct RemindersView: View {
     }
 
     var body: some View {
-        let events = ICS.events(store.reminderSources(), plan: plan)
+        let events = ICS.events(store.reminderSources(), plan: store.reminderPlan(plan))
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 let now = store.alerts()
@@ -56,9 +56,12 @@ struct RemindersView: View {
                     AlertList(alerts: now, go: { store.screen = $0 })
                 }
                 Card(title: "Qué recordar", icon: "bell") {
+                    // Solo los de los módulos que se usan (y los de la base: revisión y tareas).
                     VStack(spacing: 6) {
-                        row("Medicación (\(plural(store.medicacion.active().filter { !$0.asNeeded }.count, "medicamento", "medicamentos")); con hora, a esa hora)", $medicacion) { hour($medicacionMin) }
-                        Divider()
+                        if store.isVisible(.medicacion) {
+                            row("Medicación (\(plural(store.medicacion.active().filter { !$0.asNeeded }.count, "medicamento", "medicamentos")); con hora, a esa hora)", $medicacion) { hour($medicacionMin) }
+                            Divider()
+                        }
                         row("Revisión semanal", $review) {
                             Picker("Día", selection: $reviewDay) {
                                 ForEach([(2, "Lunes"), (3, "Martes"), (4, "Miércoles"), (5, "Jueves"), (6, "Viernes"), (7, "Sábado"), (1, "Domingo")], id: \.0) { Text($0.1).tag($0.0) }
@@ -66,19 +69,16 @@ struct RemindersView: View {
                             hour($reviewMin)
                         }
                         Divider()
-                        row("Pesaje mensual (último día del mes)", $weightOn) { hour($weightMin) }
-                        Divider()
+                        if store.isVisible(.peso) {
+                            row("Pesaje mensual (último día del mes)", $weightOn) { hour($weightMin) }
+                            Divider()
+                        }
                         row("Tareas con fecha", $tasksOn)
-                        Divider()
-                        row("Citas y vacunas de \(store.mascota.name)", $mascotaOn)
-                        Divider()
-                        row("Cumpleaños (cada año)", $birthdays)
-                        Divider()
-                        row("Caducidad de documentos (30 días antes)", $docs)
-                        Divider()
-                        row("Eventos y fechas de Casa (7 días antes)", $eventsOn)
-                        Divider()
-                        row("Pagos fijos de Gastos (el día antes y el mismo día)", $payments)
+                        if store.isVisible(.mascota) { Divider(); row("Citas y vacunas de \(store.mascota.name)", $mascotaOn) }
+                        if store.isVisible(.personas) { Divider(); row("Cumpleaños (cada año)", $birthdays) }
+                        if store.isVisible(.documentos) { Divider(); row("Caducidad de documentos (30 días antes)", $docs) }
+                        if store.isVisible(.finanzas) || store.isVisible(.casa) { Divider(); row("Eventos y fechas de Casa (7 días antes)", $eventsOn) }
+                        if store.isVisible(.gastos) { Divider(); row("Pagos fijos de Gastos (el día antes y el mismo día)", $payments) }
                     }
                 }
 

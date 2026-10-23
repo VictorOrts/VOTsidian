@@ -124,6 +124,14 @@ func syntheticVault() throws -> URL {
     return dir
 }
 
+/// Partidas de un presupuesto real para los tests de Gastos (préstamos, gym, cuotas…): no dependen de las que trae la app.
+let testBudgetLines: [(String, BudgetLine.Kind)] = [
+    ("Vivienda (alquiler, hipoteca, impuestos, seguro)", .fijo), ("Alimentación", .variable), ("Transporte", .variable),
+    ("Suministros agua y luz", .fijo), ("Restaurantes, viajes, entretenimiento", .variable), ("Préstamo padre", .fijo),
+    ("Préstamo personal", .fijo), ("Ordenador", .fijo), ("Seguro vida", .fijo), ("Gym + O2", .fijo), ("Gastos comunidad", .fijo),
+    ("Imprevistos / otros", .variable), ("Ahorro / fondo de emergencia", .ahorro), ("Suscripciones (Music + iCloud)", .fijo),
+]
+
 /// Presupuesto de un mes con lo previsto y gastos repartidos hasta hoy (o el mes entero si `full`).
 func gastosFixture(_ date: Date, full: Bool = false) -> String {
     let month = Budget.monthKey(date)
@@ -133,7 +141,7 @@ func gastosFixture(_ date: Date, full: Bool = false) -> String {
         "Ahorro / fondo de emergencia": 300, "Suscripciones (Music + iCloud)": 15]
     let days = ["Vivienda (alquiler, hipoteca, impuestos, seguro)": 1, "Suministros agua y luz": 5, "Préstamo padre": 10, "Préstamo personal": 15,
                 "Ordenador": 20, "Seguro vida": 3, "Gym + O2": 1, "Gastos comunidad": 28, "Ahorro / fondo de emergencia": 28, "Suscripciones (Music + iCloud)": 12]
-    var text = Edit.budgetNote(month: month, from: nil)
+    var text = Edit.budgetNote(month: month, from: nil, defaults: testBudgetLines)
     var b = Parse.budget(text, month: month, path: "")
     for l in b.lines {
         var lines = MD.lines(text)

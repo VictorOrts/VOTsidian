@@ -18,7 +18,7 @@ struct PesoView: View {
                 MissingNoteBanner(module: .peso)
                 HStack(spacing: 12) {
                     Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { dayLabel($0.date) })
-                    Tile(title: "Perdidos", value: fmt(w.lostKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
+                    Tile(title: w.gaining ? "Ganados" : "Perdidos", value: fmt(w.achievedKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
                     Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: w.hasGoal ? "objetivo \(fmt(w.goalKg, 0)) kg" : "sin objetivo en la nota")
                     Tile(title: "Ritmo reciente", value: rate.map { fmtDelta($0, unit: " kg/mes") } ?? "–", note: "últimos 4 meses")
                 }
@@ -182,11 +182,11 @@ struct PesoView: View {
     private func changeChart(_ w: WeightData) -> some View {
         // Solo los últimos 40 pesajes: más barras no se leen y cada una lleva su etiqueta.
         let deltas = Array(w.records.enumerated().dropFirst().map { i, r in (r.date, r.kg - w.records[i - 1].kg) }.suffix(40))
-        return Card(title: "Cambio entre pesajes", icon: "chart.bar", info: "Verde: bajaste respecto al pesaje anterior. Naranja: subiste.") {
+        return Card(title: "Cambio entre pesajes", icon: "chart.bar", info: w.gaining ? "Verde: subiste respecto al pesaje anterior, hacia tu objetivo. Naranja: bajaste." : "Verde: bajaste respecto al pesaje anterior. Naranja: subiste.") {
             Chart {
                 ForEach(Array(deltas.enumerated()), id: \.offset) { _, d in
                     BarMark(x: .value("Día", d.0, unit: .day), y: .value("kg", d.1), width: 22)
-                        .foregroundStyle(d.1 <= 0 ? Brand.accent : Brand.warn).cornerRadius(4)
+                        .foregroundStyle(w.isGood(d.1) ? Brand.accent : Brand.warn).cornerRadius(4)
                         .annotation(position: d.1 <= 0 ? .bottom : .top) { Text(fmtDelta(d.1, unit: "")).font(.caption2).foregroundStyle(.secondary) }
                 }
                 RuleMark(y: .value("Cero", 0)).foregroundStyle(.secondary.opacity(0.4))

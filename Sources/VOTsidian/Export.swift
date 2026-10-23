@@ -63,7 +63,7 @@ extension Store {
             diaryDays: notes.filter { $0.path.hasPrefix("Diario/") && (DayKey.date($0.name).map(inYear) ?? false) }.count)
     }
 
-    /// Escribe tus datos en CSV (peso, pinchazos, medidas, hábitos, tareas, gastos, ánimo y sueño) y un resumen. Devuelve los archivos creados.
+    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, ánimo y sueño) y un resumen. Devuelve los archivos creados.
     @discardableResult
     func exportData(to dir: URL) throws -> [URL] {
         let fm = FileManager.default
@@ -137,8 +137,9 @@ struct YearSummaryView: View {
                 Text("Generado el \(DayKey.dmy(Date())) · \(vaultName)").font(.caption).foregroundStyle(.secondary)
             }
             HStack(spacing: 10) {
-                tile("Peso", stats.deltaKg.map { fmtDelta($0) } ?? "–", stats.lastKg.map { "ahora \(fmt($0, unit: " kg"))" } ?? "sin pesajes")
-                tile("Pinchazos", "\(stats.injections)", stats.dosesByMg.map { "\(MD.formatNumber($0.mg, comma: true)) mg ×\($0.count)" }.joined(separator: " · "))
+                // Solo lo que se lleva: sin pesajes ni medicación periódica en el año, esas casillas no salen.
+                if stats.lastKg != nil { tile("Peso", stats.deltaKg.map { fmtDelta($0) } ?? "–", stats.lastKg.map { "ahora \(fmt($0, unit: " kg"))" } ?? "") }
+                if stats.injections > 0 { tile("Medicación", "\(stats.injections)", stats.dosesByMg.map { "\(MD.formatNumber($0.mg, comma: true)) mg ×\($0.count)" }.joined(separator: " · ")) }
                 tile("Tareas hechas", "\(stats.tasksDone)", "")
                 tile("Ánimo", stats.moodAvg.map { fmt($0, unit: " / 5") } ?? "–", stats.sleepAvg.map { "sueño " + fmt($0, unit: " h") } ?? "")
             }

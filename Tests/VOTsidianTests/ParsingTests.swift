@@ -124,8 +124,13 @@ import Testing
     // sin bajada o ya en objetivo: sin proyección
     w.records = w.records.reversed().enumerated().map { WeightRecord(date: w.records[$0.offset].date, kg: $0.element.kg, note: "") }
     #expect(w.projection() == nil)
-    w.goalKg = 200
-    #expect(w.projection() == nil)
+    w.goalKg = 118
+    #expect(w.projection() == nil && w.remainingKg == 0)
+    // objetivo por encima del peso de partida: se quiere subir, y subiendo sí hay fecha
+    w.goalKg = 130
+    let up = try #require(w.projection())
+    #expect(w.gaining && up.ratePerMonth > 0 && up.date > w.last!.date && w.remainingKg == 12)
+    #expect(w.achievedKg == -2 && w.achievedWord == "ganados" && w.isGood(1) && !w.isGood(-1))
 }
 
 /// Copia temporal del vault de prueba, para que los tests en paralelo no se pisen.
