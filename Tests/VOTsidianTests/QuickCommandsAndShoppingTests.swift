@@ -18,7 +18,7 @@ import Testing
     if case .task(let t, let d, let r, let pr)? = p("tarea llamar al dentista el viernes urgente") { #expect(t == "llamar al dentista" && DayKey.string(d!) == "2026-10-23" && r == nil && pr == 3) } else { Issue.record("no es tarea") }
     if case .task(let t, _, let r, _)? = p("t pagar alquiler cada mes") { #expect(t == "pagar alquiler" && r == "month") } else { Issue.record("no es tarea") }
     #expect(p("idea app para el gato") == .idea("app para el gato") && p("nota hoy fui al médico") == .diary("hoy fui al médico"))
-    #expect(p("cita endocrino el 29/10") == .appointment("endocrino", DayKey.date("2026-10-29")!) && p("cita dentista") == .appointment("dentista", today))
+    #expect(p("cita dermatólogo el 29/10") == .appointment("dermatólogo", DayKey.date("2026-10-29")!) && p("cita dentista") == .appointment("dentista", today))
     #expect(p("cintura 98,5") == .measure("Cintura", 98.5, today) && p("grasa 27 ayer") == .measure("Grasa", 27, DayKey.date("2026-10-18")!))
     #expect(p("compra leche, huevos y pan") == .shopping(["leche", "huevos", "pan"]) && p("compra") == nil)
     #expect(p("buenos días") == nil && p("peso corporal 100") == nil)
@@ -51,6 +51,9 @@ import Testing
 @MainActor @Test func shoppingAndCommandsOnCopy() throws {
     guard let path = ProcessInfo.processInfo.environment["VAULT_COPY"] else { return }
     let store = Store(root: try tempVaultCopy(path))
+    // En la copia se parte sin lista de la compra ni medidas, tenga lo que tenga el vault.
+    for rel in [Shopping.file, Measures.file] where store.exists(rel) { try FileManager.default.removeItem(at: store.url(rel)) }
+    store.reload()
     let tasksBefore = store.tasks.count
     #expect(!store.shoppingExists)
     let n = store.generateShoppingFromMenu()
@@ -69,9 +72,9 @@ import Testing
     #expect(store.weight.last?.kg == 104.2 && store.weight.records.count == kgBefore + 1)
     store.run(.mood(5, DayKey.today())); store.run(.sleep(8, DayKey.today()))
     #expect(store.diaryValue(DayKey.today(), "animo") == 5 && store.diaryValue(DayKey.today(), "sueno_h") == 8)
-    let dosesBefore = store.medicacion.doses.count
+    let dosesBefore = store.medicacion.doses.count, lastDose = store.medicacion.last?.dose
     store.run(.injection(DayKey.today()))
-    #expect(store.medicacion.doses.count == dosesBefore + 1 && store.medicacion.last?.dose == "7,5 mg")
+    #expect(store.medicacion.doses.count == dosesBefore + 1 && store.medicacion.last?.dose == lastDose)
     store.run(.task("Probar orden", DayKey.adding(days: 2, to: DayKey.today()), nil, 3))
     #expect(store.tasks.contains { $0.text == "Probar orden" && $0.priority == 3 })
     #expect(store.run(.shopping(["té", "Pan"])).contains("Añadido"))

@@ -10,7 +10,7 @@ import Testing
     let vault = tmp.appendingPathComponent("Notas")
     let fm = FileManager.default
     try fm.createDirectory(at: vault.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
-    try "---\nobjetivo_peso_kg: 90\npeso_inicial_kg: 136\n---\n| Fecha | Peso |\n|--|--|\n| 01/01/2026 | 100 |\n".write(to: vault.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
+    try "---\nobjetivo_peso_kg: 85\npeso_inicial_kg: 120\n---\n| Fecha | Peso |\n|--|--|\n| 01/01/2026 | 100 |\n".write(to: vault.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
     for f in 0..<30 {
         let dir = vault.appendingPathComponent("Carpeta \(f)")
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)

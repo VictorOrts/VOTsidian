@@ -100,7 +100,7 @@ mes: 2026-10
     let d = try #require(ExpenseParser.parse("104 factura de la luz", categories: cats, today: today))
     #expect(d.category == "Suministros agua y luz")
     #expect(ExpenseParser.parse("15 algo raro", categories: cats, today: today)?.category == "Imprevistos / otros")
-    #expect(ExpenseParser.parse("gym 55", categories: cats, today: today)?.category == "Gym + O2")
+    #expect(ExpenseParser.parse("gym 55", categories: cats, today: today)?.category == "Gym + fibra")
     #expect(ExpenseParser.parse("sin importe", categories: cats, today: today) == nil)
 }
 
@@ -598,7 +598,7 @@ extension URL {
     ## Ingresos
     | Concepto | Previsto | Real |
     | :--- | ---: | ---: |
-    | Nómina | 1957 | 1957 |
+    | Nómina | 2100 | 2100 |
     | Ingresos adicionales | 1200 | 1200 |
 
     ## Partidas
@@ -614,20 +614,20 @@ extension URL {
     let y = BudgetYear(year: 2026, budgets: [Parse.budget(nov, month: "2026-11", path: "x")], today: try #require(DayKey.date("2026-10-23")))
     let m = try #require(y.months.first)
     #expect(m.planned && y.future == ["2026-11"] && y.current == nil && y.averageSpent == nil)
-    #expect(m.income == 3157 && m.spent == 525 + 70 + 37 && m.left == 3157 - 632)
+    #expect(m.income == 3300 && m.spent == 525 + 70 + 37 && m.left == 3300 - 632)
     #expect(Edit.budgetYearNote(y).contains("(previsto)"))
 }
 
 @MainActor @Test func paidContributionIsAnExpenseAndUndoesInOneStep() throws {
     let store = try undoVault()
-    let path = "Finanzas/Boda Luis y Jazmin.md"
+    let path = "Finanzas/Boda de Ana y Pablo.md"
     try "---\ntipo: evento\nestado: pendiente\naportacion_eur: 150\n---\n# Boda\n".write(to: store.url(path).creatingParent(), atomically: true, encoding: .utf8)
     store.reload()
     #expect(store.pendingContributions.map(\.amount) == [150])
     let day = try #require(DayKey.date("2026-12-05"))
     store.payContribution(path: path, amount: 150, date: day)
     let m = try #require(store.budget("2026-12")?.moves.first)
-    #expect(m.amount == 150 && m.category == "Imprevistos / otros" && m.note == "aportación [[Boda Luis y Jazmin]]")
+    #expect(m.amount == 150 && m.category == "Imprevistos / otros" && m.note == "aportación [[Boda de Ana y Pablo]]")
     #expect(store.noteMeta[path]?["estado"] == "pagado" && store.pendingContributions.isEmpty)
     // Un solo deshacer quita el gasto, la nota del mes creada para él y el «pagado».
     store.undo()
@@ -711,8 +711,8 @@ extension URL {
     #expect(ExpenseParser.parse("O2 35", categories: cats, today: today)?.category == "Internet y móvil")
     #expect(ExpenseParser.parse("gimnasio 40", categories: cats, today: today)?.category == "Salud y deporte")
     #expect(ExpenseParser.parse("dentista 60", categories: cats, today: today)?.category == "Salud y deporte")
-    // con una partida que lleva «O2» en el nombre, va a esa
-    #expect(ExpenseParser.parse("o2 40", categories: testBudgetLines.map(\.0), today: today)?.category == "Gym + O2")
+    // con una partida que lleva la palabra en el nombre, va a esa
+    #expect(ExpenseParser.parse("fibra 40", categories: testBudgetLines.map(\.0), today: today)?.category == "Gym + fibra")
 }
 
 @Test func aMonthWithNothingLoggedSaysSo() throws {

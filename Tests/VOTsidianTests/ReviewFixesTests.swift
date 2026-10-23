@@ -28,7 +28,7 @@ import Testing
     let cats = testBudgetLines.map(\.0)
     let today = try #require(DayKey.date("2026-10-23"))
     let gym = try #require(ExpenseParser.parse("gym o2 40", categories: cats, today: today))
-    #expect(gym.amount == 40 && gym.category == "Gym + O2")
+    #expect(gym.amount == 40 && gym.category == "Gym + fibra")
     // «el 20» es el de este mes, no el del mes que viene un año atrás.
     #expect(ExpenseParser.parse("el 20 pan 3", categories: cats, today: today).map { DayKey.string($0.date) } == "2026-10-20")
     #expect(ExpenseParser.parse("pan 3 el 20", categories: cats, today: today).map { DayKey.string($0.date) } == "2026-10-20")

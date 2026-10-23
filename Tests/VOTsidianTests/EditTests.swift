@@ -82,9 +82,9 @@ import Testing
     let week = Template.week(key: "2026-W44", monday: DayKey.date("2026-10-26")!, habits: [HabitDef(name: "Agua", criterion: "2,5 L"), HabitDef(name: "Pasos")])
     var marked = try #require(Edit.toggleHabit(week, habit: "Agua", day: 2))
     #expect(Parse.week(marked, key: "k").habits[0].criterion == "2,5 L")
-    marked = try #require(Edit.setHabitTable(marked, defs: [HabitDef(name: "Agua", criterion: "3 L"), HabitDef(name: "Creatina", criterion: "5 g")]))
+    marked = try #require(Edit.setHabitTable(marked, defs: [HabitDef(name: "Agua", criterion: "3 L"), HabitDef(name: "Estiramientos", criterion: "5 g")]))
     let r = Parse.week(marked, key: "k")
-    #expect(r.habits.map(\.name) == ["Agua", "Creatina"])
+    #expect(r.habits.map(\.name) == ["Agua", "Estiramientos"])
     #expect(r.habits[0].criterion == "3 L" && r.habits[0].days[2] && r.habits[1].criterion == "5 g")
     #expect(marked.contains("## 2. Mirar atrás")) // el resto de la nota no se toca
 

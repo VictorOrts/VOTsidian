@@ -69,10 +69,10 @@ import Testing
     let store = Store(root: try tempVaultCopy(path))
     #expect(store.userTemplates().isEmpty)
     store.createSampleTemplates()
-    #expect(store.userTemplates() == ["Idea", "Lectura", "Reunión", "Viaje"])
+    #expect(store.userTemplates() == SampleTemplates.names.sorted())
     #expect(!store.notes.contains { $0.path.hasPrefix("Plantillas/") })       // las plantillas no salen como notas
     let tpl = try #require(store.userTemplate("Reunión", title: "Reunión equipo"))
-    #expect(tpl.folder == "Proyectos" && tpl.body.contains("# Reunión equipo") && !tpl.body.contains("plantilla_carpeta") && !tpl.body.contains("{{"))
+    #expect(tpl.folder == "Reuniones" && tpl.body.contains("# Reunión equipo") && !tpl.body.contains("plantilla_carpeta") && !tpl.body.contains("{{"))
     let rel = try #require(store.createNote(folder: "Proyectos", name: "Reunión equipo", template: "Reunión"))
     #expect(store.noteMeta[rel]?["tipo"] == "reunion" && store.noteTags[rel]?.contains("reunion") == true)
 

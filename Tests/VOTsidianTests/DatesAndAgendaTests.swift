@@ -19,7 +19,7 @@ import Testing
     #expect(t("renovar 2027-01-05 pasaporte") == ("renovar pasaporte", "2027-01-05"))
     #expect(t("hoy revisar correo") == ("revisar correo", "2026-10-19"))
     #expect(t("5/1") == ("", "2027-01-05"))
-    #expect(t("tomar 5 g de creatina") == ("tomar 5 g de creatina", nil))
+    #expect(t("tomar 5 g de magnesio") == ("tomar 5 g de magnesio", nil))
     #expect(t("sin fecha aquí") == ("sin fecha aquí", nil))
 }
 
