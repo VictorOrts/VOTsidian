@@ -93,6 +93,16 @@ enum NoteChart {
 
     static func date(_ cell: String) -> Date? { DayKey.date(cell) ?? DayKey.dmyDate(cell) }
 
+    /// Ancho de las barras en un eje de fechas: el del espacio típico entre fechas (un registro al mes → barras de un
+    /// mes). Con barras de un día, unos datos mensuales salían como rayas.
+    static func barUnit(_ dates: [Date]) -> Calendar.Component {
+        let days = Set(dates).sorted()
+        let gaps = zip(days, days.dropFirst()).map { DayKey.days(from: $0, to: $1) }.sorted()
+        guard !gaps.isEmpty else { return .day }
+        let typical = gaps[gaps.count / 2]
+        return typical >= 28 ? .month : typical >= 7 ? .weekOfYear : .day
+    }
+
     static func number(_ v: Double) -> String {
         v.formatted(.number.precision(.fractionLength(0...2)).locale(Locale(identifier: "es_ES")))
     }
@@ -255,7 +265,8 @@ struct NoteChartView: View {
                 AxisValueLabel { if let n = v.as(Double.self) { Text(NoteChart.number(n)) } }
             }
         }
-        .chartYAxisLabel(single ? d.series[0] + (d.units[d.series[0]].map { " (\($0))" } ?? "") : "")
+        // «Importe (€)», pero no «Aportado (€) (€)» si la columna ya dice la unidad.
+        .chartYAxisLabel(single ? d.series[0] + (d.units[d.series[0]].flatMap { d.series[0].contains($0) ? nil : " (\($0))" } ?? "") : "")
         .modifier(XSelection(byDate: d.byDate, date: $hoverDate, label: $hoverLabel))
         .overlay(alignment: .topTrailing) { if let p = selectedX(d) { tooltip(for: p, d) } }
         .frame(height: 240)
@@ -266,7 +277,7 @@ struct NoteChartView: View {
         if let date = p.date {
             let x = PlottableValue.value(d.xTitle, date)
             switch spec.kind {
-            case .barras: BarMark(x: .value(d.xTitle, date, unit: .day), y: y).position(by: .value("Serie", p.series)).cornerRadius(3)
+            case .barras: BarMark(x: .value(d.xTitle, date, unit: NoteChart.barUnit(d.points.compactMap(\.date))), y: y).position(by: .value("Serie", p.series)).cornerRadius(3)
             case .area: AreaMark(x: x, y: y, stacking: .unstacked).opacity(0.25).interpolationMethod(.monotone)
                 LineMark(x: x, y: y, series: .value("Serie", p.series)).lineStyle(StrokeStyle(lineWidth: 2)).interpolationMethod(.monotone)
             case .puntos: PointMark(x: x, y: y).symbolSize(50)

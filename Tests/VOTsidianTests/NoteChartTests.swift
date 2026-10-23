@@ -95,3 +95,11 @@ tabla: Sueño
         #expect(r.cgImage != nil, "\(spec)")
     }
 }
+
+@Test func barWidthFollowsTheSpacingOfDates() {
+    func dates(_ s: [String]) -> [Date] { s.compactMap(DayKey.date) }
+    #expect(NoteChart.barUnit(dates(["2026-07-01", "2026-08-01", "2026-09-01", "2026-10-01"])) == .month)
+    #expect(NoteChart.barUnit(dates(["2026-09-01", "2026-09-08", "2026-09-15"])) == .weekOfYear)
+    #expect(NoteChart.barUnit(dates(["2026-09-01", "2026-09-02", "2026-09-03"])) == .day)
+    #expect(NoteChart.barUnit(dates(["2026-09-01"])) == .day)
+}
