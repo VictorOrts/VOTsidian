@@ -121,6 +121,8 @@ final class Store {
     @ObservationIgnored var collectingUndo: [UndoStep]?
     /// Presupuestos ya analizados en esta recarga, por ruta.
     @ObservationIgnored var budgetCache: [String: Budget] = [:]
+    /// Resúmenes del año por «AAAA|mes de hoy»: sumar todas las partidas de un año se nota al pasar el ratón por la gráfica.
+    @ObservationIgnored var budgetYearCache: [String: BudgetYear] = [:]
     /// Por qué falló la última copia de seguridad automática; `nil` si fue bien.
     var backupFailure: String?
     var lastQuietWrite: (rel: String, at: Date)?
@@ -306,6 +308,7 @@ final class Store {
         revision += 1
         agendaCache = [:]
         budgetCache = [:]
+        budgetYearCache = [:]
         let allTasks = scan.tasks
         let files = scan.files
         let texts = scan.texts

@@ -103,7 +103,7 @@ struct CommandPalette: View {
             var hits = 0
             for n in store.notes where hits < 25 && noteOK(n) && (scope == .texto || !SearchEngine.matches(MD.fold(n.name), q)) {
                 let text = store.noteTexts[n.path] ?? ""
-                guard SearchEngine.matches(MD.fold(text), q), let line = SearchEngine.bestLine(in: text, q) else { continue }
+                guard SearchEngine.matches(store.foldedText(n.path, text), q), let line = SearchEngine.bestLine(in: text, q) else { continue }
                 hits += 1
                 out.append(PaletteItem(icon: "text.magnifyingglass", title: n.name, subtitle: line, highlighted: SearchEngine.highlight(line, q), tag: "Texto") { store.pendingNote = n.path; dismiss() })
             }

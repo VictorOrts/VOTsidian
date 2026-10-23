@@ -497,7 +497,7 @@ struct GastosView: View {
 
     private func movesCard(_ b: Budget) -> some View {
         let all = b.moves.sorted { ($0.date, $0.line) > ($1.date, $1.line) }
-        let byCategory = filter.map { f in all.filter { MD.fold($0.category) == MD.fold(f) } } ?? all
+        let byCategory = filter.map { f in all.filter { $0.key == MD.fold(f) } } ?? all
         let q = MD.fold(search)
         let shown = q.isEmpty ? byCategory : byCategory.filter { MD.fold($0.note + " " + $0.category).contains(q) || Edit.budgetNumber($0.amount).contains(q) }
         let filtered = filter != nil || !q.isEmpty
@@ -605,7 +605,7 @@ private struct MoveRow: View {
             // Corregir la partida también enseña al adivinador: la próxima vez que escribas lo mismo irá aquí.
             Menu("Cambiar partida") {
                 ForEach(categories, id: \.self) { c in
-                    Button(c) { store.setExpenseCategory(budget, move, to: c) }.disabled(MD.fold(c) == MD.fold(move.category))
+                    Button(c) { store.setExpenseCategory(budget, move, to: c) }.disabled(MD.fold(c) == move.key)
                 }
             }
             Button("Borrar gasto", role: .destructive) { store.deleteExpense(budget, move) }

@@ -84,6 +84,13 @@ enum MD {
         s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// `text.contains(part)` byte a byte, para textos ya plegados con `fold` (sin tildes ni mayúsculas, así que no hay
+    /// letras compuestas que distinguir). `String.contains` va letra a letra y es ~30 veces más lento en notas largas.
+    static func contains(_ text: String, _ part: String) -> Bool {
+        var text = text, part = part
+        return text.withUTF8 { a in part.withUTF8 { b in b.isEmpty || memmem(a.baseAddress, a.count, b.baseAddress, b.count) != nil } }
+    }
+
     /// Líneas sin el salto. Los archivos con saltos de Windows (`\r\n`) se leen igual; al editarlos quedan con `\n`.
     static func lines(_ text: String) -> [String] {
         (text.contains("\r\n") ? text.replacingOccurrences(of: "\r\n", with: "\n") : text).components(separatedBy: "\n")

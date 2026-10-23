@@ -389,6 +389,9 @@ extension Edit {
 }
 
 extension Edit {
+    /// Enlaces `[[..]]`, código `..`, direcciones y paréntesis: ahí no se enlaza. Se compilan una vez.
+    private static let protectedZones = [#"\[\[[^\]]*\]\]"#, #"`[^`]*`"#, #"https?://\S+"#, #"\([^)]*\)"#].compactMap { try? NSRegularExpression(pattern: $0) }
+
     /// Convierte la primera mención sin enlazar de `name` en `[[name]]` (fuera de código, enlaces y direcciones).
     static func linkMention(_ text: String, name: String) -> String? {
         guard name.count >= 3 else { return nil }
@@ -401,12 +404,11 @@ extension Edit {
         for i in start..<lines.count where !fence.contains(i) {
             let line = lines[i]
             let ns = line as NSString
+            let matches = re.matches(in: line, range: NSRange(location: 0, length: ns.length))
+            if matches.isEmpty { continue }
             // zonas protegidas: enlaces [[..]], código `..` y direcciones
-            var protected: [NSRange] = []
-            for pat in [#"\[\[[^\]]*\]\]"#, #"`[^`]*`"#, #"https?://\S+"#, #"\([^)]*\)"#] {
-                if let r = try? NSRegularExpression(pattern: pat) { protected += r.matches(in: line, range: NSRange(location: 0, length: ns.length)).map(\.range) }
-            }
-            for m in re.matches(in: line, range: NSRange(location: 0, length: ns.length)) {
+            let protected = protectedZones.flatMap { $0.matches(in: line, range: NSRange(location: 0, length: ns.length)).map(\.range) }
+            for m in matches {
                 if protected.contains(where: { NSIntersectionRange($0, m.range).length > 0 }) { continue }
                 let found = ns.substring(with: m.range)
                 let link = found == name ? "[[\(name)]]" : "[[\(name)|\(found)]]"

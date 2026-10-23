@@ -25,10 +25,16 @@ extension Store {
         return notes.filter { n in
             guard n.path != path, !linked.contains(n.path) else { return false }
             let t = noteTexts[n.path] ?? read(n.path)
-            let folded: String
-            if let f = foldedTexts[n.path] { folded = f } else { folded = MD.fold(t); foldedTexts[n.path] = folded }   // se pliega una vez por recarga, no por consulta
-            return folded.contains(key) && Edit.linkMention(t, name: me.name) != nil
+            return MD.contains(foldedText(n.path, t), key) && Edit.linkMention(t, name: me.name) != nil
         }
+    }
+
+    /// `text` (el de la nota `path`) plegado: se pliega una vez por recarga, no por consulta ni por tecla en ⌘K.
+    func foldedText(_ path: String, _ text: String) -> String {
+        if let f = foldedTexts[path] { return f }
+        let f = MD.fold(text)
+        foldedTexts[path] = f
+        return f
     }
 
     func linkMention(in path: String, to name: String) {

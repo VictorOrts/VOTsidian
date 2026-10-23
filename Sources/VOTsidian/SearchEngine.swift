@@ -67,7 +67,7 @@ enum SearchEngine {
     static func matches(_ folded: String, _ q: SearchQuery, useSynonyms: Bool = true) -> Bool {
         for t in q.tokens {
             let options = useSynonyms ? Synonyms.expand(t) : [t]
-            if !options.contains(where: { folded.contains($0) }) { return false }
+            if !options.contains(where: { MD.contains(folded, $0) }) { return false }
         }
         return true
     }

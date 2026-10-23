@@ -60,10 +60,17 @@ struct BudgetIncome: Identifiable, Equatable {
 struct BudgetMove: Identifiable, Equatable {
     var date: Date
     var amount: Double
-    var category: String
+    var category: String { didSet { key = MD.fold(category) } }
     var note: String
     var line: Int
+    /// `category` plegada (sin tildes ni mayúsculas): se compara con cada partida muchas veces por pintado.
+    private(set) var key: String
     var id: Int { line }
+
+    init(date: Date, amount: Double, category: String, note: String, line: Int) {
+        self.date = date; self.amount = amount; self.category = category; self.note = note; self.line = line
+        key = MD.fold(category)
+    }
 }
 
 struct Budget: Equatable {
@@ -84,14 +91,14 @@ struct Budget: Equatable {
     /// Un gasto y su devolución que suman 0 son 0, no lo previsto: lo que cuenta es que haya movimientos.
     func real(_ l: BudgetLine) -> Double {
         let key = MD.fold(l.name)
-        let mine = moves.filter { MD.fold($0.category) == key }
+        let mine = moves.filter { $0.key == key }
         return mine.isEmpty && l.paid ? l.planned : mine.reduce(0) { $0 + $1.amount }
     }
 
     /// Movimientos cuya partida no está en la tabla (escrita a mano con otro nombre): cuentan como gasto igualmente.
     var unassigned: Double {
         let names = Set(lines.map { MD.fold($0.name) })
-        return moves.filter { !names.contains(MD.fold($0.category)) }.reduce(0) { $0 + $1.amount }
+        return moves.filter { !names.contains($0.key) }.reduce(0) { $0 + $1.amount }
     }
 
     var income: Double { incomes.reduce(0) { $0 + ($1.real ?? $1.planned) } }
@@ -111,8 +118,8 @@ struct Budget: Equatable {
     var unassignedByCategory: [(name: String, total: Double)] {
         let names = Set(lines.map { MD.fold($0.name) })
         var out: [(name: String, total: Double)] = []
-        for m in moves where !names.contains(MD.fold(m.category)) {
-            if let i = out.firstIndex(where: { MD.fold($0.name) == MD.fold(m.category) }) { out[i].total += m.amount } else { out.append((m.category, m.amount)) }
+        for m in moves where !names.contains(m.key) {
+            if let i = out.firstIndex(where: { MD.fold($0.name) == m.key }) { out[i].total += m.amount } else { out.append((m.category, m.amount)) }
         }
         return out
     }
@@ -169,7 +176,7 @@ struct BudgetStatus {
         if current {
             let keys = Set(variables.map { MD.fold($0.name) })
             let todayKey = DayKey.string(today)
-            spentToday = b.moves.filter { DayKey.string($0.date) == todayKey && keys.contains(MD.fold($0.category)) }.reduce(0) { $0 + $1.amount }
+            spentToday = b.moves.filter { DayKey.string($0.date) == todayKey && keys.contains($0.key) }.reduce(0) { $0 + $1.amount }
             todayAllowance = max(0, min(plannedLeft + spentToday, cash + spentToday)) / Double(max(days - day + 1, 1))
         }
     }
@@ -188,7 +195,7 @@ struct BudgetStatus {
         // llegado (se pagó antes), cuenta hoy: ese dinero ya no está y «Hoy quedan» no debe contarlo.
         for l in b.lines where l.paid {
             let key = MD.fold(l.name)
-            if !b.moves.contains(where: { MD.fold($0.category) == key }) { spentOn[min(l.day ?? 1, isCurrent ? max(day, 1) : days), default: 0] += l.planned }
+            if !b.moves.contains(where: { $0.key == key }) { spentOn[min(l.day ?? 1, isCurrent ? max(day, 1) : days), default: 0] += l.planned }
         }
         var real: [(Int, Double)] = []
         var left = b.income
@@ -749,7 +756,7 @@ extension Store {
 
     /// Cambia la partida de un gasto ya apuntado y aprende de la corrección.
     func setExpenseCategory(_ b: Budget, _ m: BudgetMove, to category: String) {
-        guard MD.fold(category) != MD.fold(m.category) else { return }
+        guard MD.fold(category) != m.key else { return }
         edit(b.path) { text in
             let lines = MD.lines(text)
             guard m.line < lines.count, let first = MD.cells(lines[m.line]).first else { return nil }
@@ -954,8 +961,13 @@ extension Store {
     /// Años con alguna nota de mes, del más nuevo al más viejo.
     var budgetYears: [Int] { Array(Set(budgetMonths.compactMap { Int($0.prefix(4)) })).sorted(by: >) }
 
+    /// Se calcula una vez por recarga (y por mes de hoy: el mes en curso y los previstos dependen de él).
     func budgetYear(_ year: Int) -> BudgetYear {
-        BudgetYear(year: year, budgets: budgetMonths.filter { $0.hasPrefix("\(year)-") }.compactMap { budget($0) })
+        let today = DayKey.today(), key = "\(year)|\(Budget.monthKey(today))"
+        if let y = budgetYearCache[key] { return y }
+        let y = BudgetYear(year: year, budgets: budgetMonths.filter { $0.hasPrefix("\(year)-") }.compactMap { budget($0) }, today: today)
+        budgetYearCache[key] = y
+        return y
     }
 
     func yearSummaryPath(_ year: Int) -> String { "\(Store.gastosFolder)/Resumen \(year).md" }

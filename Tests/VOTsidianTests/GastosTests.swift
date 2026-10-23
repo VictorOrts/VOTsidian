@@ -695,3 +695,11 @@ extension URL {
     #expect(Money.signed(120) == "+" + Money.format(120) && Money.signed(-80.4) == "−" + Money.format(80) && Money.signed(0.3) == Money.format(0))
     #expect(Money.percent(0.284) == "28 %" && Money.percent(-0.1) == "-10 %")
 }
+
+@Test func foldedSearchAndMoveKeysStayInSync() throws {
+    #expect(MD.contains(MD.fold("Cita con el Médico 📅 2026"), "medico") && MD.contains("abc", "") && !MD.contains("abc", "abd"))
+    var m = BudgetMove(date: try #require(DayKey.date("2026-10-01")), amount: 5, category: "Alimentación", note: "", line: 1)
+    #expect(m.key == "alimentacion")
+    m.category = "Ocio"
+    #expect(m.key == "ocio")
+}

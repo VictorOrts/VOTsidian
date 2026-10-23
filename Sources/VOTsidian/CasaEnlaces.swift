@@ -34,25 +34,27 @@ enum Money {
         return Double(t) ?? 0
     }
 
-    static func format(_ v: Double) -> String {
+    // Crear un NumberFormatter cuesta ~20 µs y Gastos pinta cientos de importes: se crean una vez (formatear es seguro entre hilos).
+    private static func currency(decimals: Int) -> NumberFormatter {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencyCode = "EUR"
         f.locale = Locale(identifier: "es_ES")
-        f.maximumFractionDigits = 0
-        return f.string(from: NSNumber(value: v)) ?? "\(Int(v)) €"
+        f.minimumFractionDigits = decimals
+        f.maximumFractionDigits = decimals
+        return f
+    }
+    private static let whole = currency(decimals: 0)
+    private static let cents = currency(decimals: 2)
+
+    static func format(_ v: Double) -> String {
+        whole.string(from: NSNumber(value: v)) ?? "\(Int(v)) €"
     }
 
     /// Como `format`, pero con céntimos si los tiene («12,50 €»): para gastos sueltos, donde redondear despista.
     static func exact(_ v: Double) -> String {
         guard v != v.rounded() else { return format(v) }
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = "EUR"
-        f.locale = Locale(identifier: "es_ES")
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        return f.string(from: NSNumber(value: v)) ?? format(v)
+        return cents.string(from: NSNumber(value: v)) ?? format(v)
     }
 
     /// Diferencia con signo («+120 €», «−80 €»); lo que redondea a 0 es «0 €».
