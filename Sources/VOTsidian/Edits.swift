@@ -87,11 +87,11 @@ enum Edit {
         var lines = MD.lines(text)
         guard let i = MD.index(of: task.raw, in: lines, near: task.line) else { return nil }
         var l = lines[i]
+        guard let box = l.firstMatch(of: /^(\s*- \[)[ xX](\])/) else { return nil }
+        l = String(box.1) + (done ? "x" : " ") + String(box.2) + l[box.range.upperBound...]
         if done {
-            l = l.replacingOccurrences(of: "- [ ]", with: "- [x]")
             if !l.contains("[completion::") { l += " [completion:: \(DayKey.string(day))]" }
         } else {
-            l = l.replacingOccurrences(of: "- [x]", with: "- [ ]").replacingOccurrences(of: "- [X]", with: "- [ ]")
             l = l.replacingOccurrences(of: #"\s*\[completion::[^\]]*\]"#, with: "", options: .regularExpression)
         }
         lines[i] = l
@@ -144,7 +144,7 @@ extension Edit {
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
         let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
-        lines.insert(prefix + task.text + " 📅 \(DayKey.string(next)) 🔁 every \(rule)", at: i + 1)
+        lines.insert(prefix + task.text + priorityMark(task.priority) + " 📅 \(DayKey.string(next)) 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
     }
 }

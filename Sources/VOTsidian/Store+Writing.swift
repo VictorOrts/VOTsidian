@@ -100,10 +100,11 @@ extension Store {
         } catch { try? fm.removeItem(at: partial) }
     }
 
-    /// Las copias automáticas se llaman `<vault>-auto-AAAA-MM-DD` (más `.dmg` si van cifradas); las manuales y cualquier otra carpeta no se tocan.
+    /// Las copias automáticas de esta carpeta se llaman `<vault>-auto-AAAA-MM-DD` (más `.dmg` si van cifradas); las manuales, las de otras carpetas y cualquier otra cosa no se tocan.
     func autoBackups() -> [URL] {
         let items = (try? FileManager.default.contentsOfDirectory(at: backupsFolder, includingPropertiesForKeys: nil)) ?? []
-        return items.filter { $0.lastPathComponent.range(of: #"-auto-\d{4}-\d{2}-\d{2}(\.dmg)?$"#, options: .regularExpression) != nil }
+        let prefix = "\(vaultName)-auto-"
+        return items.filter { $0.lastPathComponent.hasPrefix(prefix) && $0.lastPathComponent.range(of: #"-auto-\d{4}-\d{2}-\d{2}(\.dmg)?$"#, options: .regularExpression) != nil }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 

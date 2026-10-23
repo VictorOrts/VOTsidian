@@ -61,3 +61,49 @@ import Testing
     PendingSaves.flush()
     #expect(saved == 1 && PendingSaves.actions.isEmpty)
 }
+
+// MARK: - Revisión completa (23 oct 2026)
+
+@Test func recurringTaskKeepsPriorityAndSetTaskOnlyTouchesTheBox() throws {
+    let raw = "- [ ] Regar ⏫ 📅 2026-10-19 🔁 every week"
+    let rec = TaskItem(file: "A.md", line: 0, raw: raw, text: "Regar", due: DayKey.date("2026-10-19"), scheduled: nil, done: false, recurrence: "week", priority: 3)
+    let out = MD.lines(try #require(Edit.completeRecurring(raw, task: rec, today: DayKey.date("2026-10-19")!)))
+    #expect(out[1].contains("⏫"))
+
+    let odd = "- [ ] Revisar la lista «- [ ] algo»"
+    let t = TaskItem(file: "A.md", line: 0, raw: odd, text: "Revisar la lista «- [ ] algo»", due: nil, scheduled: nil, done: false)
+    let done = try #require(Edit.setTask(odd, task: t, done: true, on: DayKey.date("2026-10-19")!))
+    #expect(done.hasPrefix("- [x] Revisar la lista «- [ ] algo»"))
+}
+
+@Test func hugeRelativeNumbersDoNotCrash() throws {
+    let today = try #require(DayKey.date("2026-10-19"))
+    #expect(NaturalDate.extract("llamar en 99999999999999999999 dias", today: today).date == nil)
+    #expect(NaturalDate.extract("llamar en 3 dias", today: today).date.map(DayKey.string) == "2026-10-22")
+}
+
+@Test func weightWithoutGoalHasNoGoalNumbers() {
+    let w = Parse.weight("| Fecha | Peso |\n| --- | --- |\n| 01/09/2026 | 100 |\n| 01/10/2026 | 96 |\n")
+    #expect(!w.hasGoal)
+    #expect(w.remainingKg == nil)
+    #expect(w.projection() == nil)
+    #expect(w.initialKg == 100)
+    #expect(w.lostKg == 4)
+}
+
+@MainActor @Test func tasksAndIdeasCreateTheInboxWhenMissing() throws {
+    let store = try undoVault()
+    #expect(store.readOptional(VaultPath.inbox) == nil)
+    store.addTask("Comprar pan", due: nil)
+    store.addIdea("Una idea")
+    let inbox = try #require(store.readOptional(VaultPath.inbox))
+    #expect(inbox.contains("- [ ] Comprar pan"))
+    #expect(inbox.contains("- Una idea"))
+    #expect(store.tasks.contains { $0.text == "Comprar pan" })
+}
+
+@MainActor @Test func renameOnlyChangingCase() throws {
+    let store = try undoVault()
+    #expect(store.renameNote("B.md", to: "b") == "b.md")
+    #expect(store.read("A.md").contains("[[b]]"))
+}

@@ -144,7 +144,9 @@ extension Store {
         let newRel = (dir.isEmpty ? "" : dir + "/") + clean + ".md"
         let oldName = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
         guard !clean.isEmpty, clean != oldName else { return nil }
-        guard !FileManager.default.fileExists(atPath: url(newRel).path) else { message = "Ya existe una nota llamada \(clean)."; return nil }
+        // En un disco que no distingue mayúsculas, «nota» → «Nota» es el mismo archivo: no es un choque.
+        let caseOnly = newRel.lowercased() == rel.lowercased()
+        guard caseOnly || !FileManager.default.fileExists(atPath: url(newRel).path) else { message = "Ya existe una nota llamada \(clean)."; return nil }
         ensureBackup()
         do { try FileManager.default.moveItem(at: url(rel), to: url(newRel)) }
         catch { message = "No se pudo renombrar: \(error.localizedDescription)"; return nil }

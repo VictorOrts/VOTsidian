@@ -14,6 +14,8 @@ enum Parse {
             d.records.append(WeightRecord(date: date, kg: kg, note: c.count > 2 ? c[2] : "", line: i))
         }
         d.records.sort { $0.date < $1.date }
+        // Sin `peso_inicial_kg`, el punto de partida es el primer pesaje.
+        if d.initialKg == 0, let first = d.records.first { d.initialKg = first.kg }
         return d
     }
 

@@ -62,7 +62,14 @@ extension Store {
         }
     }
 
+    /// En una carpeta nueva el Inbox no existe: se crea antes de la primera tarea o idea.
+    private func ensureInbox() {
+        guard !FileManager.default.fileExists(atPath: url(VaultPath.inbox).path) else { return }
+        writeNote(VaultPath.inbox, text: "# Inbox\n\n## Pendiente de clasificar\n\n## Ideas\n")
+    }
+
     func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0) {
+        ensureInbox()
         edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority) }
     }
 
@@ -80,6 +87,7 @@ extension Store {
 
     /// Añade varias tareas al Inbox en un solo cambio; omite las que ya existen.
     func addTasks(_ items: [(String, Date?)]) {
+        ensureInbox()
         edit(VaultPath.inbox) { text in
             var out: String? = text
             for (t, due) in items where !text.contains("- [ ] \(t)") { out = out.flatMap { Edit.addInboxTask($0, task: t, due: due) } }
@@ -88,7 +96,8 @@ extension Store {
     }
 
     func addIdea(_ text: String) {
-        edit(VaultPath.inbox) { Edit.appendToSection($0, section: "Ideas", line: "- \(text)") }
+        ensureInbox()
+        edit(VaultPath.inbox) { Edit.appendToSection($0, section: "Ideas", line: "- \(text)") ?? Edit.appendToSectionCreating($0, section: "Ideas", lines: ["- \(text)"]) }
     }
 
     /// Copia manual, con hora en el nombre. No se borra sola.

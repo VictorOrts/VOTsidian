@@ -271,7 +271,7 @@ struct InicioView: View {
                         }.font(.callout)
                     }
                 }
-                Sparkline(records: w.records, goal: w.goalKg).frame(height: 70)
+                Sparkline(records: w.records, goal: w.hasGoal ? w.goalKg : nil).frame(height: 70)
                 let days = DayKey.days(from: l.date, to: DayKey.today())
                 if days > 31 {
                     Label("Hace \(days) días que no registras el peso.", systemImage: "exclamationmark.triangle.fill")
@@ -407,10 +407,11 @@ struct InicioView: View {
 
 struct Sparkline: View {
     let records: [WeightRecord]
-    let goal: Double
+    let goal: Double?
 
     var body: some View {
-        let lo = min(goal, records.map(\.kg).min() ?? goal) - 1
+        let kgs = records.map(\.kg)
+        let lo = (kgs + (goal.map { [$0] } ?? [])).min().map { $0 - 1 } ?? 0
         Chart {
             ForEach(records) { r in
                 AreaMark(x: .value("Día", r.date), yStart: .value("Base", lo), yEnd: .value("kg", r.kg))
@@ -419,10 +420,10 @@ struct Sparkline: View {
                 LineMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent).interpolationMethod(.monotone)
             }
             if let l = records.last { PointMark(x: .value("Día", l.date), y: .value("kg", l.kg)).foregroundStyle(Brand.accent).symbolSize(60) }
-            RuleMark(y: .value("Objetivo", goal)).foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            if let goal { RuleMark(y: .value("Objetivo", goal)).foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4])) }
         }
         .chartXAxis(.hidden).chartYAxis(.hidden)
-        .chartYScale(domain: lo...((records.map(\.kg).max() ?? goal) + 1))
+        .chartYScale(domain: lo...((kgs.max() ?? lo) + 1))
         .chartXScale(range: .plotDimension(padding: 6))
     }
 }

@@ -417,6 +417,8 @@ final class Store {
         UserDefaults.standard.set(u.path, forKey: "vaultPath")
         lastBackupDay = nil
         dailyBackupDay = nil
+        undoStack.removeAll()
+        lastChange = nil
         fileCache.removeAll()
         derivedInputs.removeAll()
         reviewCache.removeAll()

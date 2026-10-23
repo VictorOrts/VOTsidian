@@ -50,7 +50,7 @@ enum NaturalDate {
             (#"\bpasado manana\b"#, { _ in DayKey.adding(days: 2, to: today) }),
             (#"\bmanana\b"#, { _ in DayKey.adding(days: 1, to: today) }),
             (#"\bhoy\b"#, { _ in today }),
-            (#"\ben (\d+) (dias?|semanas?|meses?)\b"#, { m in
+            (#"\ben (\d{1,4}) (dias?|semanas?|meses?)\b"#, { m in
                 let n = Int(group(m, 1)!)!
                 let unit = group(m, 2)!
                 if unit.hasPrefix("semana") { return DayKey.adding(days: 7 * n, to: today) }

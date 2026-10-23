@@ -18,7 +18,7 @@ struct PesoView: View {
                 HStack(spacing: 12) {
                     Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { dayLabel($0.date) })
                     Tile(title: "Perdidos", value: fmt(w.lostKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
-                    Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: "objetivo \(fmt(w.goalKg, 0)) kg")
+                    Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: w.hasGoal ? "objetivo \(fmt(w.goalKg, 0)) kg" : "sin objetivo en la nota")
                     Tile(title: "Ritmo reciente", value: rate.map { fmtDelta($0, unit: " kg/mes") } ?? "–", note: "últimos 4 meses")
                 }
 
@@ -119,7 +119,7 @@ struct PesoView: View {
         return s
     }
 
-    private func chartMin(_ w: WeightData) -> Double { min(w.goalKg, w.records.map(\.kg).min() ?? w.goalKg) - 2 }
+    private func chartMin(_ w: WeightData) -> Double { (w.records.map(\.kg).min().map { w.hasGoal ? min($0, w.goalKg) : $0 } ?? w.goalKg) - 2 }
 
     private func mainChart(_ w: WeightData) -> some View {
         Chart {
@@ -142,9 +142,11 @@ struct PesoView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 4]))
                     .annotation(position: .top, alignment: .trailing) { Text("hito \(fmt(m.kg, 0))").font(.caption2).foregroundStyle(.tertiary) }
             }
-            RuleMark(y: .value("Objetivo", w.goalKg)).foregroundStyle(Brand.accent)
-                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                .annotation(position: .top, alignment: .leading) { Text("objetivo \(fmt(w.goalKg, 0)) kg").font(.caption.weight(.semibold)).foregroundStyle(Brand.accent) }
+            if w.hasGoal {
+                RuleMark(y: .value("Objetivo", w.goalKg)).foregroundStyle(Brand.accent)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                    .annotation(position: .top, alignment: .leading) { Text("objetivo \(fmt(w.goalKg, 0)) kg").font(.caption.weight(.semibold)).foregroundStyle(Brand.accent) }
+            }
             if let l = w.last, let p = w.projection() {
                 ForEach([("proy", p.date), ("proyMin", p.earliest), ("proyMax", p.latest)], id: \.0) { id, d in
                     LineMark(x: .value("Día", l.date), y: .value("kg", l.kg), series: .value("s", id)).foregroundStyle(Brand.info.opacity(id == "proy" ? 0.9 : 0.35)).lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 4]))
