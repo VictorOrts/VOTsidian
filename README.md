@@ -41,6 +41,8 @@ La primera vez sale el asistente «Empecemos». En él eliges la carpeta (por de
 - **Plantillas:**
   - 10 de ejemplo: Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro;
   - pueden hacer preguntas al crear la nota (`{{?Destino}}`) y sugerir carpeta.
+
+  ![Las 10 plantillas de ejemplo; las que llevan gráfica, con datos de ejemplo](docs/plantillas.jpg)
 - **Gráficas en una nota:** un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta.
 - **Buscar (⌘K):**
   - notas, tareas y pantallas, con sinónimos («médico» encuentra «doctor») y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»);
