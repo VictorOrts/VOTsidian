@@ -1,149 +1,114 @@
 # VOTsidian
 
-App nativa de macOS (SwiftUI) para llevar peso, Mounjaro, hábitos, revisiones, tareas, calendario, casa, salud y notas sobre una carpeta de archivos Markdown. No necesita Obsidian: lee y escribe los mismos archivos.
+Agenda personal para Mac: tareas, hábitos, revisiones, notas, salud, dinero y casa, todo guardado como notas Markdown en una carpeta tuya. No necesita Obsidian, pero lee y escribe los mismos archivos, así que puedes usar los dos a la vez.
 
-## Usar
+## Empezar
 
 ```bash
-swift run VOTsidian          # desde la terminal
-./scripts/build-app.sh       # crea build/VOTsidian.app (con icono) para abrir con doble clic
-swift test                   # tests
+./scripts/build-app.sh       # crea build/VOTsidian.app para abrirla con doble clic
+swift run VOTsidian          # o ábrela desde la terminal
 ```
 
-La carpeta de notas por defecto es `iCloud Drive/VOTsidian`. Se cambia en Ajustes.
+La primera vez sale el asistente «Empecemos». En él eliges la carpeta (por defecto `iCloud Drive/VOTsidian`) y los módulos que quieres, y la app crea las notas con su formato. El formato de cada nota está en [GUIA.md](GUIA.md).
 
-**Para empezar de cero o explicárselo a otra persona: [GUIA.md](GUIA.md)** (primer arranque, módulos y formato de cada nota).
+## Qué puedes hacer
 
-## Módulos y primer arranque
+### Día a día
+- **Inicio:** saludo, lo que pide atención, lo de hoy y tarjetas de cada módulo. «Personalizar» las reordena y las oculta.
+- **Tareas:**
+  - fecha, prioridad y repetición («cada mes», «cada 2 semanas»);
+  - se escriben en lenguaje natural: «llamar al dentista el viernes», «pagar 25/11»;
+  - «Planificar semana» es un tablero de lunes a domingo donde se arrastran las tareas.
+- **Calendario:** tareas, citas, pagos, cumpleaños y caducidades, con la nota del día, el ánimo y el sueño.
+- **Revisiones:**
+  - semanal, con hábitos y su criterio, cumplimiento y racha;
+  - mensual, con aviso el último día del mes;
+  - «Cerrar el día» repasa lo pendiente y prepara mañana.
+- **Proyectos y Objetivos:** lista o tablero, tareas por proyecto y revisión trimestral.
+- **Captura rápida (⇧⌘N):** tarea, gasto, peso, toma de medicación o idea.
+- **Barra de menús:** tareas y hábitos de hoy, tomas de medicación, ánimo y añadir tareas, sin abrir la ventana.
+- **Avisos:**
+  - dentro de la app, ordenados por urgencia y con botón para resolverlos;
+  - también como eventos de Calendar y notificaciones de macOS (solo en la app compilada).
 
-- Con una carpeta vacía (o sin ninguna nota de los módulos) sale el asistente «Empecemos»: carpeta y módulos que se quieren (peso, medicación, salud, finanzas, casa, compra, ropa, mascota, personas, documentos, objetivos). Crea las notas con su plantilla y oculta el resto. Tareas, calendario, revisiones, proyectos y notas van siempre.
-- La nota de un módulo se crea sola al apuntar lo primero (con deshacer); mientras no existe, su pantalla lo dice con un botón «Crear la nota».
-- **Ajustes → Módulos**: mostrar u ocultar módulos (también quita sus tarjetas de Inicio, sus avisos y sus entradas en ⌘K y en el menú Ir a), crear las notas que falten y cambiar la ruta de cada nota sin `defaults write`.
-- **Medicación**: varios medicamentos en una nota (`## Medicamentos` con dosis, forma, cada cuántos días y horas; `## Registro` con cada toma). Pastillas diarias con una casilla por toma (en la pantalla, en Inicio y en la barra de menús), inyecciones cada N días con zona alternada y «Me pinché hoy», y lo que se toma si hace falta. Avisos por medicamento y hora, cumplimiento de 30 días y resumen para el médico. Una nota de antes (un solo inyectable) se sigue leyendo igual y pasa al formato nuevo al añadir otro medicamento.
-- La mascota toma el nombre de su nota (`nombre:`); una nota de antes sin ese campo sigue saliendo como «Nala».
-- En una carpeta nueva el asistente usa rutas neutras (`Salud/Peso.md`, `Salud/Medicación.md`, `Mascota/Mascota.md`, `Casa/Lista de la compra.md`…, en `VaultPath.fresh`) para las notas que no existen ya en su ruta de siempre; las fotos, los análisis, las citas médicas y «Menú y compra» van junto a su nota. Una carpeta con `Cambio físico/…` sigue igual.
+### Notas
+- **Editor:**
+  - pestañas y guardado automático;
+  - `[[` sugiere notas y `#` sugiere etiquetas;
+  - etiquetas, notas fijadas y exportar a PDF;
+  - si la nota cambia fuera de la app mientras la editas, avisa en vez de pisarla.
+- **Enlaces entre notas:** `![[Nota]]` o `![[Nota#Sección]]` incrustan otra nota y `![[foto.png]]` una imagen. «Enlazada desde» muestra la línea que enlaza, con vista previa.
+- **Plantillas:**
+  - 10 de ejemplo: Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro;
+  - pueden hacer preguntas al crear la nota (`{{?Destino}}`) y sugerir carpeta.
+- **Gráficas en una nota:** un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta.
+- **Buscar (⌘K):**
+  - notas, tareas y pantallas, con sinónimos («médico» encuentra «doctor») y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»);
+  - órdenes directas: `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita endocrino el 29/10`, `cintura 98`, `compra leche y pan`.
+- **Bases, Grafo y Enlaces rotos:**
+  - Bases es una tabla de propiedades por tipo de nota, con filtros y vistas guardadas;
+  - Grafo es el mapa de enlaces;
+  - Enlaces rotos sugiere con qué nota arreglar cada enlace.
 
-## Seguridad de los datos
+### Salud
+- **Peso:**
+  - tendencia suavizada y ritmo de 4 y 2 meses;
+  - fecha estimada de llegada al objetivo, tanto para bajar como para subir;
+  - hitos, cambio entre pesajes, medidas corporales y fotos de progreso.
+- **Correlaciones:** peso, hábitos, ánimo y sueño semana a semana.
+- **Plan nutricional:** calorías y macros, y reparto por comidas.
+- **Medicación:**
+  - varios medicamentos a la vez: pastillas diarias (una casilla por toma), inyecciones cada N días (con la zona alternada) y lo que se toma cuando hace falta;
+  - avisos por medicamento y hora, y cumplimiento de 30 días.
+- **Salud y médicos:**
+  - próximas citas, tratamientos, análisis en PDF y notas de cada visita;
+  - un resumen para copiar y llevar a la consulta.
 
-- Al abrir la app (y antes del primer cambio de cada día) se copia toda la carpeta a la carpeta de copias. Si una copia falla, o la última tiene más de 2 días, sale un aviso.
-- Cada cambio se puede deshacer (⌥⌘Z o el botón del aviso).
-- Los tests de escritura trabajan sobre copias temporales. Para probar con tus notas: `VAULT_COPY=/ruta/a/una/copia swift test`.
+### Dinero
+- **Gastos:**
+  - presupuesto mensual por partidas;
+  - se apunta escribiendo «22 € cena con Ana»: la app adivina la partida y aprende de tus correcciones;
+  - «Puedes gastar hoy», ritmo del mes y lo que sobrará;
+  - pagos fijos con aviso, cargos trimestrales o anuales y fondo de emergencia.
+- **Resumen del año:** ingresos, gastos y ahorro por mes, comparación con el año anterior y peso de cada partida. Se puede guardar como nota.
+- **Finanzas:** eventos y aportaciones (bodas, regalos…) que se dan por pagadas con un clic.
+
+### Casa y vida
+- **Casa:** reformas y compras en lista o tablero, electrodomésticos y tareas de mantenimiento sugeridas según tus aparatos.
+- **Compra:** lista por secciones con casillas.
+- **Ropa:** lo que quieres comprar, con precio, prioridad y estado.
+- **Mascota:** ficha, visitas y vacunas, con aviso de la próxima.
+- **Personas:** cumpleaños y última vez que hablasteis.
+- **Documentos:** caducidades, con aviso 30 días antes.
+
+### Tus datos
+- **Copias de seguridad:**
+  - antes del primer cambio de cada día se copia toda la carpeta (se guardan 14 copias);
+  - se pueden cifrar con contraseña guardada en el Llavero;
+  - aviso si una copia falla o la última es vieja.
+- **Deshacer:** cualquier cambio se deshace con ⌥⌘Z.
+- **Recuperar:** el historial de una nota permite restaurar versiones anteriores, y una copia entera se puede restaurar (antes se guarda el estado actual).
+- **iCloud:** aviso si iCloud duplica una nota por conflicto o si hay archivos sin descargar.
+- **Exportar:** resumen del año en PDF, tus datos en CSV y todas las notas en .zip.
+- **Ajustes → Módulos:** muestra u oculta cada módulo (peso, medicación, gastos, mascota…) y permite cambiar la ruta de cada nota.
 
 ## Atajos
 
-⌘K buscar · ⇧⌘N captura rápida · ⌘1…⌘9 pantallas · ⌘S guardar · ⌥⌘Z deshacer.
+| Atajo | Hace |
+|---|---|
+| ⌘K | Buscar y órdenes rápidas |
+| ⇧⌘N | Captura rápida |
+| ⌘1 … ⌘9 | Ir a una pantalla |
+| ⌘S | Guardar la nota |
+| ⌥⌘Z | Deshacer el último cambio |
+| ⌘T / ⌘W | Nueva pestaña / cerrar pestaña |
 
-## Fechas en lenguaje natural
-
-En la captura rápida, el calendario y Inicio: «llamar al dentista el viernes», «pagar 25/11», «revisar en 3 días», «pagar el alquiler cada mes» (se repite).
-
-## Guardado
-
-Lo que escribes se guarda solo 1,5 s después de dejar de teclear (notas, revisiones, nota del día, propiedades). Los guardados automáticos seguidos se deshacen de una vez. Si una nota cambia fuera de la app mientras la editas, la app avisa en vez de pisarla.
-
-## Buscar (⌘K)
-
-Filtros por tipo (pantallas, notas, tareas, texto), por carpeta y, para tareas, por fecha (vencidas, hoy, 7 días, sin fecha). Flechas ↑↓ para moverse e intro para abrir.
-
-Las copias van a `~/Library/Application Support/VOTsidian/Copias` (Ajustes → «Ver copias en Finder»), fuera de Documentos para que no ocupen iCloud; las que había en `~/Documents/Copias VOTsidian` se mueven solas al abrir. La app conserva las últimas 14 automáticas (`…-auto-AAAA-MM-DD`) y borra las más viejas; las manuales (`…-manual-…`) no se borran solas.
-
-## Qué hay dentro (resumen)
-
-Inicio · Tareas (prioridad, repetición, fechas en lenguaje natural) · Calendario con nota del día, ánimo y sueño · Revisión semanal y mensual · Proyectos, Casa y Moda con vista de lista y de tablero (arrastra para cambiar de estado) · Peso, medidas y fotos · Mounjaro · Salud y médicos · Notas con etiquetas, fijadas, menciones sin enlazar, plantillas propias (carpeta `Plantillas`), exportar a PDF · Bases (tabla de propiedades por tipo) · Grafo · Cerrar el día · ⌘K.
-
-## Notas: pestañas y autocompletado
-
-Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧⌘[ y ⇧⌘] para cambiar; clic derecho en la lista para abrir en pestaña nueva; ⌘+clic en un enlace lo abre en otra pestaña). Las pestañas se recuerdan al reabrir la app. Al editar, `[[` sugiere notas (y ofrece crear la que no existe) y `#` sugiere etiquetas; ↑↓ para elegir, intro o tab para insertar, esc para cerrar.
-
-## Novedades recientes
-
-- **Búsqueda (⌘K)**: varias palabras a la vez, sinónimos (médico = doctor = cita…), operadores `#etiqueta`, `carpeta:casa`, `tipo:evento`, fechas («el viernes» muestra lo de ese día) y resaltado de lo encontrado.
-- **Notas**: `![[Nota]]` y `![[Nota#Sección]]` muestran el contenido de otra nota; `![[imagen.png]]` muestra una imagen.
-- **Plantillas con preguntas**: en `Plantillas/`, `{{?Destino}}` o `{{?Estado|pendiente}}` piden el dato al crear la nota.
-- **Plantillas de ejemplo** (al empezar, desde el asistente, o al crear una nota): Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro. Cada una sugiere su carpeta, y Viaje, Entrenamiento, Comparar opciones y Meta de ahorro traen una gráfica que se dibuja al rellenar su tabla. No pisan plantillas propias con el mismo nombre.
-- **Inicio personalizable**: botón «Personalizar» para reordenar y ocultar tarjetas.
-- **Barra de menús**: panel con peso, pinchazo, tareas de hoy (marcables), hábitos de hoy, ánimo y añadir tareas.
-- **Exportar** (Ajustes): resumen del año en PDF, datos en CSV (peso, pinchazos, medidas, hábitos, tareas, gastos, ánimo y sueño) y todas las notas en .zip.
-- **Rendimiento**: la app solo vuelve a leer los archivos que cambian y vigila la carpeta con FSEvents (recarga al instante cuando algo cambia fuera).
-
-- **Peso**: la fecha estimada de llegada usa la tendencia suavizada y muestra un rango (ritmo de 2 meses, 4 meses o todo el historial), también dibujado en la gráfica.
-- **Bases**: filtros por propiedad (contiene, es, no es, vacía, con valor), orden pulsando la cabecera y vistas guardadas por tipo (menú «Vistas»).
-- **Notas**: «Enlazada desde» muestra la línea que enlaza, y al pasar el ratón sobre un enlace del panel sale una vista previa de esa nota.
-
-- **Fiabilidad** (octubre 2026): las fechas imposibles («31/2», «el 31» en un mes de 30 días) ya no se convierten en otra fecha; al cerrar la app (⌘Q) se guarda lo que el autoguardado aún no había guardado; renombrar una nota actualiza también los enlaces con carpeta (`[[Salud/Médico]]`) o con otras tildes y mayúsculas; borrar una nota no quita los enlaces si queda otra con el mismo nombre; el grafo se actualiza al añadir enlaces; las notas con saltos de línea de Windows se leen bien; los avisos del sistema se reprograman cada día aunque la app siga abierta.
-
-- **Gastos** (octubre 2026): «Puedes gastar hoy» resta lo gastado hoy (antes un gasto grande apenas lo movía); devoluciones («devolución 30 Zara», «reembolso 15 Amazon») restan de su partida («abono transporte 20» sigue siendo un gasto); doble clic en un movimiento para corregir importe, fecha o nota (con fecha de otro mes pasa a esa nota); buscador y total en Movimientos; los movimientos con una partida que no está en la tabla dicen cuál es y se puede crear con un clic; un pago marcado antes de su día ya no cuenta en «Hoy quedan»; la meta del fondo usa un mes típico (el seguro anual cuenta 1/12 cada mes); al cerrar un mes, los fijos sin marcar se avisan y no se pasan al fondo, y la primera quincena del mes siguiente ese cierre sale también en el mes en curso; al corregir una partida ya no se aprenden palabras que son de otra partida («seguro»), y renombrar una partida conserva lo aprendido; «2 cafés 3,50» toma 3,50 y «€12 pan» deja la nota limpia; deshacer el primer gasto de un mes quita también la nota creada; `gastos.csv` en la exportación.
-
-- **Gastos → Año**: resumen anual sacado de las notas de cada mes, con mes, ingresos, gastos (sin el ahorro) y lo que queda. Tiene una gráfica de barras por mes (al pasar el ratón por un mes salen sus cifras) y una tabla; pulsar un mes lo abre. «Guardar en nota» deja la tabla en `Finanzas/Gastos/Resumen AAAA.md`, con enlaces a cada mes; al actualizarla se conserva lo que escribas en «## Comentarios», y la app avisa si la nota se ha quedado atrás. Un mes creado por adelantado sale como «previsto», con lo previsto de cada partida (o lo ya pagado, si es más).
-
-- **Gastos y Finanzas** (más): si el mes actual no tiene nota pero otro sí (p. ej. noviembre preparado en octubre), Gastos, Inicio y Finanzas ofrecen «Ver noviembre»; Finanzas resume el año («En 2026: ingresos · gastos · queda») con un botón al resumen; una aportación de evento se da por pagada con un clic («Ya pagada: apuntar en Gastos»), que la apunta como gasto y pone el evento en pagado (se deshace de una vez); en Ingresos se pueden añadir y quitar conceptos; aviso de partidas con 0 € previstos; la exportación incluye `resumen_mensual.csv`.
-- **Gastos → Año** (acabado): tasa de ahorro por mes y del año (lo que queda sobre lo que entró) y lo apartado en partidas de ahorro; «Gastos frente a 2025» compara los meses acabados con los mismos del año anterior; línea discontinua con el gasto medio en la gráfica; tarjeta «Por partida» con previsto, gastado, diferencia y peso de cada partida en el año (las 8 principales o todas). La nota del resumen incluye la columna «% ahorro» y la sección «## Por partida», y la exportación añade `resumen_partidas.csv`.
-- **Detalles visuales**: fechas con año cuando no son de este año (tareas, avisos, notas, Bases); «1 día», «1 pinchazo», «1 evento» en singular; la leyenda del Calendario ya no parte «pinchazo» y baja de línea si no cabe; los selectores Tablas/Tablero y Lista/Tablero quedan alineados.
-
-## Gráficas en una nota
-
-Un bloque de código `grafica` dibuja una tabla de la misma nota (en Obsidian se sigue viendo como código):
-
-````markdown
-```grafica
-tabla: Sueño
-x: Fecha
-y: Horas, Ánimo
-tipo: linea
-titulo: Cómo duermo
-```
-````
-
-- `tipo`: `linea` (por defecto), `barras`, `area`, `puntos` o `tarta`.
-- `tabla`: título de la sección donde está la tabla; sin él, la primera tabla de la nota.
-- `x`: columna del eje horizontal; sin ella, la primera. Si son fechas (`01/10/2026` o `2026-10-01`), el eje es de tiempo y se ordena.
-- `y`: columnas a dibujar, separadas por comas; sin ellas, todas las que tienen números (hasta 8). Se entienden «7,5», «1.234,5» y unidades detrás («12,50 €», «7,5 h»), que salen en la gráfica.
-- En barras y tartas por categoría, las filas con la misma categoría se suman (p. ej. varios gastos de «Comida»). La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
-- Al pasar el ratón salen los valores de ese punto. Si algo no cuadra (no hay tabla, falta una columna), la nota lo dice en lugar de la gráfica.
-
-## Recuperar versiones y enlaces rotos
-
-- **Historial de una nota** (Notas → ⋯ → Historial…): cada versión distinta de la nota en las copias de seguridad, comparada línea a línea con la actual (rojo: estaba y ya no; verde: añadido después). «Restaurar esta versión» se deshace con ⌥⌘Z. Las copias cifradas se abren con la contraseña del Llavero; las de otra contraseña se cuentan aparte.
-- **Restaurar una copia entera** (Ajustes → Copias de seguridad): lista de copias con «Abrir» (Finder; las cifradas piden la contraseña) y «Restaurar…». Antes de restaurar se guarda una copia `…-antes-de-restaurar` del estado actual, que es la forma de volver atrás. Las notas creadas después de la copia se conservan.
-- **Enlaces rotos** (Conocimiento → Enlaces rotos): los `[[…]]` que no llevan a ninguna nota, agrupados por nota, con hasta tres notas de nombre parecido para cambiar el enlace con un clic, «Crear nota» (en la misma carpeta) y la lista de notas sin ningún enlace.
-
-## Órdenes rápidas (⌘K)
-
-Escribe una orden y pulsa intro: `peso 105,5` · `peso 105,5 ayer` · `ánimo 4` · `dormí 7,5` · `pinchazo hoy` · `tarea llamar al dentista el viernes urgente` · `idea …` · `nota …` (a la nota de hoy) · `cita endocrino el 29/10` · `cintura 98,5` · `compra leche, huevos y pan`.
-
-## Compra y mantenimiento
-
-- **Compra**: lista con casillas por secciones (`Cambio físico/Lista de la compra.md`), se genera desde la sección «Lista de la compra» de Menú y compra. No cuenta como tareas.
-- **Casa → Mantenimiento del hogar**: sugerencias según tus aparatos (lavadora, lavavajillas, cafetera…) que se añaden como tareas que se repiten solas.
-
-## Planificar la semana
-
-- **Planificar semana**: tablero de lunes a domingo; arrastra tareas entre días, a «Sin fecha» o desde «Vencidas». Marca los días con más de 5 tareas.
-
-## Avisos del sistema y conflictos de iCloud
-
-- **Avisos → «Avisos del sistema»**: programa notificaciones de macOS para los próximos 30 días (máx. 60) con el mismo plan que el calendario. Solo funcionan en la app (`./scripts/build-app.sh`), no con `swift run`. Se reprograman al abrir la app.
-- **Conflictos de iCloud**: si aparece `Nota 2.md` junto a `Nota.md` (o una «copia en conflicto»), sale un aviso en Inicio/Avisos para que compares y borres una.
-
-## Otra estructura de carpetas
-
-Las rutas de los archivos que usa cada pantalla (peso, Mounjaro, Inbox…) están en `VaultPath` y se cambian en Ajustes → Módulos → Rutas de las notas. También desde la terminal:
+## Desarrollo
 
 ```bash
-defaults write com.victor.votsidian vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"
+swift test                                        # tests (trabajan sobre copias temporales)
+VAULT_COPY=/ruta/a/tus/notas swift test           # además, tests sobre una copia de tus notas
+VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas de todas las pantallas
 ```
 
-Claves: peso, medicacion, plan, proyecto, mascota, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas. Una carpeta es válida si tiene el archivo de peso o cualquier nota; las pantallas sin su archivo salen vacías.
-
-## Estructura del código
-
-`Store` (estado de la app) se reparte en extensiones: `Store+Scan` (leer la carpeta, también en segundo plano), `Store+Writing` (escritura y copias), `Store+Undo`, `Store+Links`, `Store+Notes`, etc. Los modelos y parsers están en `Models`, `Parsers`, `CasaEnlaces`, `Tablas` y `Medidas`; las ediciones puras de texto en `Edits` y `Templates`.
-
-## Próximas funcionalidades
-
-Ideas pendientes, por orden de prioridad:
-
-1. **Atajos y Siri (App Intents)**: «Anotar peso», «Añadir tarea» o «Pinchazo hoy» desde Atajos, reutilizando las órdenes rápidas de ⌘K. Solo en la app compilada con `build-app.sh`.
-2. **Plantilla del diario**: `Plantillas/Diario.md` se aplica al crear la nota de cada día.
-3. **Tareas con hora** (`⏰ 10:30`): el aviso del sistema salta a esa hora y no a las 9.
-4. **Citas del Calendario de macOS** (EventKit) en Inicio y en la barra de menús, junto a las tareas del vault.
+Para firmar de verdad: `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh`; sin él, usa tu certificado «Apple Development».

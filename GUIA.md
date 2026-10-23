@@ -204,7 +204,29 @@ En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar 
 
 ## Gráficas en una nota
 
-Puedes dibujar cualquier tabla de una nota con un bloque `grafica`. Está explicado en el [README](README.md#gráficas-en-una-nota).
+Un bloque de código `grafica` dibuja una tabla de la misma nota. En Obsidian se sigue viendo como código.
+
+````markdown
+```grafica
+tabla: Sueño
+x: Fecha
+y: Horas, Ánimo
+tipo: linea
+titulo: Cómo duermo
+```
+````
+
+Todas las líneas son opcionales:
+- **`tipo`:** `linea` (la de por defecto), `barras`, `area`, `puntos` o `tarta`.
+- **`tabla`:** el título de la sección donde está la tabla. Sin él, la primera tabla de la nota.
+- **`x`:** la columna del eje horizontal. Sin ella, la primera. Si son fechas (`01/10/2026` o `2026-10-01`), el eje es de tiempo y se ordena.
+- **`y`:** las columnas que se dibujan, separadas por comas. Sin ellas, todas las que tienen números (hasta 8).
+
+La app entiende números como «7,5», «1.234,5» y unidades detrás («12,50 €», «7,5 h»), y muestra la unidad en la gráfica.
+
+En barras y tartas por categoría, las filas con la misma categoría se suman (por ejemplo, varios gastos de «Comida»). La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
+
+Si falta algo (la tabla o una columna), la nota lo dice en lugar de la gráfica.
 
 ## Copias y deshacer
 
