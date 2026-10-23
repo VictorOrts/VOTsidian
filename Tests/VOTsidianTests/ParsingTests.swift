@@ -234,7 +234,7 @@ import Testing
 @Test func moreReminderEvents() {
     let people = [Person(name: "Sergio", relation: "", birthday: "1990-10-17", lastContact: nil, line: 1)]
     let src = ReminderSources(people: people, documents: [("Pasaporte", DayKey.date("2026-12-01")!)], events: [("Boda", DayKey.date("2026-11-20")!)])
-    let ev = ICS.events(src, plan: ReminderPlan(medicacion: false, review: false, monthlyWeight: false, tasks: false, mascota: false), today: DayKey.date("2026-10-19")!)
+    let ev = ICS.events(src, plan: ReminderPlan(medicacion: false, review: false, monthlyWeight: false, tasks: false, mascota: false, monthlyReview: false), today: DayKey.date("2026-10-19")!)
     #expect(ev.count == 3)
     let ics = ICS.build(ev)
     #expect(ics.contains("RRULE:FREQ=YEARLY") && ics.contains("TRIGGER:-P30D") && ics.contains("TRIGGER:-P7D"))

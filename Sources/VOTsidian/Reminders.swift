@@ -15,17 +15,23 @@ struct ReminderPlan: Equatable {
     var documents = true
     var events = true
     var payments = true
+    /// Revisión mensual, el último día del mes.
+    var monthlyReview = true
+    var monthlyReviewMinutes = 19 * 60
 
     /// El plan guardado en Avisos (mismas claves y valores por defecto que `RemindersView`).
     static var stored: ReminderPlan {
         let d = UserDefaults.standard
         func flag(_ k: String) -> Bool { d.object(forKey: k) as? Bool ?? true }
         func int(_ k: String, _ v: Int) -> Int { d.object(forKey: k) as? Int ?? v }
-        return ReminderPlan(medicacion: flag("remMounjaro"), medicacionMinutes: int("remMounjaroMin", 540),
+        var plan = ReminderPlan(medicacion: flag("remMounjaro"), medicacionMinutes: int("remMounjaroMin", 540),
                             review: flag("remReview"), reviewWeekday: int("remReviewDay", 1), reviewMinutes: int("remReviewMin", 1140),
                             monthlyWeight: flag("remWeight"), weightMinutes: int("remWeightMin", 540),
                             tasks: flag("remTasks"), mascota: flag("remNala"), birthdays: flag("remBirthdays"),
                             documents: flag("remDocs"), events: flag("remEvents"), payments: flag("remPayments"))
+        plan.monthlyReview = flag("remMonthReview")
+        plan.monthlyReviewMinutes = int("remMonthReviewMin", 1140)
+        return plan
     }
 }
 
@@ -97,6 +103,13 @@ enum ICS {
                                 notes: "Marca hábitos, logros y tres objetivos de la semana.",
                                 start: DayKey.adding(days: delta, to: today), minutes: plan.reviewMinutes,
                                 rule: "FREQ=WEEKLY;BYDAY=\(codes[plan.reviewWeekday - 1])"))
+        }
+        if plan.monthlyReview {
+            let first = cal.dateInterval(of: .month, for: today)!.start
+            let end = DayKey.adding(days: -1, to: cal.date(byAdding: .month, value: 1, to: first)!)
+            out.append(ICSEvent(uid: "revision-mensual", title: "Revisión mensual",
+                                notes: "Logros, lo que no salió y tres objetivos para el mes siguiente (20 minutos).",
+                                start: end, minutes: plan.monthlyReviewMinutes, rule: "FREQ=MONTHLY;BYMONTHDAY=-1"))
         }
         if plan.monthlyWeight {
             let first = cal.dateInterval(of: .month, for: today)!.start

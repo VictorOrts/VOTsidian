@@ -98,6 +98,16 @@ extension Store {
         if !conflicts.isEmpty {
             out.append(Alert(level: .soon, icon: "exclamationmark.triangle", text: "\(conflicts.count) \(conflicts.count == 1 ? "posible copia en conflicto" : "posibles copias en conflicto") de iCloud: \(conflicts.prefix(2).map(\.name).joined(separator: ", "))", screen: .notas))
         }
+        // Revisión mensual: los dos últimos días del mes y los tres primeros del siguiente, mientras siga vacía.
+        let cal = DayKey.calendar()
+        let dayOfMonth = cal.component(.day, from: today), monthDays = cal.range(of: .day, in: .month, for: today)?.count ?? 30
+        if let month = dayOfMonth >= monthDays - 1 ? today : dayOfMonth <= 3 ? DayKey.adding(days: -dayOfMonth, to: today) : nil {
+            let key = Budget.monthKey(month)
+            let r = monthReview(key)
+            if (r?.logros ?? "").isEmpty, (r?.noSalio ?? "").isEmpty {
+                out.append(Alert(level: .info, icon: "calendar.badge.clock", text: "Revisión mensual de \(Budget.title(key).lowercased()) sin hacer", screen: .mes))
+            }
+        }
         let wk = DayKey.weekKey(today)
         let weekday = Calendar(identifier: .iso8601).component(.weekday, from: today)
         if let r = reviews[wk], r.totalDone == 0, weekday == 1 || weekday >= 5 {

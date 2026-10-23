@@ -7,6 +7,8 @@ struct RemindersView: View {
     @AppStorage("remReview") private var review = true
     @AppStorage("remReviewDay") private var reviewDay = 1
     @AppStorage("remReviewMin") private var reviewMin = 1140
+    @AppStorage("remMonthReview") private var monthReview = true
+    @AppStorage("remMonthReviewMin") private var monthReviewMin = 1140
     @AppStorage("remWeight") private var weightOn = true
     @AppStorage("remWeightMin") private var weightMin = 540
     @AppStorage("remTasks") private var tasksOn = true
@@ -28,7 +30,8 @@ struct RemindersView: View {
     private var plan: ReminderPlan {
         ReminderPlan(medicacion: medicacion, medicacionMinutes: medicacionMin, review: review, reviewWeekday: reviewDay, reviewMinutes: reviewMin,
                      monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, mascota: mascotaOn,
-                     birthdays: birthdays, documents: docs, events: eventsOn, payments: payments)
+                     birthdays: birthdays, documents: docs, events: eventsOn, payments: payments,
+                     monthlyReview: monthReview, monthlyReviewMinutes: monthReviewMin)
     }
 
     /// Fila de un aviso: nombre, sus ajustes (día, hora) y el interruptor, todo en la misma línea.
@@ -68,6 +71,8 @@ struct RemindersView: View {
                             }.labelsHidden().fixedSize()
                             hour($reviewMin)
                         }
+                        Divider()
+                        row("Revisión mensual (último día del mes)", $monthReview) { hour($monthReviewMin) }
                         Divider()
                         if store.isVisible(.peso) {
                             row("Pesaje mensual (último día del mes)", $weightOn) { hour($weightMin) }

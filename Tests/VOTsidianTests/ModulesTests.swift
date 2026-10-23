@@ -173,3 +173,14 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     #expect(VaultPath.normalized(["nala": "Gatos/Misi.md", "peso": "Salud/Báscula.md"]) == ["mascota": "Gatos/Misi.md", "peso": "Salud/Báscula.md"])
     #expect(VaultPath.normalized(["mounjaro": "A.md", "medicacion": "B.md"]) == ["medicacion": "B.md"])
 }
+
+@MainActor @Test func monthlyReviewIsRemindedAtTheEndOfTheMonth() throws {
+    let store = Store(root: try syntheticVault())
+    let ev = ICS.events(ReminderSources(), plan: ReminderPlan(), today: try #require(DayKey.date("2026-10-12")))
+    #expect(ev.first { $0.uid == "revision-mensual" }.map { DayKey.string($0.start) } == "2026-10-31")
+    func says(_ d: String) throws -> Bool { store.alerts(today: try #require(DayKey.date(d))).contains { $0.text.hasPrefix("Revisión mensual de") } }
+    #expect(try !says("2026-10-20"))
+    #expect(try says("2026-10-30") && says("2026-11-02"))   // también los primeros días del mes siguiente
+    #expect(store.alerts(today: try #require(DayKey.date("2026-11-02"))).contains { $0.text == "Revisión mensual de octubre de 2026 sin hacer" })
+    #expect(try !says("2026-11-05"))
+}
