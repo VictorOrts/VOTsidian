@@ -78,13 +78,9 @@ extension Store {
         return (body, folder)
     }
 
+    /// Copia las plantillas de ejemplo que falten a la carpeta Plantillas. Las que ya existen no se tocan.
     func createSampleTemplates() {
-        let samples: [(String, String)] = [
-            ("Reunión", "---\nplantilla_carpeta: Proyectos\ntipo: reunion\nfecha: {{fecha}}\ntags:\n  - reunion\n---\n\n# {{titulo}}\n\n**Fecha:** {{fecha}} {{hora}}\n**Con:** {{?Con quién}}\n\n## Temas\n- \n\n## Decisiones\n- \n\n## Tareas\n- [ ] \n"),
-            ("Lectura", "---\ntipo: lectura\nautor: {{?Autor}}\nestado: {{?Estado|pendiente}}\nvaloracion: \ntags:\n  - lectura\n---\n\n# {{titulo}}\n\n## Por qué quiero leerlo\n\n## Notas\n- \n\n## Frases\n> \n"),
-            ("Idea", "---\ntipo: idea\nfecha: {{fecha}}\ntags:\n  - idea\n---\n\n# {{titulo}}\n\n## La idea\n\n## Para qué sirve\n\n## Primer paso\n- [ ] \n"),
-            ("Viaje", "---\nplantilla_carpeta: Proyectos\ntipo: viaje\nestado: idea\nfecha_inicio: {{?Fecha de salida (AAAA-MM-DD)}}\nfecha_fin: {{?Fecha de vuelta (AAAA-MM-DD)}}\ntags:\n  - viaje\n---\n\n# {{titulo}}\n\n**Destino:** {{?Destino}}\n\n## Plan\n- \n\n## Reservas\n- [ ] Alojamiento\n- [ ] Transporte\n\n## Presupuesto\n| Concepto | Importe |\n| :--- | ---: |\n|  |  |\n"),
-        ]
+        let samples = SampleTemplates.all
         do {
             try FileManager.default.createDirectory(at: url(Store.templatesFolder), withIntermediateDirectories: true)
             for (n, t) in samples where !FileManager.default.fileExists(atPath: url("\(Store.templatesFolder)/\(n).md").path) {

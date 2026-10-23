@@ -60,6 +60,7 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 - **Búsqueda (⌘K)**: varias palabras a la vez, sinónimos (médico = doctor = cita…), operadores `#etiqueta`, `carpeta:casa`, `tipo:evento`, fechas («el viernes» muestra lo de ese día) y resaltado de lo encontrado.
 - **Notas**: `![[Nota]]` y `![[Nota#Sección]]` muestran el contenido de otra nota; `![[imagen.png]]` muestra una imagen.
 - **Plantillas con preguntas**: en `Plantillas/`, `{{?Destino}}` o `{{?Estado|pendiente}}` piden el dato al crear la nota.
+- **Plantillas de ejemplo** (al empezar, desde el asistente, o al crear una nota): Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro. Cada una sugiere su carpeta, y Viaje, Entrenamiento, Comparar opciones y Meta de ahorro traen una gráfica que se dibuja al rellenar su tabla. No pisan plantillas propias con el mismo nombre.
 - **Inicio personalizable**: botón «Personalizar» para reordenar y ocultar tarjetas.
 - **Barra de menús**: panel con peso, pinchazo, tareas de hoy (marcables), hábitos de hoy, ánimo y añadir tareas.
 - **Exportar** (Ajustes): resumen del año en PDF, datos en CSV (peso, pinchazos, medidas, hábitos, tareas, gastos, ánimo y sueño) y todas las notas en .zip.

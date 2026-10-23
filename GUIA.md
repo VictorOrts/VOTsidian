@@ -200,7 +200,7 @@ En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar 
 
 - **Revisión semanal:** `Revisiones/AAAA-Wnn.md`, con los hábitos de la semana.
 - **Nota del día:** `Diario/AAAA-MM-DD.md`, con el ánimo y el sueño.
-- **Plantillas propias:** van en la carpeta `Plantillas/`. Una plantilla puede hacer preguntas al crear la nota, con `{{?Pregunta}}`.
+- **Plantillas:** van en la carpeta `Plantillas/`. El asistente puede crear 10 de ejemplo (Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro); también se crean desde «Nueva nota». Una plantilla puede hacer preguntas al crear la nota (`{{?Pregunta}}` o `{{?Pregunta|valor por defecto}}`) y sugerir carpeta con `plantilla_carpeta:` en el encabezado.
 
 ## Gráficas en una nota
 

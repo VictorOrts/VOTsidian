@@ -96,3 +96,28 @@ import Testing
     let data = try Data(contentsOf: pdf)
     #expect(data.count > 2000 && String(decoding: data.prefix(5), as: UTF8.self) == "%PDF-")
 }
+
+@MainActor @Test func sampleTemplatesAreUsable() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("plantillas-\(UUID().uuidString)")
+    let store = Store(root: tmp.appendingPathComponent("V"), backups: tmp.appendingPathComponent("C"))
+    store.setUp(modules: [], templates: true)
+    #expect(store.userTemplates() == SampleTemplates.names.sorted())
+    for name in SampleTemplates.names {
+        let answers = Dictionary(uniqueKeysWithValues: store.templateQuestions(name).map { ($0.label, "X") })
+        let t = try #require(store.userTemplate(name, title: "Prueba", answers: answers), "\(name)")
+        #expect(!t.body.contains("{{") && !t.body.contains("plantilla_carpeta") && t.body.contains("# Prueba"), "\(name)")
+        #expect(!MD.frontmatter(t.body).isEmpty, "\(name)")
+        // las gráficas apuntan a una tabla que existe en la propia plantilla
+        for case .chart(let spec) in MDParser.blocks(t.body) {
+            if case .failure(let p) = NoteChart.data(NoteChart.spec(spec), tables: Parse.tables(t.body)) {
+                #expect(p.message.hasPrefix("Todavía no hay números"), "\(name): \(p.message)")
+            }
+        }
+    }
+    #expect(store.templateQuestions("Viaje").map(\.label) == ["Destino", "Fecha de salida (AAAA-MM-DD)", "Fecha de vuelta (AAAA-MM-DD)"])
+    #expect(store.userTemplate("Receta", title: "Lentejas")?.body.contains("**Raciones:** 2") == true)   // valor por defecto
+    // no pisa una plantilla propia con el mismo nombre
+    try "mía".write(to: store.url("Plantillas/Idea.md"), atomically: true, encoding: .utf8)
+    store.createSampleTemplates()
+    #expect(store.read("Plantillas/Idea.md") == "mía")
+}

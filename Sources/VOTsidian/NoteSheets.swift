@@ -36,7 +36,7 @@ struct NewNoteSheet: View {
                 }
             }
             if store.userTemplates().isEmpty {
-                Button("Crear plantillas de ejemplo (Reunión, Lectura, Idea, Viaje)") { store.createSampleTemplates() }.buttonStyle(.accentLink).font(.caption)
+                Button("Crear plantillas de ejemplo (\(SampleTemplates.names.joined(separator: ", ")))") { store.createSampleTemplates() }.buttonStyle(.accentLink).font(.caption)
             } else {
                 Text("Tus plantillas están en la carpeta Plantillas. Variables: {{titulo}} {{fecha}} {{hora}} {{dia}} {{semana}}.").font(.caption).foregroundStyle(.secondary)
             }

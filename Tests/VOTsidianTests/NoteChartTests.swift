@@ -79,7 +79,7 @@ tabla: Sueño
     #expect(problem("tabla: Sueño\ny: Pasos") == "No encuentro la columna «Pasos».")
     #expect(problem("tabla: Sueño\nx: Hora") == nil)   // «Hora» encuentra «Horas»
     #expect(problem("", "| A | B |\n|---|---|\n| x | y |\n")?.hasPrefix("No hay columnas con números") == true)
-    #expect(problem("y: B", "| A | B |\n|---|---|\n| x | y |\n") == "No hay números en «B».")
+    #expect(problem("y: B", "| A | B |\n|---|---|\n| x | y |\n") == "Todavía no hay números en «B»: la gráfica sale al rellenar la tabla.")
 }
 
 @Test func chartNumericCells() {

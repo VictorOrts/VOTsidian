@@ -37,6 +37,7 @@ struct WelcomeView: View {
     @Environment(Store.self) private var store
     @State private var chosen = Module.suggested
     @State private var pet = ""
+    @State private var templates = true
 
     var body: some View {
         ScrollView {
@@ -61,12 +62,19 @@ struct WelcomeView: View {
                     }
                     if chosen.contains(.mascota) { TextField("Nombre de tu mascota", text: $pet).frame(width: 240) }
                 }
+                Toggle(isOn: $templates) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Crear plantillas de ejemplo para notas")
+                        Text(SampleTemplates.names.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.checkbox)
                 HStack {
                     Text("\(plural(chosen.count, "módulo", "módulos")) · \(plural(store.notes.isEmpty ? chosen.count + 1 : chosen.reduce(0) { $0 + store.missingFiles($1).count }, "nota nueva", "notas nuevas"))")
                         .font(.callout).foregroundStyle(.secondary)
                     Spacer()
                     Button("Crear notas y empezar") {
-                        store.setUp(modules: chosen, petName: pet)
+                        store.setUp(modules: chosen, petName: pet, templates: templates)
                         store.screen = .inicio
                     }
                     .buttonStyle(.borderedProminent).controlSize(.large)

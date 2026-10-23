@@ -403,7 +403,7 @@ extension Store {
     }
 
     /// Lo que hace el asistente del principio: crea la carpeta y las notas de los módulos elegidos y oculta el resto.
-    func setUp(modules: Set<Module>, petName: String? = nil) {
+    func setUp(modules: Set<Module>, petName: String? = nil, templates: Bool = false) {
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         // Las rutas son de la app, no de la carpeta: en los tests (raíz explícita) no se tocan.
         if persistsModules {
@@ -413,6 +413,7 @@ extension Store {
         let inbox = VaultPath.inbox
         if !exists(inbox), let t = Starter.text(forKey: "inbox") { writeNote(inbox, text: t) }
         createStarterNotes(Module.allCases.filter(modules.contains), petName: petName)
+        if templates { createSampleTemplates() }
         hiddenModules = Set(Module.allCases).subtracting(modules)
         modulesConfigured = true
         undoStack.removeAll()   // lo recién creado no es un cambio que deshacer

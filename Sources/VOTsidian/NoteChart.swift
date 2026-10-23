@@ -187,7 +187,7 @@ enum NoteChart {
         if byDate { points.sort { ($0.date ?? .distantPast, $0.id) < ($1.date ?? .distantPast, $1.id) } }
         for i in points.indices { points[i].id = i }
         guard !points.isEmpty else {
-            return .failure("No hay números en \(ys.map { "«\(table.header[$0])»" }.joined(separator: ", ")).")
+            return .failure("Todavía no hay números en \(ys.map { "«\(table.header[$0])»" }.joined(separator: ", ")): la gráfica sale al rellenar la tabla.")
         }
         var units: [String: String] = [:]
         for i in ys { units[table.header[i]] = unit(table.rows.map { cell($0, i) }) }
