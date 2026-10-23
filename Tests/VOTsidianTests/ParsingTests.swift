@@ -93,8 +93,9 @@ import Testing
     let tasks = Parse.tasks("- [ ] Dentista 📅 2026-10-20", file: "x.md")
     let today = DayKey.date("2026-10-19")!
     let ev = ICS.events(ReminderSources(medicacion: m, tasks: tasks), plan: ReminderPlan(), today: today)
-    #expect(ev.first { $0.uid == "medicacion" }?.rule == "FREQ=DAILY;INTERVAL=9")
-    #expect(DayKey.string(ev.first { $0.uid == "medicacion" }!.start) == "2026-10-19") // atrasado: empieza hoy
+    let med = ev.first { $0.uid.hasPrefix("med-") }
+    #expect(med?.rule == "FREQ=DAILY;INTERVAL=9" && med?.title == "Pinchazo Mounjaro (7,5 mg)")
+    #expect(med.map { DayKey.string($0.start) } == "2026-10-19") // atrasado: empieza hoy
     #expect(ev.contains { $0.title == "Dentista" && $0.minutes == nil })
     let ics = ICS.build(ev)
     #expect(ics.contains("DTSTART;VALUE=DATE:20261020"))

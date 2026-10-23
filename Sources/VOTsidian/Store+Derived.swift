@@ -47,7 +47,7 @@ extension Store {
     }
 
     func addDose(date: Date, dose: Double, site: String, note: String) {
-        edit(VaultPath.medicacion) { Edit.addDose($0, date: date, dose: dose, site: site, note: note) }
+        edit(VaultPath.medicacion) { Edit.addDose($0, date: date, dose: dose, site: site, note: note, med: medicacion.main?.name ?? "") }
     }
 
     func addMascotaVisit(date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) {
@@ -73,9 +73,10 @@ extension Store {
         edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority) }
     }
 
-    /// Registra el pinchazo de hoy con la última dosis y el lado contrario al anterior.
-    func injectToday() {
-        addDose(date: DayKey.today(), dose: medicacion.last?.mg ?? 7.5, site: medicacion.suggestedSite, note: "")
+    /// Registra la toma de hoy del medicamento periódico, con su última dosis y, si es inyección, el lado contrario al anterior.
+    func injectToday(date: Date = DayKey.today(), note: String = "") {
+        guard let m = medicacion.main else { message = "No hay ningún medicamento periódico en \(VaultPath.medicacion)."; return }
+        take(m, date: date, dose: medicacion.last?.dose ?? m.dose, site: m.isInjection ? medicacion.suggestedSite : "", note: note)
     }
 
     /// Modo "añadir fila" detrás de la fila `last` de una tabla.

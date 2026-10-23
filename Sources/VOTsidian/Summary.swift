@@ -18,12 +18,20 @@ extension Store {
             l.append("")
         }
         let m = medicacion
-        if let last = m.last {
-            l.append("MEDICACIÓN · \(m.name)")
-            l.append("- Dosis actual: \(last.dose) cada \(m.everyDays) días. Último pinchazo: \(DayKey.dmy(last.date)) (\(last.site))")
-            if let first = m.doses.first { l.append("- \(plural(m.doses.count, "pinchazo", "pinchazos")) desde \(DayKey.dmy(first.date))") }
-            for p in m.periods(weights: w.records) {
-                l.append("- \(MD.formatNumber(p.mg, comma: true)) mg desde \(DayKey.dmy(p.start)): \(p.count) pinchazos" + (p.lostKg.map { ", \(fmt($0)) kg perdidos" } ?? "") + (p.kgPerMonth.map { " (\(fmt($0)) kg/mes)" } ?? ""))
+        if !m.active().isEmpty {
+            l.append("MEDICACIÓN")
+            for med in m.active() {
+                let last = m.last(of: med)
+                var line = "- \(med.name)" + ([last?.dose ?? med.dose, med.form.lowercased()].filter { !$0.isEmpty }.map { " · \($0)" }.joined()) + " · \(med.frequencyText.lowercased())"
+                if let last, !med.asNeeded { line += ". Última \(med.act): \(DayKey.dmy(last.date))" + (last.site.isEmpty ? "" : " (\(last.site))") }
+                if let a = m.adherence(med) { line += ". Tomas completas \(a.done) de los últimos \(a.total) días" }
+                l.append(line)
+            }
+            if let main = m.main, let first = m.doses.first {
+                l.append("- \(main.name): \(plural(m.doses.count, main.act, main.act + "s")) desde \(DayKey.dmy(first.date))")
+                for p in m.periods(weights: w.records) {
+                    l.append("  - \(MD.formatNumber(p.mg, comma: true)) mg desde \(DayKey.dmy(p.start)): \(p.count) \(main.act)s" + (p.lostKg.map { ", \(fmt($0)) kg perdidos" } ?? "") + (p.kgPerMonth.map { " (\(fmt($0)) kg/mes)" } ?? ""))
+                }
             }
             l.append("")
         }

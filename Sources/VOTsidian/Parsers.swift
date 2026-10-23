@@ -19,19 +19,6 @@ enum Parse {
         return d
     }
 
-    static func medicacion(_ text: String) -> MedicacionData {
-        var d = MedicacionData()
-        // Las notas de antes de poder elegir el nombre no lo llevan: se llamaban así. Sin nota, el nombre genérico.
-        d.name = MD.frontmatter(text)["nombre"].flatMap { $0.isEmpty ? nil : $0 } ?? (text.isEmpty ? d.name : MedicacionData.legacyName)
-        d.everyDays = MD.frontmatter(text)["cada_dias"].flatMap { Int($0) } ?? 9
-        for (i, c) in MD.tableRows(MD.lines(text)) where c.count >= 3 {
-            guard let date = DayKey.date(c[0]) else { continue }
-            d.doses.append(Dose(date: date, dose: c[1], site: c[2], note: c.count > 3 ? c[3] : "", line: i))
-        }
-        d.doses.sort { $0.date < $1.date }
-        return d
-    }
-
     static func mascota(_ text: String) -> MascotaData {
         let fm = MD.frontmatter(text)
         var d = MascotaData()

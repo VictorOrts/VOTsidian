@@ -37,7 +37,6 @@ struct WelcomeView: View {
     @Environment(Store.self) private var store
     @State private var chosen = Module.suggested
     @State private var pet = ""
-    @State private var medication = ""
 
     var body: some View {
         ScrollView {
@@ -60,19 +59,14 @@ struct WelcomeView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 10, alignment: .top)], alignment: .leading, spacing: 10) {
                         ForEach(Module.allCases) { tile($0) }
                     }
-                    if chosen.contains(.mascota) || chosen.contains(.medicacion) {
-                        HStack(spacing: 16) {
-                            if chosen.contains(.mascota) { TextField("Nombre de tu mascota", text: $pet).frame(width: 240) }
-                            if chosen.contains(.medicacion) { TextField("Medicamento (p. ej. Ozempic)", text: $medication).frame(width: 240) }
-                        }
-                    }
+                    if chosen.contains(.mascota) { TextField("Nombre de tu mascota", text: $pet).frame(width: 240) }
                 }
                 HStack {
                     Text("\(plural(chosen.count, "módulo", "módulos")) · \(plural(store.notes.isEmpty ? chosen.count + 1 : chosen.reduce(0) { $0 + store.missingFiles($1).count }, "nota nueva", "notas nuevas"))")
                         .font(.callout).foregroundStyle(.secondary)
                     Spacer()
                     Button("Crear notas y empezar") {
-                        store.setUp(modules: chosen, petName: pet, medication: medication)
+                        store.setUp(modules: chosen, petName: pet)
                         store.screen = .inicio
                     }
                     .buttonStyle(.borderedProminent).controlSize(.large)

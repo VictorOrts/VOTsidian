@@ -19,7 +19,8 @@ La carpeta de notas por defecto es `iCloud Drive/VOTsidian`. Se cambia en Ajuste
 - Con una carpeta vacía (o sin ninguna nota de los módulos) sale el asistente «Empecemos»: carpeta y módulos que se quieren (peso, medicación, salud, finanzas, casa, compra, ropa, mascota, personas, documentos, objetivos). Crea las notas con su plantilla y oculta el resto. Tareas, calendario, revisiones, proyectos y notas van siempre.
 - La nota de un módulo se crea sola al apuntar lo primero (con deshacer); mientras no existe, su pantalla lo dice con un botón «Crear la nota».
 - **Ajustes → Módulos**: mostrar u ocultar módulos (también quita sus tarjetas de Inicio, sus avisos y sus entradas en ⌘K y en el menú Ir a), crear las notas que falten y cambiar la ruta de cada nota sin `defaults write`.
-- Medicación y mascota toman el nombre de su nota (`nombre:`); las notas de antes sin ese campo siguen saliendo como «Mounjaro» y «Nala».
+- **Medicación**: varios medicamentos en una nota (`## Medicamentos` con dosis, forma, cada cuántos días y horas; `## Registro` con cada toma). Pastillas diarias con una casilla por toma (en la pantalla, en Inicio y en la barra de menús), inyecciones cada N días con zona alternada y «Me pinché hoy», y lo que se toma si hace falta. Avisos por medicamento y hora, cumplimiento de 30 días y resumen para el médico. Una nota de antes (un solo inyectable) se sigue leyendo igual y pasa al formato nuevo al añadir otro medicamento.
+- La mascota toma el nombre de su nota (`nombre:`); una nota de antes sin ese campo sigue saliendo como «Nala».
 - En una carpeta nueva el asistente usa rutas neutras (`Salud/Peso.md`, `Salud/Medicación.md`, `Mascota/Mascota.md`, `Casa/Lista de la compra.md`…, en `VaultPath.fresh`) para las notas que no existen ya en su ruta de siempre; las fotos, los análisis, las citas médicas y «Menú y compra» van junto a su nota. Una carpeta con `Cambio físico/…` sigue igual.
 
 ## Seguridad de los datos

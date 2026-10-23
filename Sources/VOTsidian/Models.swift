@@ -82,36 +82,19 @@ struct WeightData: Equatable {
 
 // MARK: - Medicación
 
+/// Una toma o un pinchazo del registro de medicación.
 struct Dose: Identifiable, Equatable {
     var date: Date
     var dose: String
     var site: String
     var note: String
     var line = -1
-    var id: Date { date }
+    /// Medicamento de la toma (en las notas de antes, el único que había).
+    var med = ""
+    /// La línea tal cual, para borrarla aunque la tabla haya cambiado.
+    var raw = ""
+    var id: String { "\(line)|\(DayKey.string(date))" }
     var mg: Double? { MD.number(dose) }
-}
-
-struct MedicacionData: Equatable {
-    /// Nombre del medicamento («nombre:» en la nota); da nombre a la pantalla y a los avisos.
-    var name = "Medicación"
-    /// Nombre de las notas de la primera versión, que no llevan «nombre:».
-    static let legacyName = "Mounjaro"
-    var everyDays = 9
-    var doses: [Dose] = []
-
-    var last: Dose? { doses.last }
-    var next: Date? { last.map { DayKey.adding(days: everyDays, to: $0.date) } }
-    /// Positivo: faltan días. Negativo: atrasado.
-    var daysUntilNext: Int? { next.map { DayKey.days(from: DayKey.today(), to: $0) } }
-
-    /// Lado opuesto al de la última inyección, si se anotó.
-    var suggestedSite: String {
-        let s = MD.fold(last?.site ?? "")
-        if s.contains("izq") { return "Abdomen derecho" }
-        if s.contains("der") { return "Abdomen izquierdo" }
-        return "Abdomen izquierdo"
-    }
 }
 
 // MARK: - Mascota

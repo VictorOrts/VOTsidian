@@ -24,14 +24,9 @@ enum Edit {
         return insertRow(text, row: row) { DayKey.dmyDate($0[0]) != nil }
     }
 
-    static func addDose(_ text: String, date: Date, dose: Double, site: String, note: String) -> String? {
-        let row = rowString([DayKey.string(date), "\(MD.formatNumber(dose, comma: true)) mg", site, note])
-        var lines = MD.lines(text)
-        if let same = MD.tableRows(lines).first(where: { DayKey.date($0.cells[0]).map(DayKey.string) == DayKey.string(date) }) {
-            lines[same.index] = row
-            return lines.joined(separator: "\n")
-        }
-        return insertRow(text, row: row) { DayKey.date($0[0]) != nil }
+    /// Pinchazo en mg (un pinchazo por día y medicamento: el mismo día se corrige).
+    static func addDose(_ text: String, date: Date, dose: Double, site: String, note: String, med: String = "") -> String? {
+        addIntake(text, date: date, med: med, dose: "\(MD.formatNumber(dose, comma: true)) mg", site: site, note: note, replaceSameDay: true)
     }
 
     static func addMascotaVisit(_ text: String, date: Date, tipo: String, detalle: String, proxima: Date?, coste: String) -> String? {

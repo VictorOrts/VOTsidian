@@ -7,7 +7,7 @@ VOTsidian es una agenda personal para Mac. Todo lo que apuntas se guarda en nota
 1. Crea la app con `./scripts/build-app.sh` y ábrela (`build/VOTsidian.app`).
 2. La primera vez sale **Empecemos**:
    - **Carpeta.** Por defecto, `iCloud Drive/VOTsidian`, para tenerla en todos tus dispositivos. Con «Elegir otra carpeta…» puedes usar una que ya tengas (por ejemplo, tu vault de Obsidian) o crear una nueva.
-   - **Qué quieres llevar.** Marca los módulos que te interesan. Si eliges Mascota o Medicación, escribe también su nombre.
+   - **Qué quieres llevar.** Marca los módulos que te interesan. Si eliges Mascota, escribe también su nombre. Los medicamentos se añaden después, en su pantalla.
 3. Pulsa **Crear notas y empezar**. La app crea una nota por módulo, con el formato que sabe leer, y oculta los módulos que no marcaste.
 
 Si la carpeta ya tiene notas, no se cambia ninguna: solo se crean las que faltan.
@@ -24,7 +24,7 @@ Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No
 |---|---|---|
 | Peso y medidas | Peso, Correlaciones | `Salud/Peso.md` (y `Salud/Medidas.md` al activar las medidas; las fotos, en `Salud/Fotos`) |
 | Plan nutricional | Plan nutricional | `Salud/Plan nutricional.md` |
-| Medicación inyectable | (nombre del medicamento) | `Salud/Medicación.md` |
+| Medicación | Medicación | `Salud/Medicación.md` |
 | Salud y médicos | Salud y médicos | `Salud/Médico.md` (las notas de visita y los PDF de análisis, en `Salud/`) |
 | Finanzas y gastos | Finanzas, Gastos | `Finanzas/Finanzas.md` y una nota por mes en `Finanzas/Gastos/` |
 | Casa | Casa | `Casa/Casa.md` |
@@ -44,7 +44,7 @@ Si tus notas tienen otros nombres o están en otras carpetas, ponlo en **Ajustes
 Lo más cómodo es apuntar desde la app. Si prefieres escribir a mano, esto es lo que la app lee. Fíjate en el formato de las fechas: en unas tablas va `DD/MM/AAAA` y en otras `AAAA-MM-DD`.
 
 - **Encabezado.** Va entre dos líneas `---` al principio de la nota (es YAML). Si un valor lleva `:`, ponlo entre comillas.
-- **Tablas.** Las columnas se reconocen por su nombre, sin importar tildes ni mayúsculas. En Peso, Medicación y Mascota cuenta además el orden.
+- **Tablas.** Las columnas se reconocen por su nombre, sin importar tildes ni mayúsculas. En Peso y Mascota cuenta además el orden.
 
 ### Peso
 
@@ -65,20 +65,41 @@ fecha_inicio: 01/09/2026
 
 ### Medicación
 
-```markdown
----
-nombre: Ozempic
-cada_dias: 7
----
+Sirve para varios medicamentos a la vez:
+- una pastilla diaria, una o varias veces al día;
+- una inyección semanal o cada N días;
+- lo que solo tomas cuando hace falta.
 
-| Fecha | Dosis | Zona | Notas |
-| ----- | ----- | ---- | ----- |
-| 2026-10-01 | 0,5 mg | Abdomen | |
+Lo cómodo es añadirlos en la pantalla Medicación, con «Añadir medicamento». La nota tiene dos tablas:
+
+```markdown
+## Medicamentos
+
+| Medicamento | Dosis | Forma | Cada | Horas | Desde | Hasta | Notas |
+| :---------- | :---- | :---- | :--: | :---- | :---- | :---- | :---- |
+| Metformina | 850 mg | Pastilla | 1 | 09:00, 21:00 | | | |
+| Ozempic | 0,5 mg | Inyección | 7 | | 2026-09-01 | | |
+| Ibuprofeno | 400 mg | Pastilla | Si hace falta | | | | |
+
+## Registro
+
+| Fecha | Medicamento | Dosis | Zona | Notas |
+| :---- | :---------- | :---- | :--- | :---- |
+| 2026-10-20 | Ozempic | 0,5 mg | Abdomen izquierdo | |
 ```
 
-- **Fechas:** van en `AAAA-MM-DD`.
-- **`cada_dias`:** dice cada cuántos días toca. Si no lo pones, la app cuenta 9.
-- **`nombre`:** es el nombre de la pantalla y de los avisos. Una nota sin `nombre` se muestra como «Mounjaro»; si aún no hay nota, como «Medicación».
+En la tabla **Medicamentos**:
+- **Cada:** días entre tomas. `1` es cada día y `7`, cada semana. También vale `diaria`, `semanal` o `cada 2 semanas`. Para lo que tomas solo cuando hace falta, `Si hace falta`.
+- **Horas:** opcional. Con dos horas son dos tomas al día, y cada una tiene su casilla y su aviso. Sin horas, una toma al día, avisada a la hora de Avisos.
+- **Desde y Hasta:** en `AAAA-MM-DD`. Fuera de esas fechas, el medicamento no sale en «Hoy» ni avisa.
+- **Forma:** si contiene «Inyección», la toma lleva zona y la app sugiere el lado contrario al del último pinchazo.
+
+Cómo se usa cada día:
+- **Hoy:** cada toma diaria tiene una casilla en la pantalla, en Inicio y en la barra de menús. Marcarla la apunta en el registro; desmarcarla quita la última de hoy.
+- **Lo periódico:** avisa dos días antes y cuando va tarde, con el botón «Me pinché hoy» o «Tomada hoy».
+- **Cumplimiento:** el de lo diario sale como días completos de los últimos 30, sin contar hoy.
+
+Una nota de la versión anterior (solo `Fecha | Dosis | Zona | Notas` y `cada_dias` en el encabezado) se lee como un único medicamento inyectable. Al añadir otro desde la app, la nota pasa sola a este formato, y se puede deshacer.
 
 ### Mascota
 

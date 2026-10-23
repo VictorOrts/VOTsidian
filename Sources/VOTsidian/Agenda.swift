@@ -74,13 +74,19 @@ extension Store {
                 add(AgendaItem(id: "s\(t.id)", kind: .task, title: t.text, detail: "planeada · \(t.noteName)", date: s, task: t))
             }
         }
-        for d in medicacion.doses { add(AgendaItem(id: "dose\(d.line)", kind: .dose, title: "Pinchazo \(d.dose)", detail: d.site, date: d.date, screen: .medicacion)) }
-        if let last = medicacion.last {
-            var next = DayKey.adding(days: medicacion.everyDays, to: last.date)
+        // Lo periódico (un pinchazo semanal…) sale en el calendario; lo diario llenaría cada día.
+        for m in medicacion.meds where !m.asNeeded && m.every > 1 {
+            let what = m.isInjection ? "Pinchazo" : "Toma"
+            for d in medicacion.intakes(of: m) {
+                add(AgendaItem(id: "dose\(d.line)", kind: .dose, title: "\(what) \(m.name) \(d.dose)", detail: d.site, date: d.date, screen: .medicacion))
+            }
+            guard m.isActive(on: DayKey.today()), var next = medicacion.next(of: m) else { continue }
             var guardCount = 0
-            while next <= end, guardCount < 80 {
-                if next >= DayKey.today() { add(AgendaItem(id: "next\(DayKey.string(next))", kind: .doseNext, title: "Toca pinchazo", detail: "cada \(medicacion.everyDays) días", date: next, screen: .medicacion)) }
-                next = DayKey.adding(days: medicacion.everyDays, to: next)
+            while next <= end, guardCount < 80, m.end.map({ next <= $0 }) ?? true {
+                if next >= DayKey.today() {
+                    add(AgendaItem(id: "next\(m.line)|\(DayKey.string(next))", kind: .doseNext, title: "Toca \(m.act) de \(m.name)", detail: m.frequencyText.lowercased(), date: next, screen: .medicacion))
+                }
+                next = DayKey.adding(days: m.every, to: next)
                 guardCount += 1
             }
         }

@@ -53,7 +53,7 @@ struct CommandPalette: View {
         ]
         if store.isVisible(.peso) { actions.insert(PaletteItem(icon: "scalemass", title: "Registrar peso", subtitle: "Ir a Peso", tag: "Acción", run: go(.peso)), at: 3) }
         if store.isVisible(.medicacion) {
-            actions.insert(PaletteItem(icon: "syringe", title: "Registrar pinchazo", subtitle: "Ir a \(store.medicacion.name)", tag: "Acción", run: go(.medicacion)), at: 3)
+            actions.insert(PaletteItem(icon: "pills", title: "Registrar toma o pinchazo", subtitle: "Ir a \(store.medicacion.name)", tag: "Acción", run: go(.medicacion)), at: 3)
         }
         let screens = Screen.allCases.filter(store.isVisible).map { s in PaletteItem(icon: s.icon, title: store.title(s), subtitle: "Pantalla", tag: "Pantalla", run: go(s)) }
         let hasText = !q.tokens.isEmpty
@@ -174,7 +174,7 @@ struct CommandPalette: View {
 }
 
 struct QuickAddSheet: View {
-    enum Kind: String, CaseIterable, Identifiable { case tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Pinchazo", idea = "Idea"; var id: String { rawValue } }
+    enum Kind: String, CaseIterable, Identifiable { case tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Toma", idea = "Idea"; var id: String { rawValue } }
 
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -184,14 +184,18 @@ struct QuickAddSheet: View {
     @State private var due = Date()
     @State private var kg = ""
     @State private var date = Date()
-    @State private var dose = 7.5
+    @State private var dose = ""
     @State private var site = "Abdomen izquierdo"
+    @State private var medName = ""
     @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Captura rápida").font(.title3.weight(.semibold))
-            Picker("", selection: $kind) { ForEach(Kind.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented).labelsHidden()
+            // Sin módulos de peso, medicación o gastos, sus pestañas no salen.
+            Picker("", selection: $kind) {
+                ForEach(Kind.allCases.filter { ($0 != .peso || store.isVisible(.peso)) && ($0 != .pinchazo || store.isVisible(.medicacion)) && ($0 != .gasto || store.isVisible(.gastos)) }) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented).labelsHidden()
             switch kind {
             case .tarea:
                 TextField("Qué hay que hacer (ej: llamar al dentista el viernes)", text: $text).focused($focused).onSubmit(save)
@@ -211,12 +215,17 @@ struct QuickAddSheet: View {
                 HStack { TextField("kg", text: $kg).frame(width: 100).focused($focused).onSubmit(save); DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date).labelsHidden() }
                 TextField("Notas (opcional)", text: $text)
             case .pinchazo:
-                HStack {
-                    DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date).labelsHidden()
-                    Picker("", selection: $dose) { ForEach(medicacionDoses, id: \.self) { Text(MD.formatNumber($0, comma: true) + " mg").tag($0) } }.labelsHidden().frame(width: 110)
-                    Picker("", selection: $site) { ForEach(injectionSites, id: \.self) { Text($0).tag($0) } }.labelsHidden().frame(width: 170)
+                if store.medicacion.meds.isEmpty {
+                    Text("Añade antes tus medicamentos en la pantalla \(store.medicacion.name).").font(.callout).foregroundStyle(.secondary)
+                } else {
+                    HStack {
+                        Picker("", selection: $medName) { ForEach(store.medicacion.meds) { Text($0.name).tag($0.name) } }.labelsHidden().frame(width: 150)
+                        DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date).labelsHidden()
+                        TextField("Dosis", text: $dose).frame(width: 100)
+                        if selectedMed?.isInjection == true { Picker("", selection: $site) { ForEach(injectionSites, id: \.self) { Text($0).tag($0) } }.labelsHidden().frame(width: 160) }
+                    }
+                    TextField("Notas (opcional)", text: $text)
                 }
-                TextField("Notas (opcional)", text: $text)
             }
             HStack {
                 Spacer()
@@ -225,16 +234,26 @@ struct QuickAddSheet: View {
             }
         }
         .padding(22).frame(width: 460)
-        .onAppear { focused = true; if let mg = store.medicacion.last?.mg { dose = mg }; site = store.medicacion.suggestedSite }
+        .onAppear {
+            focused = true
+            let m = store.medicacion
+            medName = (m.pending().first?.med ?? m.main ?? m.meds.first)?.name ?? ""
+            site = m.suggestedSite
+        }
         .onChange(of: kind) { focused = true }
+        .onChange(of: medName, initial: true) {
+            if let med = selectedMed { dose = store.medicacion.last(of: med)?.dose ?? med.dose }
+        }
     }
+
+    private var selectedMed: Medication? { store.medicacion.meds.first { $0.name == medName } }
 
     private var valid: Bool {
         switch kind {
         case .tarea, .idea: !text.trimmingCharacters(in: .whitespaces).isEmpty
         case .gasto: store.parseExpense(text) != nil
         case .peso: MD.number(kg) != nil
-        case .pinchazo: true
+        case .pinchazo: selectedMed != nil
         }
     }
 
@@ -249,7 +268,7 @@ struct QuickAddSheet: View {
         case .idea: store.addIdea(t)
         case .gasto: if let p = store.parseExpense(t) { store.addExpense(p) }
         case .peso: if let v = MD.number(kg) { store.addWeight(date: day, kg: v, note: t) }
-        case .pinchazo: store.addDose(date: day, dose: dose, site: site, note: t)
+        case .pinchazo: if let med = selectedMed { store.take(med, date: day, dose: dose, site: med.isInjection ? site : "", note: t) }
         }
         dismiss()
     }

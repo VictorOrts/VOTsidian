@@ -25,10 +25,11 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     let w = Parse.weight(peso)
     #expect(w.records.count == 1 && w.records[0].kg == 92.4 && w.initialKg == 92.4 && w.goalKg == 0)
     #expect(Edit.addWeight(peso, date: DayKey.adding(days: 1, to: day), kg: 92, note: "").map { Parse.weight($0).records.count } == 2)
-    // medicación, con su nombre
-    let med = try #require(Edit.addDose(try starter("medicacion", name: "Ozempic"), date: day, dose: 0.5, site: "Abdomen", note: ""))
+    // medicación: un medicamento y su primera toma
+    let withMed = try #require(Edit.addMedication(try starter("medicacion"), Medication(name: "Ozempic", dose: "0,5 mg", form: "Inyección", every: 7), current: nil))
+    let med = try #require(Edit.addDose(withMed, date: day, dose: 0.5, site: "Abdomen", note: "", med: "Ozempic"))
     let m = Parse.medicacion(med)
-    #expect(m.name == "Ozempic" && m.everyDays == 7 && m.doses.count == 1 && m.doses[0].site == "Abdomen")
+    #expect(m.name == "Medicación" && !m.legacy && m.main?.name == "Ozempic" && m.everyDays == 7 && m.doses.count == 1 && m.doses[0].site == "Abdomen")
     // mascota
     let pet = try #require(Edit.addMascotaVisit(try starter("mascota", name: "Luna"), date: day, tipo: "Vacuna", detalle: "Rabia", proxima: DayKey.adding(days: 365, to: day), coste: "40"))
     let n = Parse.mascota(pet)
@@ -81,7 +82,7 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     let root = tmp.appendingPathComponent("Mis notas")   // aún no existe
     let store = Store(root: root, backups: tmp.appendingPathComponent("Copias"))
     #expect(!store.isValid && store.looksNew && !store.modulesConfigured)
-    store.setUp(modules: [.peso, .mascota, .finanzas], petName: "Luna", medication: nil)
+    store.setUp(modules: [.peso, .mascota, .finanzas], petName: "Luna")
     defer { UserDefaults.standard.removeObject(forKey: "starterPet") }
     #expect(store.isValid && store.modulesConfigured && !store.looksNew)
     #expect(store.exists(VaultPath.peso) && store.exists(VaultPath.mascota) && store.exists(VaultPath.finanzas) && store.exists(VaultPath.inbox))
@@ -105,11 +106,12 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     #expect(store.missingFiles(.peso) == [VaultPath.peso])
     store.addWeight(date: DayKey.today(), kg: 101.5, note: "")
     #expect(store.message == nil && store.weight.last?.kg == 101.5 && store.missingFiles(.peso).isEmpty)
-    store.addDose(date: DayKey.today(), dose: 2.5, site: "Muslo", note: "")
-    #expect(store.medicacion.doses.count == 1 && store.medicacion.name == "Medicación")
+    store.addMedication(Medication(name: "Ozempic", dose: "0,25 mg", form: "Inyección", every: 7))
+    store.injectToday()
+    #expect(store.medicacion.doses.count == 1 && store.medicacion.name == "Medicación" && store.medicacion.last?.dose == "0,25 mg")
     store.addCasaRow(section: "Compras", cells: ["Sofá", "Salón", "Alta", "900", "", ""])
     #expect(store.casa.compras.rows.contains { $0.cells.first == "Sofá" })
-    store.undo(); store.undo(); store.undo()
+    store.undo(); store.undo(); store.undo(); store.undo()
     #expect(!store.exists(VaultPath.peso) && !store.exists(VaultPath.medicacion) && !store.exists(VaultPath.casa))
     // una nota que no es de ningún módulo sigue sin crearse sola
     #expect(!store.edit("Otra.md") { $0 + "x" } && store.message == "No se pudo leer Otra.md.")

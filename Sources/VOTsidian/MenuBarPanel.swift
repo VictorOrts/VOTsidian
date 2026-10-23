@@ -21,6 +21,7 @@ struct MenuBarPanel: View {
             quickAdd
             moodRow
             habitsRow
+            medsRow
             tasksList
             Divider()
             HStack {
@@ -45,7 +46,7 @@ struct MenuBarPanel: View {
             }
             Divider().frame(height: 44)
             VStack(alignment: .leading, spacing: 2) {
-                Text("PINCHAZO").font(.caption2).foregroundStyle(.secondary)
+                Text((store.medicacion.main?.act ?? "medicación").uppercased()).font(.caption2).foregroundStyle(.secondary)
                 if let n = store.medicacion.next, let d = store.medicacion.daysUntilNext {
                     Text(shortDate(n)).font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(d < 0 ? Brand.bad : d == 0 ? Brand.warn : Color.primary)
@@ -53,8 +54,9 @@ struct MenuBarPanel: View {
                 } else { Text("–").font(.title2) }
             }
             Spacer()
-            if let d = store.medicacion.daysUntilNext, d <= 1, store.medicacion.last?.date != today {
-                Button("Me pinché hoy") { store.injectToday(); message = "Pinchazo registrado" }.controlSize(.small).buttonStyle(.borderedProminent)
+            if let main = store.medicacion.main, let d = store.medicacion.daysUntilNext, d <= 1, store.medicacion.last?.date != today {
+                Button(main.isInjection ? "Me pinché hoy" : "Tomada hoy") { store.injectToday(); message = main.isInjection ? "Pinchazo registrado" : "Toma registrada" }
+                    .controlSize(.small).buttonStyle(.borderedProminent)
             }
         }
     }
@@ -88,6 +90,19 @@ struct MenuBarPanel: View {
                                 .foregroundStyle(h.days[dayIndex] ? Color.white : Color.primary)
                         }.buttonStyle(.plain).help(h.criterion)
                     }
+                }
+            }
+        }
+    }
+
+    /// Tomas diarias de hoy, con una casilla por toma.
+    @ViewBuilder private var medsRow: some View {
+        let daily = store.isVisible(.medicacion) ? store.medicacion.active(on: today).filter { $0.every == 1 } : []
+        if !daily.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("MEDICACIÓN DE HOY").font(.caption2).foregroundStyle(.secondary)
+                ForEach(daily) { med in
+                    HStack(spacing: 8) { Text(med.name).lineLimit(1); Spacer(); IntakeChecks(med: med) }.font(.callout)
                 }
             }
         }

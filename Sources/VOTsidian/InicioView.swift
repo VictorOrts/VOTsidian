@@ -115,8 +115,10 @@ struct InicioView: View {
 
     private var summary: String {
         var parts: [String] = []
-        if let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
-        if let d = store.medicacion.daysUntilNext { parts.append("pinchazo \(relativeDays(d))") }
+        if store.isVisible(.peso), let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
+        if store.isVisible(.medicacion), let d = store.medicacion.daysUntilNext, let main = store.medicacion.main { parts.append("\(main.act) de \(main.name) \(relativeDays(d))") }
+        let pills = store.medicacion.pending().filter { $0.med.every == 1 }.count
+        if store.isVisible(.medicacion), pills > 0 { parts.append(pills == 1 ? "1 toma pendiente hoy" : "\(pills) medicamentos por tomar hoy") }
         let n = upcomingCount
         if n > 0 { parts.append("\(n) \(n == 1 ? "tarea" : "tareas") esta semana") }
         return parts.joined(separator: " · ")
@@ -294,8 +296,9 @@ struct InicioView: View {
 
     private var medicacionCard: some View {
         let m = store.medicacion
-        return Card(title: m.name, icon: "syringe", actionTitle: "Registrar", action: { go(.medicacion) }) {
-            if let last = m.last, let next = m.next, let d = m.daysUntilNext {
+        let daily = m.active().filter { $0.every == 1 }
+        return Card(title: m.name, icon: m.main?.icon ?? "pills", actionTitle: "Abrir", action: { go(.medicacion) }) {
+            if let main = m.main, let last = m.last, let next = m.next, let d = m.daysUntilNext {
                 let color: Color = d < 0 ? Brand.bad : d == 0 ? Brand.warn : Brand.accent
                 HStack(spacing: 20) {
                     Ring(progress: d <= 0 ? 1 : 1 - Double(d) / Double(m.everyDays), color: color) {
@@ -308,20 +311,29 @@ struct InicioView: View {
                         Text("Próximo").font(.caption).foregroundStyle(.secondary)
                         Text(capitalizedFirst(longDate(next))).font(.title3.weight(.semibold))
                         Text("Último: \(DayKey.dmy(last.date)) · \(last.dose) · \(last.site)").font(.callout).foregroundStyle(.secondary)
-                        Text(plural(m.doses.count, "pinchazo", "pinchazos") + " · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)
+                        Text("\(main.name) · " + plural(m.doses.count, main.act, main.act + "s") + " · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)
                     }
                 }
                 if d <= 1, m.last?.date != DayKey.today() {
-                    Button { store.injectToday() } label: { Label("Me pinché hoy", systemImage: "checkmark.circle") }
+                    Button { store.injectToday() } label: { Label(main.isInjection ? "Me pinché hoy" : "Tomada hoy", systemImage: "checkmark.circle") }
                         .buttonStyle(.borderedProminent).controlSize(.small)
-                        .help("Registra \(MD.formatNumber(m.last?.mg ?? 7.5, comma: true)) mg, \(m.suggestedSite). Se puede deshacer.")
+                        .help("Registra \(last.dose)" + (main.isInjection ? ", \(m.suggestedSite)" : "") + ". Se puede deshacer.")
                 }
                 if d < 0 {
                     Label("Atrasado \(-d) \(-d == 1 ? "día" : "días"). Regístralo cuando te lo pongas.", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(Brand.warn).font(.callout)
                 }
-            } else {
-                EmptyNote("Sin pinchazos registrados.")
+            } else if daily.isEmpty {
+                EmptyNote(m.meds.isEmpty ? "Sin medicamentos. Añádelos en \(m.name)." : "Nada que tomar hoy.")
+            }
+            // Las tomas diarias, con una casilla por toma.
+            ForEach(daily) { med in
+                HStack(spacing: 10) {
+                    Image(systemName: med.icon).foregroundStyle(Brand.accent).frame(width: 18)
+                    Text(med.name + (med.dose.isEmpty ? "" : " · \(med.dose)")).lineLimit(1)
+                    Spacer()
+                    IntakeChecks(med: med)
+                }.font(.callout)
             }
         }
     }

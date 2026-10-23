@@ -57,7 +57,7 @@ struct RemindersView: View {
                 }
                 Card(title: "Qué recordar", icon: "bell") {
                     VStack(spacing: 6) {
-                        row("Pinchazo de \(store.medicacion.name) (cada \(store.medicacion.everyDays) días)", $medicacion) { hour($medicacionMin) }
+                        row("Medicación (\(plural(store.medicacion.active().filter { !$0.asNeeded }.count, "medicamento", "medicamentos")); con hora, a esa hora)", $medicacion) { hour($medicacionMin) }
                         Divider()
                         row("Revisión semanal", $review) {
                             Picker("Día", selection: $reviewDay) {

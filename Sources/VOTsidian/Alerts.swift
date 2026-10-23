@@ -7,9 +7,12 @@ struct Alert: Identifiable {
         case markPaid(month: String, line: Int, name: String)
         case createBudget(String)
         case injectToday
+        /// Marca como hecha hoy la toma de un medicamento (por nombre).
+        case take(String)
 
         var title: String {
             switch self {
+            case .take: "Tomada"
             case .markPaid: "Pagado"
             case .createBudget: "Crear"
             case .injectToday: "Me pinché hoy"
@@ -30,10 +33,21 @@ extension Store {
     func alerts(today: Date = DayKey.today()) -> [Alert] {
         var out: [Alert] = []
 
-        if let d = medicacion.daysUntilNext {
-            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de \(medicacion.name) con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .medicacion, action: .injectToday)) }
-            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de \(medicacion.name)", screen: .medicacion, action: .injectToday)) }
-            else if d <= 2 { out.append(Alert(level: .soon, icon: "syringe", text: "Pinchazo de \(medicacion.name) \(relativeDays(d))", screen: .medicacion)) }
+        // Lo periódico avisa antes y al ir tarde; lo diario, si hoy falta alguna toma.
+        let main = medicacion.main
+        for m in medicacion.active(on: today) where !m.asNeeded && m.every > 1 {
+            guard let d = medicacion.daysUntil(m, today: today), medicacion.taken(m, on: today) == 0 else { continue }
+            let action: Alert.Action = m == main ? .injectToday : .take(m.name)
+            let act = m.isInjection ? "Pinchazo" : "Toma"
+            if d < 0 { out.append(Alert(level: .urgent, icon: m.icon, text: "\(act) de \(m.name) con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .medicacion, action: action)) }
+            else if d == 0 { out.append(Alert(level: .urgent, icon: m.icon, text: "Hoy toca \(m.isInjection ? "el pinchazo" : "la toma") de \(m.name)", screen: .medicacion, action: action)) }
+            else if d <= 2 { out.append(Alert(level: .soon, icon: m.icon, text: "\(act) de \(m.name) \(relativeDays(d))", screen: .medicacion)) }
+        }
+        let daily = medicacion.pending(today: today).filter { $0.med.every == 1 }
+        if daily.count == 1, let p = daily.first {
+            out.append(Alert(level: .info, icon: p.med.icon, text: "Hoy falta tomar \(p.med.name)" + (p.left > 1 ? " (\(p.left) tomas)" : ""), screen: .medicacion, action: .take(p.med.name)))
+        } else if daily.count > 1 {
+            out.append(Alert(level: .info, icon: "pills", text: "Hoy falta tomar: \(daily.map(\.med.name).joined(separator: ", "))", screen: .medicacion))
         }
         if let l = weight.last {
             let days = DayKey.days(from: l.date, to: today)
@@ -174,6 +188,9 @@ extension Store {
             setBudgetCell(b, section: "Partidas", line: line, name: name, column: "Pagado", value: "✅")
         case .createBudget(let month): return createBudget(month)
         case .injectToday: injectToday()
+        case .take(let name):
+            guard let m = medicacion.meds.first(where: { $0.name == name }) else { return false }
+            take(m)
         }
         return true
     }

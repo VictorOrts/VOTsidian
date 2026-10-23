@@ -15,7 +15,7 @@ enum Module: String, CaseIterable, Identifiable {
         switch self {
         case .peso: "Peso y medidas"
         case .nutricion: "Plan nutricional"
-        case .medicacion: "Medicación inyectable"
+        case .medicacion: "Medicación"
         case .salud: "Salud y médicos"
         case .finanzas: "Finanzas y gastos"
         case .casa: "Casa"
@@ -32,7 +32,7 @@ enum Module: String, CaseIterable, Identifiable {
         switch self {
         case .peso: "Registro de peso con tendencia y fecha estimada de llegada a tu objetivo, medidas y correlaciones con tus hábitos."
         case .nutricion: "Calorías y macros diarios y reparto por comidas."
-        case .medicacion: "Pinchazos con dosis y zona, cuándo toca el siguiente y avisos (Mounjaro, Ozempic, insulina…)."
+        case .medicacion: "Pastillas diarias, inyecciones semanales o lo que tomas cuando hace falta: qué toca hoy, avisos y cumplimiento."
         case .salud: "Próximas citas, tratamientos, análisis y notas de cada visita."
         case .finanzas: "Presupuesto mensual por partidas, gastos del día a día, resumen del año y eventos o pagos."
         case .casa: "Reformas, compras para la casa, electrodomésticos y mantenimiento."
@@ -49,7 +49,7 @@ enum Module: String, CaseIterable, Identifiable {
         switch self {
         case .peso: "scalemass"
         case .nutricion: "fork.knife"
-        case .medicacion: "syringe"
+        case .medicacion: "pills"
         case .salud: "cross.case"
         case .finanzas: "eurosign.circle"
         case .casa: "house.and.flag"
@@ -123,7 +123,7 @@ enum Starter {
     }
 
     /// Nota vacía con el formato que lee cada pantalla, o `nil` si esa ruta no tiene plantilla.
-    /// `name` es el nombre de la mascota o del medicamento, si se conoce.
+    /// `name` es el nombre de la mascota, si se conoce.
     static func text(forKey key: String, name: String? = nil) -> String? {
         let name = name.map { $0.trimmingCharacters(in: .whitespaces) }.flatMap { $0.isEmpty ? nil : $0 }
         switch key {
@@ -146,20 +146,24 @@ enum Starter {
             """
         case "medidas": return Measures.template
         case "medicacion":
-            let n = name ?? "Medicación"
             return """
             ---
             tipo: medicacion
-            nombre: \(yaml(n))
-            cada_dias: 7
             ---
 
-            # \(n)
+            # Medicación
 
-            > Cada pinchazo es una fila (AAAA-MM-DD). «cada_dias» dice cada cuántos días toca.
+            > Una fila por medicamento. «Cada»: días entre tomas (1 = cada día, 7 = cada semana) o «Si hace falta». «Horas»: 09:00, 21:00 si se toma varias veces al día. Fechas en AAAA-MM-DD.
 
-            | Fecha | Dosis | Zona | Notas |
-            | ----- | ----- | ---- | ----- |
+            ## Medicamentos
+
+            | Medicamento | Dosis | Forma | Cada | Horas | Desde | Hasta | Notas |
+            | :---------- | :---- | :---- | :--: | :---- | :---- | :---- | :---- |
+
+            ## Registro
+
+            | Fecha | Medicamento | Dosis | Zona | Notas |
+            | :---- | :---------- | :---- | :--- | :---- |
 
             """
         case "mascota":
@@ -371,11 +375,7 @@ extension Store {
     /// Plantilla para una ruta que aún no existe, si es la de algún módulo.
     func starterText(for rel: String) -> String? {
         guard let key = VaultPath.defaults.keys.sorted().first(where: { VaultPath.path($0) == rel }) else { return nil }
-        let name: String? = switch key {
-        case "medicacion": UserDefaults.standard.string(forKey: "starterMedication")
-        case "mascota": UserDefaults.standard.string(forKey: "starterPet")
-        default: nil
-        }
+        let name = key == "mascota" ? UserDefaults.standard.string(forKey: "starterPet") : nil
         return Starter.text(forKey: key, name: name)
     }
 
@@ -388,9 +388,8 @@ extension Store {
 
     /// Crea las notas que falten de los módulos, sin tocar las que ya existen. Devuelve las creadas.
     @discardableResult
-    func createStarterNotes(_ modules: [Module], petName: String? = nil, medication: String? = nil) -> [String] {
+    func createStarterNotes(_ modules: [Module], petName: String? = nil) -> [String] {
         if let petName, !petName.trimmingCharacters(in: .whitespaces).isEmpty { UserDefaults.standard.set(petName, forKey: "starterPet") }
-        if let medication, !medication.trimmingCharacters(in: .whitespaces).isEmpty { UserDefaults.standard.set(medication, forKey: "starterMedication") }
         var created: [String] = []
         grouped {
             for m in modules {
@@ -404,7 +403,7 @@ extension Store {
     }
 
     /// Lo que hace el asistente del principio: crea la carpeta y las notas de los módulos elegidos y oculta el resto.
-    func setUp(modules: Set<Module>, petName: String? = nil, medication: String? = nil) {
+    func setUp(modules: Set<Module>, petName: String? = nil) {
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         // Las rutas son de la app, no de la carpeta: en los tests (raíz explícita) no se tocan.
         if persistsModules {
@@ -413,7 +412,7 @@ extension Store {
         }
         let inbox = VaultPath.inbox
         if !exists(inbox), let t = Starter.text(forKey: "inbox") { writeNote(inbox, text: t) }
-        createStarterNotes(Module.allCases.filter(modules.contains), petName: petName, medication: medication)
+        createStarterNotes(Module.allCases.filter(modules.contains), petName: petName)
         hiddenModules = Set(Module.allCases).subtracting(modules)
         modulesConfigured = true
         undoStack.removeAll()   // lo recién creado no es un cambio que deshacer

@@ -21,7 +21,7 @@ enum QuickCommand: Equatable {
         case .weight(let kg, let d): return "Registrar peso \(MD.formatNumber(kg, comma: true)) kg (\(day(d)))"
         case .mood(let n, let d): return "Anotar ánimo \(n) de 5 (\(day(d)))"
         case .sleep(let h, let d): return "Anotar sueño \(MD.formatNumber(h, comma: true)) h (\(day(d)))"
-        case .injection(let d): return "Registrar pinchazo (\(day(d)))"
+        case .injection(let d): return "Registrar pinchazo o toma (\(day(d)))"
         case .task(let t, let d, let r, let p):
             return "Tarea «\(t)»" + (d.map { " para \(day($0))" } ?? "") + (r.map { " · \(Recurrence.describe($0))" } ?? "") + (p == 3 ? " · urgente" : "")
         case .idea(let t): return "Guardar idea «\(t)»"

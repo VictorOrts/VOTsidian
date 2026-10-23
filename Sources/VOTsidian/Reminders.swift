@@ -73,10 +73,22 @@ enum ICS {
         let medicacion = src.medicacion, tasks = src.tasks, mascota = src.mascota
         var out: [ICSEvent] = []
 
-        if plan.medicacion, let next = medicacion.next {
-            out.append(ICSEvent(uid: "medicacion", title: "Pinchazo \(medicacion.name)",
-                                notes: "Anótalo en \(VaultPath.medicacion). Se repite cada \(medicacion.everyDays) días desde el último registro.",
-                                start: max(next, today), minutes: plan.medicacionMinutes, rule: "FREQ=DAILY;INTERVAL=\(medicacion.everyDays)"))
+        // Un aviso por medicamento y hora: lo diario cada día; lo periódico cada N días desde la última toma.
+        if plan.medicacion {
+            for m in medicacion.active(on: today) where !m.asNeeded {
+                let start: Date
+                if m.every == 1 { start = max(today, m.start ?? today) }
+                else if let next = medicacion.next(of: m) { start = max(next, today) }
+                else { continue }
+                let times = m.times.isEmpty ? [nil] : m.times.map(Medication.minutes)
+                for (i, minutes) in times.enumerated() {
+                    out.append(ICSEvent(uid: "med-\(ICS.stableID(MD.fold(m.name)))-\(i)",
+                                        title: (m.isInjection ? "Pinchazo " : "Tomar ") + m.name + (m.dose.isEmpty ? "" : " (\(m.dose))"),
+                                        notes: "Anótalo en \(VaultPath.medicacion). \(m.frequencyText).",
+                                        start: start, minutes: minutes ?? plan.medicacionMinutes,
+                                        rule: "FREQ=DAILY;INTERVAL=\(m.every)" + (m.end.map { ";UNTIL=\(DayKey.string($0).replacingOccurrences(of: "-", with: ""))" } ?? "")))
+                }
+            }
         }
         if plan.review {
             let delta = (plan.reviewWeekday - cal.component(.weekday, from: today) + 7) % 7

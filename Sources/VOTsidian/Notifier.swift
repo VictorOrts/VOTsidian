@@ -15,10 +15,12 @@ enum Notifier {
     static let defaultMinutes = 9 * 60
 
     private static func occurrences(of e: ICSEvent, from today: Date, horizon: Int) -> [Date] {
-        let end = DayKey.adding(days: horizon, to: today)
+        var end = DayKey.adding(days: horizon, to: today)
         var days: [Date] = []
         let cal = DayKey.calendar()
         let rule = e.rule ?? ""
+        // «UNTIL=AAAAMMDD»: un tratamiento que acaba deja de avisar ese día.
+        if let m = rule.firstMatch(of: /UNTIL=(\d{4})(\d{2})(\d{2})/), let until = DayKey.date("\(m.1)-\(m.2)-\(m.3)") { end = min(end, until) }
         if rule.hasPrefix("FREQ=DAILY") || rule.hasPrefix("FREQ=WEEKLY") {
             var step = rule.hasPrefix("FREQ=WEEKLY") ? 7 : 1
             if let r = rule.range(of: "INTERVAL="), let n = Int(rule[r.upperBound...].prefix { $0.isNumber }), n > 0 { step = n }
