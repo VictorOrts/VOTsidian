@@ -2,11 +2,26 @@ import Foundation
 
 struct Alert: Identifiable {
     enum Level: Int { case urgent = 0, soon = 1, info = 2 }
+    /// Lo que se puede resolver desde el propio aviso, sin ir a la pantalla.
+    enum Action: Equatable {
+        case markPaid(month: String, line: Int, name: String)
+        case createBudget(String)
+        case injectToday
+
+        var title: String {
+            switch self {
+            case .markPaid: "Pagado"
+            case .createBudget: "Crear"
+            case .injectToday: "Me pinché hoy"
+            }
+        }
+    }
     var id = UUID()
     var level: Level
     var icon: String
     var text: String
     var screen: Screen
+    var action: Action? = nil
 }
 
 extension Store {
@@ -15,8 +30,8 @@ extension Store {
         var out: [Alert] = []
 
         if let d = mounjaro.daysUntilNext {
-            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de Mounjaro con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .mounjaro)) }
-            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de Mounjaro", screen: .mounjaro)) }
+            if d < 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Pinchazo de Mounjaro con \(-d) \(-d == 1 ? "día" : "días") de retraso", screen: .mounjaro, action: .injectToday)) }
+            else if d == 0 { out.append(Alert(level: .urgent, icon: "syringe", text: "Hoy toca el pinchazo de Mounjaro", screen: .mounjaro, action: .injectToday)) }
             else if d <= 2 { out.append(Alert(level: .soon, icon: "syringe", text: "Pinchazo de Mounjaro \(relativeDays(d))", screen: .mounjaro)) }
         }
         if let l = weight.last {
@@ -119,7 +134,7 @@ extension Store {
         guard let b = budget(month) else {
             // Hay presupuestos pero no el de este mes: se avisa una vez entrado el mes.
             if let last = budgetMonths.last, last < month, DayKey.calendar().component(.day, from: today) >= 2 {
-                return [Alert(level: .info, icon: "creditcard", text: "Crea el presupuesto de \(Budget.title(month).lowercased())", screen: .gastos)]
+                return [Alert(level: .info, icon: "creditcard", text: "Crea el presupuesto de \(Budget.title(month).lowercased())", screen: .gastos, action: .createBudget(month))]
             }
             return []
         }
@@ -127,14 +142,47 @@ extension Store {
         let day = DayKey.calendar().component(.day, from: today)
         for l in b.lines where !l.isDiscretionary && l.isDue(month) && !l.paid && b.real(l) == 0 && l.planned > 0 {
             guard let d = l.day else { continue }
-            if d < day { out.append(Alert(level: .soon, icon: "creditcard", text: "\(l.name) (\(Money.format(l.planned)), día \(d)) sin marcar como pagado", screen: .gastos)) }
-            else if d == day { out.append(Alert(level: .soon, icon: "creditcard", text: "Hoy se paga \(l.name) (\(Money.format(l.planned)))", screen: .gastos)) }
-            else if d == day + 1 { out.append(Alert(level: .info, icon: "creditcard", text: "Mañana se paga \(l.name) (\(Money.format(l.planned)))", screen: .gastos)) }
+            let paid = Alert.Action.markPaid(month: month, line: l.line, name: l.name)
+            if d < day { out.append(Alert(level: .soon, icon: "creditcard", text: "\(l.name) (\(Money.format(l.planned)), día \(d)) sin marcar como pagado", screen: .gastos, action: paid)) }
+            else if d == day { out.append(Alert(level: .soon, icon: "creditcard", text: "Hoy se paga \(l.name) (\(Money.format(l.planned)))", screen: .gastos, action: paid)) }
+            else if d == day + 1 { out.append(Alert(level: .info, icon: "creditcard", text: "Mañana se paga \(l.name) (\(Money.format(l.planned)))", screen: .gastos, action: paid)) }
         }
         let s = BudgetStatus(b, today: today)
         if s.day >= 5, s.endLeft < -20 {
             out.append(Alert(level: .soon, icon: "creditcard", text: "A este ritmo el mes acabará en \(Money.format(s.endLeft))", screen: .gastos))
         }
         return out
+    }
+}
+
+extension Store {
+    /// Hace lo que propone un aviso. Devuelve `false` si ya no se puede (la nota cambió).
+    @discardableResult
+    func perform(_ action: Alert.Action) -> Bool {
+        switch action {
+        case .markPaid(let month, let line, let name):
+            guard let b = budget(month), b.lines.contains(where: { $0.line == line && $0.name == name }) else { return false }
+            setBudgetCell(b, section: "Partidas", line: line, name: name, column: "Pagado", value: "✅")
+        case .createBudget(let month): return createBudget(month)
+        case .injectToday: injectToday()
+        }
+        return true
+    }
+
+    /// Pagos fijos con día del mes en curso y del siguiente que aún no están pagados, para Calendar y las notificaciones.
+    func upcomingPayments(today: Date = DayKey.today()) -> [(name: String, date: Date, amount: Double, saving: Bool)] {
+        guard let m = BudgetLine.monthIndex(Budget.monthKey(today)) else { return [] }
+        var out: [(name: String, date: Date, amount: Double, saving: Bool)] = []
+        for month in [BudgetLine.month(m), BudgetLine.month(m + 1)] {
+            // El mes que viene puede no tener nota aún: se usan las partidas de este, con sus frecuencias.
+            guard let b = budget(month) ?? budget(BudgetLine.month(m)).map({ Parse.budget(Edit.budgetNote(month: month, from: $0), month: month, path: "") }),
+                  let first = Budget.firstDay(month), let days = DayKey.calendar().range(of: .day, in: .month, for: first)?.count else { continue }
+            for l in b.lines where !l.isDiscretionary && l.isDue(month) && !l.paid && b.real(l) == 0 && l.planned > 0 {
+                guard let d = l.day, let date = DayKey.make(DayKey.calendar().component(.year, from: first), DayKey.calendar().component(.month, from: first), min(d, days)),
+                      date >= today else { continue }
+                out.append((l.name, date, l.planned, l.kind == .ahorro))
+            }
+        }
+        return out.sorted { $0.date < $1.date }
     }
 }

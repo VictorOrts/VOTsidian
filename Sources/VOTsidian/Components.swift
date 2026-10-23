@@ -699,3 +699,58 @@ struct DiaryNumberField: View {
         if t.isEmpty { store.setDiaryValue(day, key, nil) } else if let v = MD.number(t) { store.setDiaryValue(day, key, v) }
     }
 }
+
+/// Avisos agrupados por urgencia: icono en un círculo del color de su nivel, texto y, si se puede, el botón que lo resuelve.
+struct AlertList: View {
+    @Environment(Store.self) private var store
+    let alerts: [Alert]
+    var limit: Int? = nil
+    let go: (Screen) -> Void
+
+    private static let groups: [(Alert.Level, String)] = [(.urgent, "Ahora"), (.soon, "Pronto"), (.info, "Para saber")]
+
+    private func color(_ l: Alert.Level) -> Color { l == .urgent ? Brand.bad : l == .soon ? Brand.warn : Brand.info }
+
+    var body: some View {
+        let shown = limit.map { Array(alerts.prefix($0)) } ?? alerts
+        if alerts.isEmpty { EmptyNote("No hay nada urgente ni próximo.", icon: "checkmark.circle") }
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(Self.groups, id: \.0) { level, title in
+                let items = shown.filter { $0.level == level }
+                if !items.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Sin título si todo es del mismo nivel: no aporta nada.
+                        if Set(shown.map(\.level)).count > 1 {
+                            Text(title.uppercased()).font(.caption2.weight(.semibold)).tracking(0.6).foregroundStyle(color(level))
+                        }
+                        ForEach(items) { a in row(a) }
+                    }
+                }
+            }
+            if let limit, alerts.count > limit {
+                Button("Ver los \(alerts.count) avisos") { go(.avisos) }.buttonStyle(.accentLink).font(.callout)
+            }
+        }
+    }
+
+    private func row(_ a: Alert) -> some View {
+        HStack(spacing: 10) {
+            Button { go(a.screen) } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: a.icon).font(.callout).foregroundStyle(color(a.level))
+                        .frame(width: 28, height: 28).background(color(a.level).opacity(0.14), in: Circle())
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(a.text).fixedSize(horizontal: false, vertical: true)
+                        Text(a.screen.rawValue).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 8)
+                }.contentShape(Rectangle())
+            }.buttonStyle(.plain)
+            if let action = a.action {
+                Button(action.title) { store.perform(action) }.controlSize(.small)
+            }
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 2)
+    }
+}

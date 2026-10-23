@@ -14,6 +14,7 @@ struct RemindersView: View {
     @AppStorage("remBirthdays") private var birthdays = true
     @AppStorage("remDocs") private var docs = true
     @AppStorage("remEvents") private var eventsOn = true
+    @AppStorage("remPayments") private var payments = true
     @AppStorage("systemNotifications") private var systemNotifications = false
     @State private var message = ""
 
@@ -27,7 +28,7 @@ struct RemindersView: View {
     private var plan: ReminderPlan {
         ReminderPlan(mounjaro: mounjaro, mounjaroMinutes: mounjaroMin, review: review, reviewWeekday: reviewDay, reviewMinutes: reviewMin,
                      monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, nala: nalaOn,
-                     birthdays: birthdays, documents: docs, events: eventsOn)
+                     birthdays: birthdays, documents: docs, events: eventsOn, payments: payments)
     }
 
     /// Fila de un aviso: nombre, sus ajustes (día, hora) y el interruptor, todo en la misma línea.
@@ -49,6 +50,11 @@ struct RemindersView: View {
         let events = ICS.events(store.reminderSources(), plan: plan)
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                let now = store.alerts()
+                Card(title: now.isEmpty ? "Todo al día" : "Ahora mismo", icon: now.isEmpty ? "checkmark.seal" : "bell.badge",
+                     info: "Lo que pide atención hoy, de más a menos urgente. Pulsa un aviso para ir a su pantalla; algunos se resuelven con su botón.") {
+                    AlertList(alerts: now, go: { store.screen = $0 })
+                }
                 Card(title: "Qué recordar", icon: "bell") {
                     VStack(spacing: 6) {
                         row("Pinchazo de Mounjaro (cada \(store.mounjaro.everyDays) días)", $mounjaro) { hour($mounjaroMin) }
@@ -71,6 +77,8 @@ struct RemindersView: View {
                         row("Caducidad de documentos (30 días antes)", $docs)
                         Divider()
                         row("Eventos y fechas de Casa (7 días antes)", $eventsOn)
+                        Divider()
+                        row("Pagos fijos de Gastos (el día antes y el mismo día)", $payments)
                     }
                 }
 

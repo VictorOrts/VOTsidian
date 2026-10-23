@@ -346,3 +346,33 @@ private extension URL {
         return self
     }
 }
+
+@MainActor @Test func alertActionsAndPaymentReminders() throws {
+    let store = try undoVault()
+    let today = try #require(DayKey.date("2026-10-05"))
+    store.addExpense(5, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-10-02")))
+    var oct = try #require(store.budget("2026-10"))
+    for (name, day) in [("Gym + O2", "1"), ("Seguro vida", "20")] {
+        let l = try #require(oct.line(named: name))
+        store.setBudgetCell(oct, section: "Partidas", line: l.line, name: name, column: "Previsto", value: "50")
+        oct = try #require(store.budget("2026-10"))
+        store.setBudgetCell(oct, section: "Partidas", line: l.line, name: name, column: "Día", value: day)
+        oct = try #require(store.budget("2026-10"))
+    }
+    // «Pagado» desde el aviso marca la partida.
+    let gym = try #require(store.budgetAlerts(today: today).first { $0.text.contains("Gym + O2") })
+    #expect(gym.action == .markPaid(month: "2026-10", line: try #require(oct.line(named: "Gym + O2")).line, name: "Gym + O2"))
+    #expect(store.perform(try #require(gym.action)))
+    #expect(store.budget("2026-10")?.line(named: "Gym + O2")?.paid == true)
+    #expect(!store.budgetAlerts(today: today).contains { $0.text.contains("Gym + O2") })
+
+    // Recordatorios: el seguro de este mes (20 oct) y los dos del mes que viene, aunque noviembre no tenga nota.
+    let pays = store.upcomingPayments(today: today).map { "\($0.name) \(DayKey.string($0.date))" }
+    #expect(pays == ["Seguro vida 2026-10-20", "Gym + O2 2026-11-01", "Seguro vida 2026-11-20"])
+    let events = ICS.events(ReminderSources(payments: store.upcomingPayments(today: today)), plan: ReminderPlan(), today: today)
+    let pay = try #require(events.first { $0.uid.hasPrefix("pago-") })
+    #expect(pay.title.hasPrefix("Pagar: Seguro vida") && pay.extraTriggers == ["-P1D"])
+    #expect(Notifier.plan([pay], now: today, today: today).contains { $0.body.hasPrefix("Mañana.") })
+    var off = ReminderPlan(); off.payments = false
+    #expect(!ICS.events(ReminderSources(payments: store.upcomingPayments(today: today)), plan: off, today: today).contains { $0.uid.hasPrefix("pago-") })
+}

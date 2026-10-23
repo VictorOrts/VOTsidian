@@ -235,18 +235,7 @@ struct InicioView: View {
     @ViewBuilder private var attention: some View {
         let list = store.alerts()
         Card(title: list.isEmpty ? "Todo al día" : "Atención", icon: list.isEmpty ? "checkmark.seal" : "bell.badge") {
-            if list.isEmpty { EmptyNote("No hay nada urgente ni próximo.", icon: "checkmark.circle") }
-            ForEach(list.prefix(8)) { a in
-                Button { go(a.screen) } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: a.icon).frame(width: 20)
-                            .foregroundStyle(a.level == .urgent ? Brand.bad : a.level == .soon ? Brand.warn : Brand.accent)
-                        Text(a.text)
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
-                    }.contentShape(Rectangle())
-                }.buttonStyle(.plain)
-            }
+            AlertList(alerts: list, limit: 6, go: go)
         }
     }
 

@@ -14,6 +14,7 @@ struct ReminderPlan: Equatable {
     var birthdays = true
     var documents = true
     var events = true
+    var payments = true
 
     /// El plan guardado en Avisos (mismas claves y valores por defecto que `RemindersView`).
     static var stored: ReminderPlan {
@@ -24,7 +25,7 @@ struct ReminderPlan: Equatable {
                             review: flag("remReview"), reviewWeekday: int("remReviewDay", 1), reviewMinutes: int("remReviewMin", 1140),
                             monthlyWeight: flag("remWeight"), weightMinutes: int("remWeightMin", 540),
                             tasks: flag("remTasks"), nala: flag("remNala"), birthdays: flag("remBirthdays"),
-                            documents: flag("remDocs"), events: flag("remEvents"))
+                            documents: flag("remDocs"), events: flag("remEvents"), payments: flag("remPayments"))
     }
 }
 
@@ -35,6 +36,7 @@ struct ReminderSources {
     var people: [Person] = []
     var documents: [(name: String, date: Date)] = []
     var events: [(name: String, date: Date)] = []
+    var payments: [(name: String, date: Date, amount: Double, saving: Bool)] = []
 }
 
 struct ICSEvent: Equatable, Identifiable {
@@ -121,6 +123,13 @@ enum ICS {
             for e in src.events where e.date >= today {
                 out.append(ICSEvent(uid: "evento-" + stableID(e.name + DayKey.string(e.date)), title: e.name,
                                     notes: "Evento en VOTsidian.", start: e.date, minutes: nil, rule: nil, extraTriggers: ["-P7D"]))
+            }
+        }
+        if plan.payments {
+            for p in src.payments where p.date >= today {
+                out.append(ICSEvent(uid: "pago-" + stableID(p.name + DayKey.string(p.date)), title: "\(p.saving ? "Apartar" : "Pagar"): \(p.name) (\(Money.format(p.amount)))",
+                                    notes: p.saving ? "Ahorro del mes en Gastos. Márcalo en VOTsidian al apartarlo." : "Pago fijo de Gastos. Márcalo como pagado en VOTsidian.",
+                                    start: p.date, minutes: nil, rule: nil, extraTriggers: ["-P1D"]))
             }
         }
         return out.sorted { $0.start < $1.start }

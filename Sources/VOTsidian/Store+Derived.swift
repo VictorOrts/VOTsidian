@@ -20,7 +20,7 @@ extension Store {
         }
         return ReminderSources(mounjaro: mounjaro, tasks: tasks, nala: nala, people: people,
                                documents: documents.map { ($0.name, $0.date) },
-                               events: events.map { ($0.name, $0.date) } + casaDates)
+                               events: events.map { ($0.name, $0.date) } + casaDates, payments: upcomingPayments())
     }
 
     /// Abre un enlace `votsidian://note/Nombre`: salta a la nota o abre el adjunto con su programa.

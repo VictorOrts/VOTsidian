@@ -59,7 +59,7 @@ enum Notifier {
                     let early = DayKey.adding(days: -n, to: day)
                     guard early >= today else { continue }
                     out.append(PlannedNotification(id: "\(e.uid)-\(DayKey.string(day))-\(t)", title: e.title,
-                                                   body: "En \(n) días. \(e.notes)", fire: at(early, defaultMinutes)))
+                                                   body: (n == 1 ? "Mañana. " : "En \(n) días. ") + e.notes, fire: at(early, defaultMinutes)))
                 }
             }
         }
