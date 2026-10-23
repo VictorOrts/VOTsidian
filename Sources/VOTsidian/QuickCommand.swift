@@ -86,7 +86,7 @@ enum QuickCommand: Equatable {
             return .appointment(p.text, p.date ?? today)
         case "gasto", "gaste", "pague", "pago":
             return ExpenseParser.parse(arg, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
-        case "devolucion", "devuelto", "reembolso", "abono":
+        case "devolucion", "devuelto", "reembolso":
             // La palabra se queda en el texto: es la que hace que el importe cuente como devolución.
             return ExpenseParser.parse(text, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
         case "compra", "comprar", "lista":

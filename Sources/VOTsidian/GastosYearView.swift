@@ -22,8 +22,8 @@ struct GastosYearView: View {
             }
         } else {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
-                Tile(title: "Ingresos", value: Money.format(y.income), note: "\(y.months.count) \(y.months.count == 1 ? "mes" : "meses") con nota")
-                Tile(title: "Gastos", value: Money.format(y.spent), note: "sin contar el ahorro")
+                Tile(title: "Ingresos", value: Money.format(y.income), note: "\(y.months.count) \(y.months.count == 1 ? "mes" : "meses") con nota" + (y.future.isEmpty ? "" : " · \(y.future.count) previsto\(y.future.count == 1 ? "" : "s")"))
+                Tile(title: "Gastos", value: Money.format(y.spent), note: y.averageSpent.map { "media de los meses acabados: \(Money.format($0))" } ?? "sin contar el ahorro")
                 Tile(title: "Queda", value: Money.format(y.left), note: "ingresos − gastos", tint: y.left < 0 ? Brand.bad : Brand.accent)
             }
             chartCard(y)
@@ -37,8 +37,8 @@ struct GastosYearView: View {
                     info: "Lo que entró y lo que se gastó cada mes (sin el ahorro). Pasa el ratón por un mes para ver lo que quedó.") {
             Chart {
                 ForEach(y.months) { m in
-                    // El mes en curso va más claro: aún no ha acabado.
-                    let alpha = m.month == y.current ? 0.5 : 1.0
+                    // El mes en curso va más claro (aún no ha acabado) y uno por venir, más aún (es previsión).
+                    let alpha = m.planned ? 0.25 : m.month == y.current ? 0.5 : 1.0
                     BarMark(x: .value("Mes", Self.label(m)), y: .value("€", m.income), width: .ratio(0.8))
                         .foregroundStyle(by: .value("Tipo", "Ingresos")).position(by: .value("Tipo", "Ingresos")).opacity(alpha)
                         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4))
@@ -47,7 +47,7 @@ struct GastosYearView: View {
                         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4))
                 }
                 if let h = hovered, let s = shown {
-                    RuleMark(x: .value("Mes", h)).foregroundStyle(Color.primary.opacity(0.08)).lineStyle(StrokeStyle(lineWidth: 40))
+                    RectangleMark(x: .value("Mes", h), width: .ratio(1)).foregroundStyle(Color.primary.opacity(0.06))
                         .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) { tooltip(s) }
                 }
             }
@@ -59,12 +59,16 @@ struct GastosYearView: View {
             .frame(height: 230)
             .accessibilityLabel("Ingresos y gastos de cada mes de \(String(y.year))")
             if let c = y.current { Text("\(Budget.title(c)) aún no ha acabado: va más claro.").font(.caption).foregroundStyle(.secondary) }
+            if !y.future.isEmpty {
+                Text("\(y.future.map { Budget.title($0) }.joined(separator: ", ")) aún no \(y.future.count == 1 ? "ha" : "han") empezado: \(y.future.count == 1 ? "sale" : "salen") con lo previsto de cada partida (o lo ya pagado, si es más).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 
     private func tooltip(_ m: BudgetYear.Month) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(Budget.title(m.month)).font(.caption.weight(.semibold))
+            Text(Budget.title(m.month) + (m.planned ? " · previsto" : "")).font(.caption.weight(.semibold))
             ForEach([("Ingresos", m.income), ("Gastos", m.spent), ("Queda", m.left)], id: \.0) { name, v in
                 HStack { Text(name).foregroundStyle(.secondary); Spacer(minLength: 12); Text(Money.format(v)).monospacedDigit() }.font(.caption)
             }
@@ -75,14 +79,15 @@ struct GastosYearView: View {
 
     private func tableCard(_ y: BudgetYear) -> some View {
         let path = store.yearSummaryPath(y.year)
-        let exists = store.noteTexts[path] != nil
+        let upToDate = store.yearSummaryIsCurrent(y.year)
+        let exists = upToDate != nil
         return Card(title: "Mes a mes", icon: "tablecells",
-                    info: "Cada fila sale de la nota de ese mes; pulsa el mes para abrirlo. «Guardar en nota» deja esta tabla en \(path) (se rehace entera al actualizar y se deshace con ⌥⌘Z).") {
+                    info: "Cada fila sale de la nota de ese mes; pulsa el mes para abrirlo. «Guardar en nota» deja esta tabla en \(path). Al actualizarla se rehace la tabla y se conserva lo que escribas en «Comentarios»; se deshace con ⌥⌘Z.") {
             Grid(alignment: .trailing, horizontalSpacing: 28, verticalSpacing: 6) {
                 GridRow { Text("Mes").gridColumnAlignment(.leading); Text("Ingresos"); Text("Gastos"); Text("Queda") }.font(.caption).foregroundStyle(.secondary)
                 ForEach(y.months) { m in
                     GridRow {
-                        Button(Budget.title(m.month) + (m.month == y.current ? " · en curso" : "")) { open(m.month) }.buttonStyle(.accentLink)
+                        Button(Budget.title(m.month) + (m.month == y.current ? " · en curso" : m.planned ? " · previsto" : "")) { open(m.month) }.buttonStyle(.accentLink)
                         amount(m.income); amount(m.spent)
                         amount(m.left).fontWeight(.medium).foregroundStyle(m.left < 0 ? Brand.bad : .primary)
                     }
@@ -96,7 +101,12 @@ struct GastosYearView: View {
             .font(.callout)
             Divider()
             HStack {
-                Button(exists ? "Actualizar nota" : "Guardar en nota") { store.writeYearSummary(y.year) }.buttonStyle(.borderedProminent)
+                if upToDate == true {
+                    Label("La nota está al día", systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.good)
+                } else {
+                    Button(exists ? "Actualizar nota" : "Guardar en nota") { store.writeYearSummary(y.year) }.buttonStyle(.borderedProminent)
+                    if exists { Text("Ha cambiado algún mes desde que se guardó.").font(.caption).foregroundStyle(Brand.warn) }
+                }
                 if exists { Button("Abrir nota") { store.pendingNote = path }.buttonStyle(.accentLink) }
                 Spacer()
             }

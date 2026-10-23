@@ -541,3 +541,77 @@ extension URL {
     #expect(store.budgetMonths == ["2026-09", "2026-10"])
     #expect(!store.writeYearSummary(2024) && store.message?.contains("2024") == true)
 }
+
+@MainActor @Test func yearSummaryKeepsCommentsSkipsFutureMonthsAndKnowsWhenItIsStale() throws {
+    let store = try undoVault()
+    // Junio y julio ya acabaron; diciembre de 2027 está creado por adelantado y sale con lo previsto.
+    store.addExpense(100, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-06-10")))
+    store.addExpense(300, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-07-10")))
+    store.createBudget("2027-12")
+    let y = BudgetYear(year: 2026, budgets: store.budgetMonths.compactMap { store.budget($0) }, today: try #require(DayKey.date("2026-07-20")))
+    #expect(y.months.map(\.month) == ["2026-06", "2026-07"] && y.current == "2026-07" && y.averageSpent == 100)
+    #expect(BudgetYear(year: 2027, budgets: store.budgetMonths.compactMap { store.budget($0) }, today: try #require(DayKey.date("2026-07-20"))).future == ["2027-12"])
+
+    #expect(store.yearSummaryIsCurrent(2026) == nil)
+    #expect(store.writeYearSummary(2026) && store.yearSummaryIsCurrent(2026) == true)
+    // Escribir otra vez sin cambios no deja otro paso de deshacer.
+    let steps = store.undoStack.count
+    #expect(store.writeYearSummary(2026) && store.undoStack.count == steps)
+
+    // Lo escrito en Comentarios (con subtítulos) sobrevive al rehacer la nota.
+    let path = store.yearSummaryPath(2026)
+    store.edit(path) { $0 + "Año de mudanza.\n\n### Para 2027\n- gastar menos fuera\n" }
+    store.addExpense(50, category: "Transporte", note: "", date: try #require(DayKey.date("2026-07-12")))
+    #expect(store.yearSummaryIsCurrent(2026) == false)
+    #expect(store.writeYearSummary(2026) && store.yearSummaryIsCurrent(2026) == true)
+    let text = store.read(path)
+    #expect(text.contains("Año de mudanza.") && text.contains("### Para 2027\n- gastar menos fuera"))
+    #expect(Edit.yearNoteComments(text) == "Año de mudanza.\n\n### Para 2027\n- gastar menos fuera")
+}
+
+@Test func fourthReviewOfExpenses() throws {
+    let today = try #require(DayKey.date("2026-10-23"))
+    let cats = Edit.defaultBudgetLines.map(\.0)
+    // «abono» es el abono de transporte, no una devolución.
+    let a = try #require(ExpenseParser.parse("abono transporte 20", categories: cats, today: today))
+    #expect(a.amount == 20 && a.category == "Transporte")
+    #expect(QuickCommand.parse("abono 20", today: today, categories: cats) == nil)
+
+    // Un fijo pagado con un cargo y su devolución que se anulan cuenta 0, no lo previsto.
+    var b = Parse.budget(octubre, month: "2026-10", path: "x")
+    b.moves += [BudgetMove(date: today, amount: 850, category: "Vivienda", note: "", line: 900),
+                BudgetMove(date: today, amount: -850, category: "Vivienda", note: "devolución", line: 901)]
+    #expect(b.real(try #require(b.line(named: "Vivienda"))) == 0)
+
+    // Corregir el importe de un movimiento en una tabla escrita a mano sin columna «Nota».
+    let short = "## Movimientos\n| Fecha | Importe | Partida |\n| :--- | ---: | :--- |\n| 2026-10-02 | 120 | Comida |\n"
+    let m = try #require(Parse.budget(short, month: "2026-10", path: "x").moves.first)
+    let fixed = try #require(Edit.updateBudgetMove(short, month: "2026-10", move: m, date: m.date, amount: 112.4, note: ""))
+    #expect(Parse.budget(fixed, month: "2026-10", path: "x").moves.first?.amount == 112.4)
+}
+
+@Test func monthsNotStartedShowWhatIsPlanned() throws {
+    // Como la nota real: noviembre creado en octubre, con dos fijos ya marcados y la comunidad de cada 3 meses que no toca.
+    let nov = """
+    ## Ingresos
+    | Concepto | Previsto | Real |
+    | :--- | ---: | ---: |
+    | Nómina | 1957 | 1957 |
+    | Ingresos adicionales | 1200 | 1200 |
+
+    ## Partidas
+    | Partida | Previsto | Tipo | Pagado | Día | Cada | Desde |
+    | :--- | ---: | :--- | :---: | ---: | :---: | :--- |
+    | Vivienda | 525 | Fijo | ✅ |  |  |  |
+    | Alimentación | 0 | Variable |  |  |  |  |
+    | Ordenador | 70 | Fijo | ✅ |  |  |  |
+    | Seguro vida | 37 | Fijo |  |  |  |  |
+    | Gastos comunidad | 500 | Variable |  |  | 3 | 2027-01 |
+    | Ahorro | 100 | Ahorro |  |  |  |  |
+    """
+    let y = BudgetYear(year: 2026, budgets: [Parse.budget(nov, month: "2026-11", path: "x")], today: try #require(DayKey.date("2026-10-23")))
+    let m = try #require(y.months.first)
+    #expect(m.planned && y.future == ["2026-11"] && y.current == nil && y.averageSpent == nil)
+    #expect(m.income == 3157 && m.spent == 525 + 70 + 37 && m.left == 3157 - 632)
+    #expect(Edit.budgetYearNote(y).contains("(previsto)"))
+}

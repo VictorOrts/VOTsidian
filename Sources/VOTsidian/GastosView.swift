@@ -20,8 +20,8 @@ struct GastosView: View {
     @State private var renaming: BudgetLine?
     @State private var renameText = ""
     @State private var search = ""
-    /// `true` = resumen del año en vez del mes.
-    @AppStorage("gastosYearMode") private var yearMode = false
+    /// `true` = resumen del año en vez del mes. No se recuerda al salir: los avisos y el Inicio traen aquí para ver el mes.
+    @State private var yearMode = false
     /// Año del resumen; `nil` = el del mes que se está viendo.
     @State private var year: Int?
 
@@ -35,7 +35,7 @@ struct GastosView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if yearMode {
-                    let y = year ?? Int(m.prefix(4)) ?? 2026
+                    let y = year ?? Int(m.prefix(4)) ?? DayKey.calendar().component(.year, from: DayKey.today())
                     yearHeader(y)
                     GastosYearView(year: y) { open in
                         // Clic en un mes del resumen: se abre ese mes.
@@ -43,18 +43,18 @@ struct GastosView: View {
                         yearMode = false
                     }
                 } else {
-                header(m)
-                quickAdd(budget ?? store.budgetMonths.last.flatMap { store.budget($0) })
-                if let b = budget {
-                    content(b, previous: store.budgets(before: m))
-                } else {
-                    Card(title: "Sin presupuesto para \(Budget.title(m).lowercased())", icon: "calendar.badge.plus") {
-                        EmptyNote(store.budgetMonths.isEmpty
-                                  ? "Se crea con las partidas de tu hoja de Numbers. Pon lo previsto de cada una y empieza a apuntar gastos."
-                                  : "Se crea copiando ingresos, partidas y lo previsto del último mes.", icon: "eurosign.circle")
-                        Button("Crear el presupuesto de \(Budget.title(m).lowercased())") { store.createBudget(m) }.buttonStyle(.borderedProminent)
+                    header(m)
+                    quickAdd(budget ?? store.budgetMonths.last.flatMap { store.budget($0) })
+                    if let b = budget {
+                        content(b, previous: store.budgets(before: m))
+                    } else {
+                        Card(title: "Sin presupuesto para \(Budget.title(m).lowercased())", icon: "calendar.badge.plus") {
+                            EmptyNote(store.budgetMonths.isEmpty
+                                      ? "Se crea con las partidas de tu hoja de Numbers. Pon lo previsto de cada una y empieza a apuntar gastos."
+                                      : "Se crea copiando ingresos, partidas y lo previsto del último mes.", icon: "eurosign.circle")
+                            Button("Crear el presupuesto de \(Budget.title(m).lowercased())") { store.createBudget(m) }.buttonStyle(.borderedProminent)
+                        }
                     }
-                }
                 }
             }
             .padding(24)
@@ -80,12 +80,14 @@ struct GastosView: View {
 
     private func yearHeader(_ y: Int) -> some View {
         HStack(spacing: 10) {
+            // Las flechas no llevan a años sin notas (salvo volver al año en curso).
+            let thisYear = DayKey.calendar().component(.year, from: DayKey.today())
             Button { year = y - 1 } label: { Image(systemName: "chevron.left").accessibilityLabel("Año anterior") }
+                .disabled(!store.budgetYears.contains { $0 < y } && y <= thisYear)
             Text("Resumen \(String(y))").font(.title.bold())
             Button { year = y + 1 } label: { Image(systemName: "chevron.right").accessibilityLabel("Año siguiente") }
-            if y != DayKey.calendar().component(.year, from: DayKey.today()) {
-                Button("Este año") { year = DayKey.calendar().component(.year, from: DayKey.today()) }.buttonStyle(.accentLink)
-            }
+                .disabled(!store.budgetYears.contains { $0 > y } && y >= thisYear)
+            if y != thisYear { Button("Este año") { year = thisYear }.buttonStyle(.accentLink) }
             Spacer()
             modePicker
         }

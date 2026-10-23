@@ -81,10 +81,11 @@ struct Budget: Equatable {
     }
 
     /// Lo gastado en una partida: sus movimientos; si no tiene ninguno pero está marcada como pagada, lo previsto.
+    /// Un gasto y su devolución que suman 0 son 0, no lo previsto: lo que cuenta es que haya movimientos.
     func real(_ l: BudgetLine) -> Double {
         let key = MD.fold(l.name)
-        let s = moves.filter { MD.fold($0.category) == key }.reduce(0) { $0 + $1.amount }
-        return s == 0 && l.paid ? l.planned : s
+        let mine = moves.filter { MD.fold($0.category) == key }
+        return mine.isEmpty && l.paid ? l.planned : mine.reduce(0) { $0 + $1.amount }
     }
 
     /// Movimientos cuya partida no está en la tabla (escrita a mano con otro nombre): cuentan como gasto igualmente.
@@ -435,7 +436,9 @@ extension Edit {
     static func updateBudgetMove(_ text: String, month: String, move m: BudgetMove, date: Date, amount: Double, note: String) -> String? {
         guard let now = Parse.budget(text, month: month, path: "").moves.first(where: { $0.line == m.line }), now.date == m.date, now.amount == m.amount else { return nil }
         var t = normalizeBudgetTable(text, section: "Movimientos")
-        for (column, value) in [("Fecha", DayKey.string(date)), ("Importe", budgetNumber(amount)), ("Nota", note)] {
+        // Solo lo que cambia: una tabla escrita a mano sin columna «Nota» se puede corregir igual si la nota no se toca.
+        let changes = [("Fecha", DayKey.string(date), date != m.date), ("Importe", budgetNumber(amount), amount != m.amount), ("Nota", note, note != m.note)]
+        for (column, value, _) in changes.filter(\.2) {
             guard let first = MD.cells(MD.lines(t)[m.line]).first,
                   let next = setSectionCell(t, section: "Movimientos", line: m.line, expectFirst: first, column: column, value: value) else { return nil }
             t = next
@@ -477,7 +480,8 @@ enum ExpenseParser {
     }
 
     /// Palabras que convierten el importe en una devolución: entra dinero en la partida en vez de salir.
-    private static let refundWords = ["devolucion", "devuelto", "devuelta", "devolvieron", "reembolso", "abono", "reintegro"]
+    /// «abono» no está: «abono transporte 20» es el abono mensual, un gasto.
+    private static let refundWords = ["devolucion", "devuelto", "devuelta", "devolvieron", "reembolso", "reintegro"]
 
     static func parse(_ input: String, categories: [String], people: [String] = [], learned: [String: String] = [:], today: Date = DayKey.today()) -> Result? {
         // La fecha va primero: en «22/10 gasolina 40» o «el 12 pan 3» el número de la fecha no es el importe.
@@ -753,8 +757,11 @@ struct BudgetYear: Equatable {
     struct Month: Identifiable, Equatable {
         var month: String
         var income: Double
-        /// Gastado sin el ahorro: lo apartado sigue siendo tuyo y cuenta en lo que queda.
+        /// Gastado sin el ahorro: lo apartado sigue siendo tuyo y cuenta en lo que queda. En un mes que aún no ha
+        /// empezado, lo previsto (o lo ya pagado, si es más).
         var spent: Double
+        /// Mes que aún no ha empezado (nota creada por adelantado): sus cifras son previsión.
+        var planned = false
         var id: String { month }
         var left: Double { income - spent }
         var number: Int { Int(month.suffix(2)) ?? 1 }
@@ -764,34 +771,62 @@ struct BudgetYear: Equatable {
     var months: [Month] = []
     /// El mes en curso, si es de este año: aún no ha acabado.
     var current: String?
+    /// Meses con nota que aún no han empezado (creados por adelantado).
+    var future: [String] { months.filter(\.planned).map(\.month) }
 
     var income: Double { months.reduce(0) { $0 + $1.income } }
     var spent: Double { months.reduce(0) { $0 + $1.spent } }
     var left: Double { income - spent }
+    /// Gasto medio de los meses ya acabados; `nil` si aún no hay ninguno.
+    var averageSpent: Double? {
+        let closed = months.filter { $0.month != current && !$0.planned }
+        return closed.isEmpty ? nil : closed.reduce(0) { $0 + $1.spent } / Double(closed.count)
+    }
 
     init(year: Int, budgets: [Budget], today: Date = DayKey.today()) {
         self.year = year
         let mine = budgets.filter { $0.month.hasPrefix("\(year)-") }.sorted { $0.month < $1.month }
         let now = Budget.monthKey(today)
         current = mine.contains { $0.month == now } ? now : nil
-        months = mine.map { Month(month: $0.month, income: $0.income, spent: $0.spent) }
+        // Un mes por venir cuenta lo previsto de cada partida (o lo ya pagado si es más): con lo gastado de verdad,
+        // casi nada, sus ingresos inflarían lo que queda.
+        months = mine.map { b in
+            guard b.month > now else { return Month(month: b.month, income: b.income, spent: b.spent) }
+            let spent = b.lines.filter { $0.kind != .ahorro }.reduce(b.unassigned) { $0 + max(b.real($1), $1.planned) }
+            return Month(month: b.month, income: b.income, spent: spent, planned: true)
+        }
     }
 }
 
 extension Edit {
     /// Nota con el resumen del año: una fila por mes (con enlace a su nota) con ingresos, gastos y lo que queda.
-    /// Se rehace entera cada vez que se guarda: los datos son los de las notas de cada mes.
-    static func budgetYearNote(_ y: BudgetYear, today: Date = DayKey.today()) -> String {
+    /// Se rehace cada vez que se guarda con los datos de las notas de cada mes; lo escrito en «Comentarios» se conserva.
+    static func budgetYearNote(_ y: BudgetYear, comments: String = "", today: Date = DayKey.today()) -> String {
         var out = ["---", "tipo: resumen-gastos", "año: \(y.year)", "actualizado: \(DayKey.string(today))", "---", "",
-                   "# Gastos · Resumen \(y.year)", "",
+                   "# Gastos · Resumen \(y.year)", "", "[[Finanzas]] · se rehace desde la app (Gastos → Año); escribe lo tuyo en Comentarios.", "",
                    "| Mes | Ingresos | Gastos | Queda |", "| :--- | ---: | ---: | ---: |"]
         for m in y.months {
-            out.append(rowString(["[[\(m.month)|\(Budget.title(m.month))]]" + (m.month == y.current ? " (en curso)" : ""),
+            out.append(rowString(["[[\(m.month)|\(Budget.title(m.month))]]" + (m.month == y.current ? " (en curso)" : m.planned ? " (previsto)" : ""),
                                   Money.format(m.income), Money.format(m.spent), Money.format(m.left)]))
         }
         out.append(rowString(["**Total**", Money.format(y.income), Money.format(y.spent), Money.format(y.left)]))
-        out += ["", "---", "[[Finanzas]]", ""]
+        if let avg = y.averageSpent { out += ["", "Gasto medio de los meses acabados: \(Money.format(avg))."] }
+        let kept = comments.trimmingCharacters(in: .whitespacesAndNewlines)
+        out += ["", "## Comentarios", ""] + (kept.isEmpty ? [] : [kept, ""])
         return out.joined(separator: "\n")
+    }
+
+    /// Lo escrito bajo «## Comentarios» en una nota de resumen, hasta el final (con sus propios subtítulos), para no
+    /// perderlo al rehacerla.
+    static func yearNoteComments(_ text: String) -> String {
+        let lines = MD.lines(text)
+        guard let i = lines.firstIndex(where: { $0.hasPrefix("## ") && MD.fold($0) == "## comentarios" }) else { return "" }
+        return lines[(i + 1)...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// El texto sin la fecha de «actualizado»: dos resúmenes con los mismos datos son iguales aunque se hicieran otro día.
+    static func withoutUpdateDate(_ text: String) -> String {
+        MD.lines(text).filter { !$0.hasPrefix("actualizado:") }.joined(separator: "\n")
     }
 }
 
@@ -805,11 +840,29 @@ extension Store {
 
     func yearSummaryPath(_ year: Int) -> String { "\(Store.gastosFolder)/Resumen \(year).md" }
 
-    /// Escribe (o rehace) la nota del resumen del año. Se deshace con ⌥⌘Z como cualquier cambio.
+    private func yearSummaryText(_ year: Int) -> String {
+        Edit.budgetYearNote(budgetYear(year), comments: Edit.yearNoteComments(noteTexts[yearSummaryPath(year)] ?? ""))
+    }
+
+    /// `nil` si no hay nota del resumen; `true` si tiene lo mismo que se escribiría ahora.
+    func yearSummaryIsCurrent(_ year: Int) -> Bool? {
+        guard let text = noteTexts[yearSummaryPath(year)] else { return nil }
+        return Edit.withoutUpdateDate(text) == Edit.withoutUpdateDate(yearSummaryText(year))
+    }
+
+    /// Escribe (o rehace) la nota del resumen del año, conservando sus comentarios. Se deshace con ⌥⌘Z como cualquier cambio.
     @discardableResult
     func writeYearSummary(_ year: Int) -> Bool {
-        let y = budgetYear(year)
-        guard !y.months.isEmpty else { message = "No hay notas de gastos de \(year)."; return false }
-        return writeNote(yearSummaryPath(year), text: Edit.budgetYearNote(y))
+        guard !budgetYear(year).months.isEmpty else { message = "No hay notas de gastos de \(year)."; return false }
+        // La nota puede estar en iCloud sin descargar: escribir encima crearía otra y se perderían sus comentarios.
+        let path = yearSummaryPath(year), u = url(path)
+        if noteTexts[path] == nil, FileManager.default.fileExists(atPath: u.deletingLastPathComponent().appendingPathComponent(".\(u.lastPathComponent).icloud").path) {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: u)
+            message = "\(path) está en iCloud pero aún no se ha descargado. Prueba otra vez en un momento."
+            return false
+        }
+        // Sin cambios no se escribe: solo movería la fecha y dejaría un paso de deshacer vacío.
+        if yearSummaryIsCurrent(year) == true { return true }
+        return writeNote(path, text: yearSummaryText(year))
     }
 }
