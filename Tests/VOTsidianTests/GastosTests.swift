@@ -248,3 +248,27 @@ mes: 2026-10
     let noMoves = "## Partidas\n| Partida | Previsto |\n| :--- | ---: |\n| Luz | 90 |\n"
     #expect(Edit.renameBudgetLine(noMoves, line: 3, from: "Luz", to: "Electricidad")?.contains("| Electricidad | 90 |") == true)
 }
+
+@Test func secondReviewOfExpenses() throws {
+    let today = try #require(DayKey.date("2026-10-23"))
+    let cats = Edit.defaultBudgetLines.map(\.0)
+    #expect(ExpenseParser.parse("1.200 € alquiler", categories: cats, today: today)?.amount == 1200)
+    #expect(ExpenseParser.parse("alquiler 1.250,50", categories: cats, today: today)?.amount == 1250.5)
+    #expect(ExpenseParser.parse("pan 2.5", categories: cats, today: today)?.amount == 2.5)
+    let p = try #require(ExpenseParser.parse("3 € banana con Ana", categories: cats, people: ["Ana"], today: today))
+    #expect(p.note == "banana con [[Ana]]")
+
+    let every = "## Partidas\n| Partida | Previsto | Tipo | Pagado | Día | Cada | Desde |\n| :--- | ---: | :--- | :---: | ---: | :---: | :--- |\n| ITV | 40 | Fijo |  |  | cada 2 años | 2026-10 |\n| Seguro | 300 | Fijo |  |  | anual | 2026-10 |\n"
+    let b = Parse.budget(every, month: "2026-10", path: "x")
+    #expect(b.line(named: "ITV")?.every == 24 && b.line(named: "Seguro")?.every == 12)
+
+    // El último punto de la gráfica es lo mismo que «Sobrará», también con un fijo a medio pagar y un gasto de otro mes.
+    var oct = Parse.budget(octubre, month: "2026-10", path: "x")
+    oct.moves.append(BudgetMove(date: try #require(DayKey.date("2026-10-15")), amount: 30, category: "Gastos comunidad", note: "", line: 990))
+    oct.moves.append(BudgetMove(date: try #require(DayKey.date("2026-09-30")), amount: 12, category: "Alimentación", note: "", line: 991))
+    for day in ["2026-10-02", "2026-10-20"] {
+        let s = BudgetStatus(oct, today: try #require(DayKey.date(day)))
+        let end = try #require(s.remainingByDay(oct).forecast.last?.1)
+        #expect(abs(end - s.endLeft) < 0.01, "día \(day): gráfica \(end) frente a \(s.endLeft)")
+    }
+}

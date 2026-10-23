@@ -18,7 +18,8 @@ struct BudgetLine: Identifiable, Equatable {
     var every = 1
     /// Primer mes en que tocó (columna «Desde», AAAA-MM); a partir de él se repite cada `every` meses.
     var start: String?
-    var id: String { name }
+    /// Por línea, no por nombre: dos partidas llamadas igual en la nota no se confunden en la tabla.
+    var id: Int { line }
 
     static let frequencies: [(months: Int, label: String)] = [(1, "Cada mes"), (2, "Cada 2 meses"), (3, "Cada 3 meses"), (4, "Cada 4 meses"), (6, "Cada 6 meses"), (12, "Cada año")]
     static func frequencyLabel(_ n: Int) -> String { frequencies.first { $0.months == n }?.label ?? "Cada \(n) meses" }
@@ -49,7 +50,7 @@ struct BudgetIncome: Identifiable, Equatable {
     var planned: Double
     var real: Double?
     var line: Int
-    var id: String { name }
+    var id: Int { line }
 }
 
 struct BudgetMove: Identifiable, Equatable {
@@ -141,7 +142,12 @@ struct BudgetStatus {
     func remainingByDay(_ b: Budget) -> (real: [(Int, Double)], forecast: [(Int, Double)]) {
         let cal = DayKey.calendar()
         var spentOn = [Int: Double]()
-        for m in b.moves where Budget.monthKey(m.date) == b.month { spentOn[cal.component(.day, from: m.date), default: 0] += m.amount }
+        // Un movimiento con fecha de otro mes (escrito a mano) cuenta igual que en el total: el primer o el último día.
+        for m in b.moves {
+            let k = Budget.monthKey(m.date)
+            let d = k == b.month ? cal.component(.day, from: m.date) : k < b.month ? 1 : days
+            spentOn[d, default: 0] += m.amount
+        }
         // Partidas pagadas sin movimientos: cuentan en su día, o el 1 si no tienen.
         for l in b.lines where l.paid {
             let key = MD.fold(l.name)
@@ -151,12 +157,18 @@ struct BudgetStatus {
         var left = b.income
         for d in 1...max(day, 1) { left -= spentOn[d] ?? 0; real.append((d, left)) }
         guard isCurrent, day < days else { return (real, []) }
+        // Lo que falta de cada fijo sin pagar (entero o lo que quede si ya se pagó una parte), en su día.
         var pendingOn = [Int: Double]()
-        for l in b.lines where l.kind != .variable && !l.paid && b.real(l) == 0 { pendingOn[min(max(l.day ?? days, day + 1), days), default: 0] += l.planned }
-        let variableSpent = b.lines.filter { $0.kind == .variable }.reduce(0) { $0 + b.real($1) }
-        let rate = day > 0 ? variableSpent / Double(day) : 0
+        for l in b.lines where l.kind != .variable && !l.paid {
+            let left = l.planned - b.real(l)
+            if left > 0 { pendingOn[min(max(l.day ?? days, day + 1), days), default: 0] += left }
+        }
+        // Los variables bajan hasta su previsión (la misma que usa «Sobrará»), repartida entre los días que quedan.
+        let variables = b.lines.filter { $0.kind == .variable }
+        let rate = variables.reduce(0) { $0 + (projection[$1.name] ?? b.real($1)) - b.real($1) } / Double(days - day)
         var forecast: [(Int, Double)] = [(day, left)]
-        for d in (day + 1)...days { left -= (pendingOn[d] ?? 0) + rate; forecast.append((d, left)) }
+        // Los gastos apuntados por adelantado («mañana comunidad 60») bajan en su día.
+        for d in (day + 1)...days { left -= (spentOn[d] ?? 0) + (pendingOn[d] ?? 0) + rate; forecast.append((d, left)) }
         return (real, forecast)
     }
 }
@@ -253,8 +265,9 @@ extension Parse {
                 let full = amount(cell(row.cells, p)) ?? 0
                 // «3», «3 meses», «trimestral», «anual»…
                 let everyText = MD.fold(cell(row.cells, ev))
-                let every = everyText.contains("anual") || everyText.contains("ano") ? 12 : everyText.contains("semestr") ? 6 : everyText.contains("trimestr") ? 3
-                    : everyText.contains("bimestr") ? 2 : everyText.firstMatch(of: /(\d{1,2})/).flatMap { Int($0.1) }.map { max($0, 1) } ?? 1
+                let times = everyText.firstMatch(of: /(\d{1,2})/).flatMap { Int($0.1) }.map { max($0, 1) }
+                let every = everyText.contains("anual") ? 12 : everyText.contains("ano") ? (times ?? 1) * 12 : everyText.contains("semestr") ? 6
+                    : everyText.contains("trimestr") ? 3 : everyText.contains("bimestr") ? 2 : times ?? 1
                 let start = cell(row.cells, st).range(of: #"^\d{4}-\d{2}"#, options: .regularExpression).map { String(cell(row.cells, st)[$0]) }
                 var l = BudgetLine(name: cell(row.cells, n), planned: full, kind: kind,
                                    paid: paid.contains("✅") || ["x", "si", "pagado"].contains(MD.fold(paid)),
@@ -378,8 +391,11 @@ enum ExpenseParser {
         // La fecha va primero: en «22/10 gasolina 40» o «el 12 pan 3» el número de la fecha no es el importe.
         let dated = NaturalDate.extract(input.trimmingCharacters(in: .whitespaces), today: today)
         var rest = dated.text
-        guard let m = rest.firstMatch(of: /(\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/) ?? rest.firstMatch(of: /(\d{1,6}(?:[.,]\d{1,2})?)/),
-              let amount = Double(String(m.1).replacingOccurrences(of: ",", with: ".")), amount > 0 else { return nil }
+        // «1.200» son mil doscientos (punto de miles), «12,50» y «12.5» llevan decimales.
+        guard let m = rest.firstMatch(of: /(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/)
+                ?? rest.firstMatch(of: /(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)/) else { return nil }
+        let amount = Money.parse(String(m.1))
+        guard amount > 0 else { return nil }
         rest.removeSubrange(m.range)
         rest = rest.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
         rest = rest.replacingOccurrences(of: #"^(?i)(en|de|del|por)\s+"#, with: "", options: .regularExpression)
@@ -402,7 +418,8 @@ enum ExpenseParser {
         var person: String?
         for p in people where p.count >= 3 {
             let key = MD.fold(p)
-            if folded.contains(" \(key) "), let r = rest.range(of: p, options: [.caseInsensitive, .diacriticInsensitive]) {
+            if folded.contains(" \(key) "), let r = rest.range(of: "(?<![\\p{L}\\p{N}])" + NSRegularExpression.escapedPattern(for: p) + "(?![\\p{L}\\p{N}])",
+                                                                options: [.regularExpression, .caseInsensitive, .diacriticInsensitive]) {
                 person = p
                 rest.replaceSubrange(r, with: "[[\(p)]]")
                 break

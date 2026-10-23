@@ -98,7 +98,9 @@ struct GastosView: View {
     private func add(_ p: ExpenseParser.Result?, _ category: String?) {
         guard let p, let category else { return }
         store.addExpense(p.amount, category: category, note: p.note, date: p.date)
-        lastAdded = "Apuntado: \(Money.exact(p.amount)) en \(category)" + (p.note.isEmpty ? "" : " · \(p.note)")
+        // Si va a otro mes que el que estás viendo, se dice: si no, parece que no se apuntó.
+        let elsewhere = Budget.monthKey(p.date) != month ? " · en \(Budget.title(Budget.monthKey(p.date)).lowercased())" : ""
+        lastAdded = "Apuntado: \(Money.exact(p.amount)) en \(category)" + (p.note.isEmpty ? "" : " · \(p.note)") + elsewhere
         quick = ""
         chosen = nil
     }
