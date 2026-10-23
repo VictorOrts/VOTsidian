@@ -514,3 +514,30 @@ extension URL {
     store.undo()
     #expect(store.message == nil && store.budget("2026-12") == nil && !store.canUndo)
 }
+
+@MainActor @Test func yearSummaryShowsIncomeSpentAndLeftPerMonth() throws {
+    let store = try undoVault()
+    store.addExpense(100, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-09-10")))
+    store.addExpense(40, category: "Transporte", note: "", date: try #require(DayKey.date("2026-10-03")))
+    for month in ["2026-09", "2026-10"] {
+        let b = try #require(store.budget(month)), nomina = try #require(b.incomes.first)
+        store.setBudgetCell(b, section: "Ingresos", line: nomina.line, name: nomina.name, column: "Real", value: "1000")
+    }
+    // El ahorro no es gasto: queda en lo que queda.
+    let oct = try #require(store.budget("2026-10"))
+    store.addExpense(200, category: try #require(oct.lines.first { $0.kind == .ahorro }).name, note: "", date: try #require(DayKey.date("2026-10-05")))
+
+    let y = BudgetYear(year: 2026, budgets: store.budgetMonths.compactMap { store.budget($0) }, today: try #require(DayKey.date("2026-10-23")))
+    #expect(y.months.map(\.month) == ["2026-09", "2026-10"] && y.current == "2026-10")
+    #expect(y.months.map(\.spent) == [100, 40] && y.months.map(\.left) == [900, 960])
+    #expect(y.income == 2000 && y.spent == 140 && y.left == 1860)
+    #expect(store.budgetYears == [2026] && store.budgetYear(2025).months.isEmpty)
+
+    let note = Edit.budgetYearNote(y, today: try #require(DayKey.date("2026-10-23")))
+    #expect(note.contains("| Mes | Ingresos | Gastos | Queda |"))
+    #expect(note.contains("| [[2026-09\\|Septiembre de 2026]] |"))
+    #expect(store.writeYearSummary(2026) && store.noteTexts[store.yearSummaryPath(2026)] != nil)
+    // La nota del resumen no se toma por un mes.
+    #expect(store.budgetMonths == ["2026-09", "2026-10"])
+    #expect(!store.writeYearSummary(2024) && store.message?.contains("2024") == true)
+}

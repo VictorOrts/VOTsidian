@@ -20,6 +20,10 @@ struct GastosView: View {
     @State private var renaming: BudgetLine?
     @State private var renameText = ""
     @State private var search = ""
+    /// `true` = resumen del año en vez del mes.
+    @AppStorage("gastosYearMode") private var yearMode = false
+    /// Año del resumen; `nil` = el del mes que se está viendo.
+    @State private var year: Int?
 
     private var month: String {
         Budget.monthKey(DayKey.calendar().date(byAdding: .month, value: offset, to: DayKey.today()) ?? DayKey.today())
@@ -30,6 +34,15 @@ struct GastosView: View {
         let budget = store.budget(m)
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if yearMode {
+                    let y = year ?? Int(m.prefix(4)) ?? 2026
+                    yearHeader(y)
+                    GastosYearView(year: y) { open in
+                        // Clic en un mes del resumen: se abre ese mes.
+                        offset = (BudgetLine.monthIndex(open) ?? 0) - (BudgetLine.monthIndex(Budget.monthKey(DayKey.today())) ?? 0)
+                        yearMode = false
+                    }
+                } else {
                 header(m)
                 quickAdd(budget ?? store.budgetMonths.last.flatMap { store.budget($0) })
                 if let b = budget {
@@ -41,6 +54,7 @@ struct GastosView: View {
                                   : "Se crea copiando ingresos, partidas y lo previsto del último mes.", icon: "eurosign.circle")
                         Button("Crear el presupuesto de \(Budget.title(m).lowercased())") { store.createBudget(m) }.buttonStyle(.borderedProminent)
                     }
+                }
                 }
             }
             .padding(24)
@@ -59,8 +73,31 @@ struct GastosView: View {
             if offset != 0 { Button("Este mes") { offset = 0 }.buttonStyle(.accentLink) }
             Spacer()
             if store.budget(m) != nil { Button("Abrir nota") { store.pendingNote = store.budgetPath(m) }.buttonStyle(.accentLink) }
+            modePicker
         }
         .buttonStyle(.borderless)
+    }
+
+    private func yearHeader(_ y: Int) -> some View {
+        HStack(spacing: 10) {
+            Button { year = y - 1 } label: { Image(systemName: "chevron.left").accessibilityLabel("Año anterior") }
+            Text("Resumen \(String(y))").font(.title.bold())
+            Button { year = y + 1 } label: { Image(systemName: "chevron.right").accessibilityLabel("Año siguiente") }
+            if y != DayKey.calendar().component(.year, from: DayKey.today()) {
+                Button("Este año") { year = DayKey.calendar().component(.year, from: DayKey.today()) }.buttonStyle(.accentLink)
+            }
+            Spacer()
+            modePicker
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private var modePicker: some View {
+        Picker("", selection: Binding(get: { yearMode }, set: { yearMode = $0; year = nil })) {
+            Text("Mes").tag(false)
+            Text("Año").tag(true)
+        }
+        .pickerStyle(.segmented).labelsHidden().fixedSize()
     }
 
     private func quickAdd(_ reference: Budget?) -> some View {

@@ -744,3 +744,72 @@ extension Store {
         }.sorted { $0.name < $1.name }
     }
 }
+
+// MARK: - Resumen del año
+
+/// Un año de gastos sacado de las notas de cada mes (`Finanzas/Gastos/2026-01.md` … `2026-12.md`): por mes, lo que entró,
+/// lo que se gastó y lo que quedó.
+struct BudgetYear: Equatable {
+    struct Month: Identifiable, Equatable {
+        var month: String
+        var income: Double
+        /// Gastado sin el ahorro: lo apartado sigue siendo tuyo y cuenta en lo que queda.
+        var spent: Double
+        var id: String { month }
+        var left: Double { income - spent }
+        var number: Int { Int(month.suffix(2)) ?? 1 }
+    }
+
+    var year: Int
+    var months: [Month] = []
+    /// El mes en curso, si es de este año: aún no ha acabado.
+    var current: String?
+
+    var income: Double { months.reduce(0) { $0 + $1.income } }
+    var spent: Double { months.reduce(0) { $0 + $1.spent } }
+    var left: Double { income - spent }
+
+    init(year: Int, budgets: [Budget], today: Date = DayKey.today()) {
+        self.year = year
+        let mine = budgets.filter { $0.month.hasPrefix("\(year)-") }.sorted { $0.month < $1.month }
+        let now = Budget.monthKey(today)
+        current = mine.contains { $0.month == now } ? now : nil
+        months = mine.map { Month(month: $0.month, income: $0.income, spent: $0.spent) }
+    }
+}
+
+extension Edit {
+    /// Nota con el resumen del año: una fila por mes (con enlace a su nota) con ingresos, gastos y lo que queda.
+    /// Se rehace entera cada vez que se guarda: los datos son los de las notas de cada mes.
+    static func budgetYearNote(_ y: BudgetYear, today: Date = DayKey.today()) -> String {
+        var out = ["---", "tipo: resumen-gastos", "año: \(y.year)", "actualizado: \(DayKey.string(today))", "---", "",
+                   "# Gastos · Resumen \(y.year)", "",
+                   "| Mes | Ingresos | Gastos | Queda |", "| :--- | ---: | ---: | ---: |"]
+        for m in y.months {
+            out.append(rowString(["[[\(m.month)|\(Budget.title(m.month))]]" + (m.month == y.current ? " (en curso)" : ""),
+                                  Money.format(m.income), Money.format(m.spent), Money.format(m.left)]))
+        }
+        out.append(rowString(["**Total**", Money.format(y.income), Money.format(y.spent), Money.format(y.left)]))
+        out += ["", "---", "[[Finanzas]]", ""]
+        return out.joined(separator: "\n")
+    }
+}
+
+extension Store {
+    /// Años con alguna nota de mes, del más nuevo al más viejo.
+    var budgetYears: [Int] { Array(Set(budgetMonths.compactMap { Int($0.prefix(4)) })).sorted(by: >) }
+
+    func budgetYear(_ year: Int) -> BudgetYear {
+        BudgetYear(year: year, budgets: budgetMonths.filter { $0.hasPrefix("\(year)-") }.compactMap { budget($0) })
+    }
+
+    func yearSummaryPath(_ year: Int) -> String { "\(Store.gastosFolder)/Resumen \(year).md" }
+
+    /// Escribe (o rehace) la nota del resumen del año. Se deshace con ⌥⌘Z como cualquier cambio.
+    @discardableResult
+    func writeYearSummary(_ year: Int) -> Bool {
+        let y = budgetYear(year)
+        guard !y.months.isEmpty else { message = "No hay notas de gastos de \(year)."; return false }
+        return writeNote(yearSummaryPath(year), text: Edit.budgetYearNote(y))
+    }
+}
