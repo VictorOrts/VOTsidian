@@ -137,10 +137,16 @@ func gastosFixture(_ date: Date, full: Bool = false) -> String {
     var b = Parse.budget(text, month: month, path: "")
     for l in b.lines {
         var lines = MD.lines(text)
-        lines[l.line] = Edit.rowString([l.name, Edit.budgetNumber(planned[l.name] ?? 0), l.kind.rawValue, "", days[l.name].map(String.init) ?? ""])
+        lines[l.line] = Edit.rowString([l.name, Edit.budgetNumber(planned[l.name] ?? 0), l.kind.rawValue, "", days[l.name].map(String.init) ?? "", "", ""])
         text = lines.joined(separator: "\n")
     }
     text = text.replacingOccurrences(of: "| Nómina | 0 |  |", with: "| Nómina | 2400 | 2400 |")
+    // Un cargo trimestral que toca el mes que viene.
+    if let seguro = Parse.budget(text, month: month, path: "").line(named: "Seguro vida"), let m = BudgetLine.monthIndex(month) {
+        text = Edit.setSectionCell(text, section: "Partidas", line: seguro.line, expectFirst: seguro.name, column: "Previsto", value: "180") ?? text
+        text = Edit.setSectionCell(text, section: "Partidas", line: seguro.line, expectFirst: seguro.name, column: "Cada", value: "3") ?? text
+        text = Edit.setSectionCell(text, section: "Partidas", line: seguro.line, expectFirst: seguro.name, column: "Desde", value: BudgetLine.month(m + (full ? 0 : 1))) ?? text
+    }
     b = Parse.budget(text, month: month, path: "")
     let today = full ? 31 : DayKey.calendar().component(.day, from: date)
     for l in b.lines where l.kind == .fijo {

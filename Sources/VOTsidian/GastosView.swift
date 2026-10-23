@@ -14,6 +14,11 @@ struct GastosView: View {
     /// Ahorro mensual para la simulación del fondo; `nil` = lo previsto en la partida de ahorro.
     @State private var monthly: Double?
     @State private var addLeftover = false
+    @State private var newLine = ""
+    @State private var newKind = BudgetLine.Kind.fijo
+    @State private var newEvery = 1
+    @State private var renaming: BudgetLine?
+    @State private var renameText = ""
 
     private var month: String {
         Budget.monthKey(DayKey.calendar().date(byAdding: .month, value: offset, to: DayKey.today()) ?? DayKey.today())
@@ -112,7 +117,7 @@ struct GastosView: View {
                 Tile(title: "Ahorrado", value: Money.format(b.saved))
             }
             Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos · ingresos \(Money.format(b.income))")
-            let fixed = b.lines.filter { $0.kind != .variable }
+            let fixed = b.lines.filter { $0.kind != .variable && $0.isDue(b.month) }
             let pending = fixed.filter { !$0.paid && b.real($0) == 0 }
             Tile(title: "Pagos fijos", value: "\(fixed.count - pending.count) de \(fixed.count)",
                  note: pending.isEmpty ? "todos pagados" : "\(Money.format(pending.reduce(0) { $0 + $1.planned })) por pagar")
@@ -127,6 +132,7 @@ struct GastosView: View {
             }
             VStack(spacing: 16) { paceCard(b, s); insightsCard(insights); remainingCard(b, s); fundCard(b, s) }
         }
+        if b.lines.contains(where: { $0.every > 1 }) { reserveCard(b) }
         incomeCard(b)
         linesCard(b, previous: previous)
         movesCard(b)
@@ -259,7 +265,7 @@ struct GastosView: View {
              info: "«Real» es la suma de los movimientos de cada partida; si no tiene y está marcada como pagada, cuenta lo previsto. «Vs media» compara con los meses anteriores. Edita lo previsto y pulsa intro.") {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 7) {
                 GridRow {
-                    Text(""); Text("Partida"); Text(""); Text("Previsto"); Text("Real"); Text("Tipo"); Text("Vs media")
+                    Text(""); Text("Partida"); Text(""); Text("Previsto"); Text("Real"); Text("Tipo"); Text("Frecuencia"); Text("Vs media")
                 }.font(.caption).foregroundStyle(.secondary)
                 ForEach(b.lines) { l in
                     let r = b.real(l)
@@ -273,15 +279,22 @@ struct GastosView: View {
                                 .buttonStyle(.plain).accessibilityLabel(l.paid ? "Marcar sin pagar" : "Marcar pagado")
                         }
                         HStack(spacing: 6) {
-                            Button(l.name) { filter = l.name }.buttonStyle(.plain).lineLimit(1)
-                            if let d = l.day { Text("día \(d)").font(.caption).foregroundStyle(.secondary) }
+                            Button(l.name) { filter = l.name }.buttonStyle(.plain).lineLimit(1).foregroundStyle(l.isDue(b.month) ? .primary : .secondary)
+                                .contextMenu {
+                                    Button("Renombrar…") { renameText = l.name; renaming = l }
+                                    Button("Quitar partida", role: .destructive) { store.removeBudgetLine(b, l) }
+                                }
+                            if !l.isDue(b.month) {
+                                Text("toca en \(DayKey.esLong(Budget.firstDay(l.nextDue(from: b.month)) ?? Date(), .dateTime.month(.wide)))").font(.caption).foregroundStyle(Brand.info)
+                            } else if let d = l.day { Text("día \(d)").font(.caption).foregroundStyle(.secondary) }
                         }
                         MiniBar(value: l.planned > 0 ? r / l.planned : 0, color: r > l.planned ? Brand.bad : l.kind == .ahorro ? Brand.sky : Brand.accent).frame(width: 110)
-                        AmountCell(value: l.planned) { store.setBudgetCell(b, section: "Partidas", line: l.line, name: l.name, column: "Previsto", value: $0) }
+                        AmountCell(value: l.amount) { store.setBudgetCell(b, section: "Partidas", line: l.line, name: l.name, column: "Previsto", value: $0) }
                         Text(r == 0 ? "–" : Money.format(r)).monospacedDigit().fontWeight(.medium).foregroundStyle(r > l.planned ? Brand.bad : r == 0 ? .secondary : .primary)
                         ChoiceMenu(options: BudgetLine.Kind.allCases.map(\.rawValue), current: l.kind.rawValue, width: 96) {
                             store.setBudgetCell(b, section: "Partidas", line: l.line, name: l.name, column: "Tipo", value: $0)
                         }
+                        frequencyMenu(b, l)
                         Text(trend(r, avg)).font(.caption).monospacedDigit().foregroundStyle(avg.map { r >= $0 * 1.1 && r > 0 } ?? false ? Brand.bad : .secondary)
                     }
                 }
@@ -295,7 +308,77 @@ struct GastosView: View {
             if b.unassigned > 0 {
                 Label("\(Money.format(b.unassigned)) en movimientos con una partida que no está en la tabla.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.warn)
             }
+            Divider()
+            HStack {
+                TextField("Nueva partida (p. ej. Seguro vivienda)", text: $newLine).textFieldStyle(.roundedBorder).frame(maxWidth: 280)
+                    .onSubmit { addLine(b) }
+                ChoiceMenu(options: BudgetLine.Kind.allCases.map(\.rawValue), current: newKind.rawValue, width: 96) { newKind = BudgetLine.Kind(rawValue: $0) ?? .fijo }
+                ChoiceMenu(options: BudgetLine.frequencies.map(\.label), current: BudgetLine.frequencyLabel(newEvery), width: 130) { label in
+                    newEvery = BudgetLine.frequencies.first { $0.label == label }?.months ?? 1
+                }
+                Button("Añadir partida") { addLine(b) }.disabled(newLine.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            Text("Clic derecho en una partida para renombrarla o quitarla. Las no mensuales tocan este mes; cambia el mes en su menú de frecuencia.")
+                .font(.caption).foregroundStyle(.secondary)
         }
+        .alert("Renombrar partida", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Nombre", text: $renameText)
+            Button("Renombrar") { if let l = renaming { store.renameBudgetLine(b, l, to: renameText) }; renaming = nil }
+            Button("Cancelar", role: .cancel) { renaming = nil }
+        } message: { Text("Sus movimientos de este mes pasan al nombre nuevo.") }
+    }
+
+    /// Frecuencia y, si no es mensual, el mes en que toca. Elegir «Cada 3 meses» la hace tocar este mes; el mes se cambia en el mismo menú.
+    private func frequencyMenu(_ b: Budget, _ l: BudgetLine) -> some View {
+        Menu {
+            ForEach(BudgetLine.frequencies, id: \.months) { f in
+                Button { store.setBudgetFrequency(b, l, every: f.months, start: l.every == f.months ? l.start : b.month) } label: {
+                    if f.months == l.every { Label(f.label, systemImage: "checkmark") } else { Text(f.label) }
+                }
+            }
+            if l.every > 1, let m = BudgetLine.monthIndex(b.month) {
+                Divider()
+                Section("Próximo cargo") {
+                    ForEach(0..<l.every, id: \.self) { k in
+                        let month = BudgetLine.month(m + k)
+                        Button { store.setBudgetFrequency(b, l, every: l.every, start: month) } label: {
+                            let name = Budget.title(month)
+                            if l.nextDue(from: b.month) == month { Label(name, systemImage: "checkmark") } else { Text(name) }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Text(l.every == 1 ? "Mensual" : BudgetLine.frequencyLabel(l.every)).font(.caption).foregroundStyle(l.every == 1 ? .secondary : Brand.info)
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+    }
+
+    private func reserveCard(_ b: Budget) -> some View {
+        let lines = b.lines.filter { $0.every > 1 }.sorted { $0.nextDue(from: b.month) < $1.nextDue(from: b.month) }
+        let total = lines.reduce(0) { $0 + $1.monthlyReserve }
+        return Card(title: "Cargos que no son de cada mes", icon: "calendar.badge.clock",
+                    info: "Lo que pagas cada 2, 3, 6 o 12 meses solo cuenta el mes en que toca. Apartar cada mes la parte que le corresponde evita que ese mes te pille. La frecuencia se cambia en la tabla de partidas.") {
+            Text("Aparta \(Money.format(total)) al mes y tendrás cubiertos estos cargos cuando lleguen.").font(.callout)
+            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 6) {
+                GridRow { Text("Partida"); Text("Importe"); Text("Frecuencia"); Text("Próximo"); Text("Al mes") }.font(.caption).foregroundStyle(.secondary)
+                ForEach(lines) { l in
+                    let next = l.nextDue(from: b.month)
+                    GridRow {
+                        Text(l.name).lineLimit(1)
+                        Text(Money.format(l.amount)).monospacedDigit()
+                        Text(BudgetLine.frequencyLabel(l.every)).foregroundStyle(.secondary)
+                        Text(next == b.month ? "este mes" : DayKey.esLong(Budget.firstDay(next) ?? Date(), .dateTime.month(.wide).year())).foregroundStyle(next == b.month ? Brand.warn : .secondary)
+                        Text(Money.format(l.monthlyReserve)).monospacedDigit().fontWeight(.medium)
+                    }
+                }
+            }
+        }
+    }
+
+    private func addLine(_ b: Budget) {
+        store.addBudgetLine(b, name: newLine, amount: 0, kind: newKind, every: newEvery, start: b.month)
+        newLine = ""; newEvery = 1; newKind = .fijo
     }
 
     private func trend(_ r: Double, _ avg: Double?) -> String {

@@ -6,12 +6,42 @@ import Foundation
 struct BudgetLine: Identifiable, Equatable {
     enum Kind: String, CaseIterable { case fijo = "Fijo", variable = "Variable", ahorro = "Ahorro" }
     var name: String
+    /// Lo que cuenta este mes: el importe si toca pagarla, 0 si es de cada varios meses y este no toca.
     var planned: Double
     var kind: Kind
     var paid: Bool
     var day: Int?
     var line: Int
+    /// Lo que se paga cada vez (columna «Previsto»).
+    var amount: Double = 0
+    /// Cada cuántos meses se paga (columna «Cada»): 1 = todos los meses.
+    var every = 1
+    /// Primer mes en que tocó (columna «Desde», AAAA-MM); a partir de él se repite cada `every` meses.
+    var start: String?
     var id: String { name }
+
+    static let frequencies: [(months: Int, label: String)] = [(1, "Cada mes"), (2, "Cada 2 meses"), (3, "Cada 3 meses"), (4, "Cada 4 meses"), (6, "Cada 6 meses"), (12, "Cada año")]
+    static func frequencyLabel(_ n: Int) -> String { frequencies.first { $0.months == n }?.label ?? "Cada \(n) meses" }
+
+    static func monthIndex(_ month: String) -> Int? {
+        let p = month.split(separator: "-").compactMap { Int($0) }
+        return p.count == 2 ? p[0] * 12 + p[1] - 1 : nil
+    }
+    static func month(_ index: Int) -> String { String(format: "%04d-%02d", index / 12, index % 12 + 1) }
+
+    func isDue(_ month: String) -> Bool {
+        guard every > 1, let s = start.flatMap(BudgetLine.monthIndex), let m = BudgetLine.monthIndex(month) else { return true }
+        return ((m - s) % every + every) % every == 0
+    }
+
+    /// Próximo mes en que toca, contando `month` si toca en él.
+    func nextDue(from month: String) -> String {
+        guard let m = BudgetLine.monthIndex(month) else { return month }
+        return (0..<max(every, 1)).map { BudgetLine.month(m + $0) }.first(where: isDue) ?? month
+    }
+
+    /// Lo que conviene apartar cada mes para tenerlo cuando toque.
+    var monthlyReserve: Double { every > 1 ? amount / Double(every) : 0 }
 }
 
 struct BudgetIncome: Identifiable, Equatable {
@@ -165,6 +195,15 @@ extension Budget {
                 }
             }
         }
+        if s.isCurrent, let m = BudgetLine.monthIndex(b.month) {
+            let next = BudgetLine.month(m + 1)
+            let due = b.lines.filter { $0.every > 1 && $0.isDue(next) && $0.amount > 0 }
+            if !due.isEmpty {
+                let total = due.reduce(0) { $0 + $1.amount }
+                out.append(BudgetInsight(id: "proximo-mes", level: .info,
+                    text: "En \(Budget.title(next).lowercased()) toca \(due.map { "\($0.name) (\(Money.format($0.amount)))" }.joined(separator: ", ")): \(Money.format(total)) más que un mes normal."))
+            }
+        }
         for e in events where e.amount > 0 {
             out.append(BudgetInsight(id: "evento-\(e.path)", level: .info, text: "\(e.name): aportación de \(Money.format(e.amount)) sin pagar.", notePath: e.path))
         }
@@ -204,12 +243,22 @@ extension Parse {
         }
         if let t = rows("Partidas") {
             let n = col(t.header, "partida") ?? 0, p = col(t.header, "previsto"), k = col(t.header, "tipo"), pd = col(t.header, "pagado"), d = col(t.header, "dia")
+            let ev = col(t.header, "cada"), st = col(t.header, "desde")
             for row in t.rows where !cell(row.cells, n).isEmpty {
                 let kind = BudgetLine.Kind.allCases.first { MD.fold($0.rawValue) == MD.fold(cell(row.cells, k)) } ?? .variable
                 let paid = cell(row.cells, pd)
-                b.lines.append(BudgetLine(name: cell(row.cells, n), planned: amount(cell(row.cells, p)) ?? 0, kind: kind,
-                                          paid: paid.contains("✅") || ["x", "si", "pagado"].contains(MD.fold(paid)),
-                                          day: Int(cell(row.cells, d)).flatMap { (1...31).contains($0) ? $0 : nil }, line: row.index))
+                let full = amount(cell(row.cells, p)) ?? 0
+                // «3», «3 meses», «trimestral», «anual»…
+                let everyText = MD.fold(cell(row.cells, ev))
+                let every = everyText.contains("anual") || everyText.contains("ano") ? 12 : everyText.contains("semestr") ? 6 : everyText.contains("trimestr") ? 3
+                    : everyText.contains("bimestr") ? 2 : everyText.firstMatch(of: /(\d{1,2})/).flatMap { Int($0.1) }.map { max($0, 1) } ?? 1
+                let start = cell(row.cells, st).range(of: #"^\d{4}-\d{2}"#, options: .regularExpression).map { String(cell(row.cells, st)[$0]) }
+                var l = BudgetLine(name: cell(row.cells, n), planned: full, kind: kind,
+                                   paid: paid.contains("✅") || ["x", "si", "pagado"].contains(MD.fold(paid)),
+                                   day: Int(cell(row.cells, d)).flatMap { (1...31).contains($0) ? $0 : nil }, line: row.index,
+                                   amount: full, every: every, start: start ?? (every > 1 ? month : nil))
+                if !l.isDue(month) { l.planned = 0; l.paid = false }
+                b.lines.append(l)
             }
         }
         if let t = rows("Movimientos") {
@@ -240,14 +289,58 @@ extension Edit {
     /// Nota de un mes nuevo. Copia ingresos, partidas, lo previsto y los días del mes anterior; «Real» y «Pagado» empiezan vacíos.
     static func budgetNote(month: String, from previous: Budget?) -> String {
         let incomes = previous?.incomes.map { ($0.name, $0.planned) } ?? [("Nómina", 0), ("Ingresos adicionales", 0)]
-        let lines = previous?.lines.map { ($0.name, $0.planned, $0.kind, $0.day) } ?? defaultBudgetLines.map { ($0.0, 0, $0.1, nil) }
+        let lines = previous?.lines.map { ($0.name, $0.amount, $0.kind, $0.day, $0.every, $0.start) }
+            ?? defaultBudgetLines.map { ($0.0, 0, $0.1, nil, 1, nil) }
         var out = ["---", "tipo: presupuesto", "mes: \(month)", "---", "", "# Gastos · \(Budget.title(month))", "",
                    "## Ingresos", "| Concepto | Previsto | Real |", "| :--- | ---: | ---: |"]
         out += incomes.map { rowString([$0.0, budgetNumber($0.1), ""]) }
-        out += ["", "## Partidas", "| Partida | Previsto | Tipo | Pagado | Día |", "| :--- | ---: | :--- | :---: | ---: |"]
-        out += lines.map { rowString([$0.0, budgetNumber($0.1), $0.2.rawValue, "", $0.3.map(String.init) ?? ""]) }
+        out += ["", "## Partidas", "| Partida | Previsto | Tipo | Pagado | Día | Cada | Desde |", "| :--- | ---: | :--- | :---: | ---: | :---: | :--- |"]
+        out += lines.map { rowString([$0.0, budgetNumber($0.1), $0.2.rawValue, "", $0.3.map(String.init) ?? "", $0.4 > 1 ? "\($0.4)" : "", $0.4 > 1 ? $0.5 ?? "" : ""]) }
         out += ["", "## Movimientos", "| Fecha | Importe | Partida | Nota |", "| :--- | ---: | :--- | :--- |", "", "---", "[[Finanzas]]", ""]
         return out.joined(separator: "\n")
+    }
+
+    /// Deja la tabla de una sección lista para editar celdas: en Partidas añade «Cada» y «Desde» si es de antes de las
+    /// frecuencias, y completa las filas con menos celdas que la cabecera (escritas a mano), que si no no se podrían cambiar.
+    static func normalizeBudgetTable(_ text: String, section: String) -> String {
+        var lines = MD.lines(text)
+        guard let r = MD.section(lines, containing: section) else { return text }
+        let rows = MD.tableRows(lines).filter { r.contains($0.index) }
+        guard var header = rows.first?.cells else { return text }
+        let addFrequency = MD.fold(section) == "partidas" && !header.contains { MD.fold($0) == "cada" }
+        if addFrequency { header += ["Cada", "Desde"] }
+        for (i, row) in rows.enumerated() {
+            let isSeparator = row.cells.allSatisfy { $0.range(of: #"^:?-+:?$"#, options: .regularExpression) != nil }
+            var cells = i == 0 ? header : row.cells
+            if i > 0, addFrequency, isSeparator, cells.count < header.count { cells += [":---:", ":---"] }
+            while cells.count < header.count { cells.append(isSeparator && i > 0 ? "---" : "") }
+            if cells != row.cells { lines[row.index] = rowString(cells) }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// Añade una partida al final de la tabla de Partidas.
+    static func addBudgetLine(_ text: String, name: String, amount: Double, kind: BudgetLine.Kind, every: Int, start: String?) -> String? {
+        let t = normalizeBudgetTable(text, section: "Partidas")
+        var lines = MD.lines(t)
+        guard let r = MD.section(lines, containing: "Partidas"), let last = MD.tableRows(lines).last(where: { r.contains($0.index) }) else { return nil }
+        lines.insert(rowString([name, budgetNumber(amount), kind.rawValue, "", "", every > 1 ? String(every) : "", every > 1 ? start ?? "" : ""]), at: last.index + 1)
+        return lines.joined(separator: "\n")
+    }
+
+    /// Cambia el nombre de una partida y el de sus movimientos, para que sigan contando en ella.
+    static func renameBudgetLine(_ text: String, line: Int, from old: String, to new: String) -> String? {
+        var lines = MD.lines(text)
+        guard line < lines.count, MD.cells(lines[line]).first == old, let r = MD.section(lines, containing: "Movimientos") else { return nil }
+        var cells = MD.cells(lines[line]); cells[0] = new
+        lines[line] = rowString(cells)
+        let rows = MD.tableRows(lines).filter { r.contains($0.index) }
+        guard let col = rows.first?.cells.firstIndex(where: { MD.fold($0) == "partida" }) else { return lines.joined(separator: "\n") }
+        for row in rows.dropFirst() where col < row.cells.count && MD.fold(row.cells[col]) == MD.fold(old) {
+            var c = row.cells; c[col] = new
+            lines[row.index] = rowString(c)
+        }
+        return lines.joined(separator: "\n")
     }
 
     /// Añade un movimiento al final de la tabla de Movimientos.
@@ -352,7 +445,38 @@ extension Store {
     }
 
     func setBudgetCell(_ b: Budget, section: String, line: Int, name: String, column: String, value: String) {
-        edit(b.path) { Edit.setSectionCell($0, section: section, line: line, expectFirst: name, column: column, value: value) }
+        edit(b.path) { Edit.setSectionCell(Edit.normalizeBudgetTable($0, section: section), section: section, line: line, expectFirst: name, column: column, value: value) }
+    }
+
+    /// Cambia cada cuántos meses se paga una partida y desde qué mes. Afecta a este mes y a los que se creen después.
+    func setBudgetFrequency(_ b: Budget, _ l: BudgetLine, every: Int, start: String?) {
+        edit(b.path) { text in
+            var t = Edit.normalizeBudgetTable(text, section: "Partidas")
+            for (column, value) in [("Cada", every > 1 ? String(every) : ""), ("Desde", every > 1 ? start ?? b.month : "")] {
+                guard let next = Edit.setSectionCell(t, section: "Partidas", line: l.line, expectFirst: l.name, column: column, value: value) else { return nil }
+                t = next
+            }
+            return t
+        }
+    }
+
+    func addBudgetLine(_ b: Budget, name: String, amount: Double, kind: BudgetLine.Kind, every: Int, start: String?) {
+        let clean = name.replacingOccurrences(of: "|", with: "/").trimmingCharacters(in: .whitespaces)
+        guard !clean.isEmpty else { return }
+        guard b.line(named: clean) == nil else { message = "Ya hay una partida llamada «\(clean)»."; return }
+        edit(b.path) { Edit.addBudgetLine($0, name: clean, amount: amount, kind: kind, every: every, start: start) }
+    }
+
+    func renameBudgetLine(_ b: Budget, _ l: BudgetLine, to name: String) {
+        let clean = name.replacingOccurrences(of: "|", with: "/").trimmingCharacters(in: .whitespaces)
+        guard !clean.isEmpty, clean != l.name else { return }
+        guard b.line(named: clean) == nil || MD.fold(clean) == MD.fold(l.name) else { message = "Ya hay una partida llamada «\(clean)»."; return }
+        edit(b.path) { Edit.renameBudgetLine($0, line: l.line, from: l.name, to: clean) }
+    }
+
+    /// Quita la partida de este mes. Sus movimientos se quedan en la nota y siguen contando como gasto.
+    func removeBudgetLine(_ b: Budget, _ l: BudgetLine) {
+        edit(b.path) { Edit.deleteRow($0, line: l.line, expectFirst: l.name) }
     }
 
     func deleteExpense(_ b: Budget, _ m: BudgetMove) {

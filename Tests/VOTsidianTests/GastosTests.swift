@@ -133,3 +133,76 @@ mes: 2026-10
     store.createBudget("2026-10")
     #expect(store.budget("2026-10")?.line(named: "Alimentación")?.planned == 350)
 }
+
+@Test func linesEveryFewMonthsOnlyCountWhenDue() throws {
+    let text = """
+    ## Partidas
+    | Partida | Previsto | Tipo | Pagado | Día | Cada | Desde |
+    | :--- | ---: | :--- | :---: | ---: | :---: | :--- |
+    | Agua | 60 | Fijo |  | 10 | 2 | 2026-09 |
+    | Seguro coche | 180 | Fijo | ✅ | 5 | trimestral | 2026-11 |
+    | Vivienda | 850 | Fijo |  | 1 |  |  |
+    """
+    let oct = Parse.budget(text, month: "2026-10", path: "x")
+    let agua = try #require(oct.line(named: "Agua")), seguro = try #require(oct.line(named: "Seguro coche"))
+    #expect(agua.every == 2 && !agua.isDue("2026-10") && agua.isDue("2026-11") && agua.isDue("2026-09") && agua.isDue("2027-01"))
+    #expect(agua.planned == 0 && agua.amount == 60)
+    #expect(seguro.every == 3 && seguro.planned == 0 && !seguro.paid)          // el ✅ de otro mes no cuenta aquí
+    #expect(seguro.nextDue(from: "2026-10") == "2026-11" && seguro.isDue("2027-02") && seguro.isDue("2026-08"))
+    #expect(oct.planned == 850)
+    #expect(seguro.monthlyReserve == 60 && agua.monthlyReserve == 30)
+    let nov = Parse.budget(text, month: "2026-11", path: "x")
+    #expect(nov.planned == 850 + 60 + 180)
+
+    // El mes nuevo copia frecuencia y mes de inicio.
+    let copy = Parse.budget(Edit.budgetNote(month: "2026-12", from: oct), month: "2026-12", path: "y")
+    #expect(copy.line(named: "Seguro coche")?.every == 3 && copy.line(named: "Seguro coche")?.start == "2026-11")
+    #expect(copy.line(named: "Agua")?.planned == 0 && copy.line(named: "Agua")?.amount == 60)
+
+    // Aviso del mes que viene.
+    let s = BudgetStatus(oct, today: try #require(DayKey.date("2026-10-20")))
+    #expect(Budget.insights(oct, previous: [], status: s).contains { $0.id == "proximo-mes" && $0.text.contains("Seguro coche") && $0.text.contains("Agua") })
+}
+
+@MainActor @Test func frequencyColumnsAreAddedToOldNotes() throws {
+    let store = try undoVault()
+    store.addExpense(10, category: "Alimentación", note: "", date: try #require(DayKey.date("2026-09-14")))
+    // Nota de antes de las frecuencias: sin columnas «Cada» y «Desde».
+    let path = store.budgetPath("2026-09")
+    store.edit(path) { $0.replacingOccurrences(of: " Cada | Desde |", with: "").replacingOccurrences(of: " :---: | :--- |", with: "")
+        .replacingOccurrences(of: #"(\|[^\n]*\|)  \|  \|"#, with: "$1", options: .regularExpression) }
+    #expect(!(store.read(path).contains("Cada")))
+    let b = try #require(store.budget("2026-09"))
+    let seguro = try #require(b.line(named: "Seguro vida"))
+    store.setBudgetFrequency(b, seguro, every: 3, start: "2026-11")
+    let after = try #require(store.budget("2026-09")?.line(named: "Seguro vida"))
+    #expect(after.every == 3 && after.start == "2026-11" && after.planned == 0)
+    #expect(store.budget("2026-09")?.lines.count == 14 && store.budget("2026-09")?.moves.count == 1)
+
+    // Una fila escrita a mano con menos celdas también se puede marcar como pagada.
+    store.edit(path) { $0.replacingOccurrences(of: #"\| Ordenador \|[^\n]*"#, with: "| Ordenador | 60 | Fijo |", options: .regularExpression) }
+    let short = try #require(store.budget("2026-09")?.line(named: "Ordenador"))
+    store.setBudgetCell(try #require(store.budget("2026-09")), section: "Partidas", line: short.line, name: short.name, column: "Pagado", value: "✅")
+    #expect(store.budget("2026-09")?.line(named: "Ordenador")?.paid == true)
+}
+
+@MainActor @Test func linesCanBeAddedRenamedAndRemoved() throws {
+    let store = try undoVault()
+    store.addExpense(30, category: "Vivienda (alquiler, hipoteca, impuestos, seguro)", note: "", date: try #require(DayKey.date("2026-11-03")))
+    var b = try #require(store.budget("2026-11"))
+    store.addBudgetLine(b, name: "Seguro vivienda", amount: 0, kind: .fijo, every: 12, start: "2027-03")
+    b = try #require(store.budget("2026-11"))
+    let seguro = try #require(b.line(named: "Seguro vivienda"))
+    #expect(seguro.every == 12 && seguro.start == "2027-03" && !seguro.isDue("2026-11") && seguro.isDue("2027-03") && seguro.isDue("2028-03"))
+    store.addBudgetLine(b, name: "seguro vivienda", amount: 0, kind: .fijo, every: 1, start: nil)
+    #expect(store.budget("2026-11")?.lines.count == 15 && store.message?.contains("Ya hay") == true)
+
+    let viv = try #require(b.line(named: "Vivienda (alquiler, hipoteca, impuestos, seguro)"))
+    store.renameBudgetLine(b, viv, to: "Vivienda (alquiler, hipoteca, impuestos)")
+    b = try #require(store.budget("2026-11"))
+    let renamed = try #require(b.line(named: "Vivienda (alquiler, hipoteca, impuestos)"))
+    #expect(b.real(renamed) == 30 && b.unassigned == 0)
+
+    store.removeBudgetLine(b, try #require(b.line(named: "Ordenador")))
+    #expect(store.budget("2026-11")?.line(named: "Ordenador") == nil && store.budget("2026-11")?.lines.count == 14)
+}
