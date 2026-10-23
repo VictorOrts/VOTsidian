@@ -63,7 +63,7 @@ extension Store {
             diaryDays: notes.filter { $0.path.hasPrefix("Diario/") && (DayKey.date($0.name).map(inYear) ?? false) }.count)
     }
 
-    /// Escribe tus datos en CSV (peso, pinchazos, medidas, hábitos, tareas, ánimo y sueño) y un resumen. Devuelve los archivos creados.
+    /// Escribe tus datos en CSV (peso, pinchazos, medidas, hábitos, tareas, gastos, ánimo y sueño) y un resumen. Devuelve los archivos creados.
     @discardableResult
     func exportData(to dir: URL) throws -> [URL] {
         let fm = FileManager.default
@@ -88,6 +88,9 @@ extension Store {
         try write("habitos.csv", CSV.file(["semana", "habito", "L", "M", "X", "J", "V", "S", "D", "dias"], habitRows))
         try write("tareas.csv", CSV.file(["nota", "tarea", "fecha_limite", "prioridad", "hecha", "fecha_hecha"],
                                          tasks.map { [$0.noteName, $0.text, $0.due.map(DayKey.string) ?? "", ["", "baja", "media", "alta"][$0.priority], $0.done ? "1" : "0", $0.completed.map(DayKey.string) ?? ""] }))
+        // Gastos: cada movimiento de todas las notas de mes, con su mes por si la fecha escrita a mano es de otro.
+        let moves = budgetMonths.compactMap { budget($0) }.flatMap { b in b.moves.map { [b.month, DayKey.string($0.date), CSV.num($0.amount), $0.category, $0.note] } }
+        if !moves.isEmpty { try write("gastos.csv", CSV.file(["mes", "fecha", "importe_eur", "partida", "nota"], moves)) }
         var diary: [[String]] = []
         for n in notes where n.path.hasPrefix("Diario/") {
             guard let d = DayKey.date(n.name) else { continue }

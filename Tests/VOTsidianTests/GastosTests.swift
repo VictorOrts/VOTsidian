@@ -318,7 +318,7 @@ mes: 2026-10
     b = try #require(store.budget("2026-09"))
     let s = BudgetStatus(b, today: try #require(DayKey.date("2026-10-05")))
     let ins = Budget.insights(b, previous: [], status: s)
-    let close = try #require(ins.first { $0.id == "cierre" })
+    let close = try #require(ins.first { $0.id.hasPrefix("cierre") })
     #expect(close.transfer == 400)
     store.transferLeftover(b, amount: 400)
     let after = try #require(store.budget("2026-09"))
@@ -376,4 +376,141 @@ extension URL {
     #expect(Notifier.plan([pay], now: today, today: today).contains { $0.body.hasPrefix("Mañana.") })
     var off = ReminderPlan(); off.payments = false
     #expect(!ICS.events(ReminderSources(payments: store.upcomingPayments(today: today)), plan: off, today: today).contains { $0.uid.hasPrefix("pago-") })
+}
+
+@Test func todaysSpendingLowersWhatIsLeftForToday() throws {
+    let b = Parse.budget(octubre, month: "2026-10", path: "x")
+    // El 20 hay 160 € de restaurantes apuntados ese mismo día.
+    let s = BudgetStatus(b, today: try #require(DayKey.date("2026-10-20")))
+    #expect(s.spentToday == 160)
+    #expect(abs(s.todayAllowance - (104.5 + 160) / 12) < 0.001 && s.leftToday == 0)
+    // Sin nada hoy, lo de hoy es el reparto de siempre.
+    let s21 = BudgetStatus(b, today: try #require(DayKey.date("2026-10-21")))
+    #expect(s21.spentToday == 0 && abs(s21.leftToday - s21.perDay) < 0.001)
+    #expect(BudgetStatus(b, today: try #require(DayKey.date("2026-11-05"))).leftToday == 0)
+}
+
+@Test func paidBeforeItsDayIsAlreadyGone() throws {
+    // Comunidad (día 28) marcada como pagada el 20: «Hoy quedan» ya no la cuenta, y el final del mes no cambia.
+    let text = octubre.replacingOccurrences(of: "| Gastos comunidad | 60 | Fijo |  | 28 |", with: "| Gastos comunidad | 60 | Fijo | ✅ | 28 |")
+    let b = Parse.budget(text, month: "2026-10", path: "x")
+    let s = BudgetStatus(b, today: try #require(DayKey.date("2026-10-20")))
+    let series = s.remainingByDay(b)
+    let base = BudgetStatus(Parse.budget(octubre, month: "2026-10", path: "x"), today: try #require(DayKey.date("2026-10-20")))
+    let before = try #require(base.remainingByDay(Parse.budget(octubre, month: "2026-10", path: "x")).real.last?.1)
+    #expect(abs((series.real.last?.1 ?? 0) - (before - 60)) < 0.01)
+    #expect(abs((series.forecast.last?.1 ?? 0) - s.endLeft) < 0.01)
+}
+
+@Test func fundGoalUsesATypicalMonthAndClosingSkipsUnpaidBills() throws {
+    let text = """
+    ## Ingresos
+    | Concepto | Previsto | Real |
+    | :--- | ---: | ---: |
+    | Nómina | 2000 | 2000 |
+
+    ## Partidas
+    | Partida | Previsto | Tipo | Pagado | Día | Cada | Desde |
+    | :--- | ---: | :--- | :---: | ---: | :---: | :--- |
+    | Alquiler | 800 | Fijo | ✔ | 1 |  |  |
+    | Luz | 90 | Fijo |  | 5 |  |  |
+    | Seguro coche | 360 | Fijo |  |  | anual | 2027-03 |
+    | Comida | 300 | Variable |  |  |  |  |
+    | Ahorro | 200 | Ahorro |  |  |  |  |
+
+    ## Movimientos
+    | Fecha | Importe | Partida | Nota |
+    | :--- | ---: | :--- | :--- |
+    | 2026-10-04 | 250 | Comida | |
+    | 2026-10-09 | 12 | Farmacia | |
+    | 2026-10-11 | 8 | farmacia | |
+    """
+    let b = Parse.budget(text, month: "2026-10", path: "x")
+    #expect(b.line(named: "Alquiler")?.paid == true)
+    // 800 + 90 + 360/12 + 300: el seguro anual cuenta 30 € aunque este mes no toque.
+    #expect(b.plannedExpenses == 1190 && b.typicalMonthExpenses == 1220)
+    #expect(b.unpaidFixed.map(\.name) == ["Luz"])
+    #expect(b.unassignedByCategory.count == 1 && b.unassignedByCategory[0].total == 20)
+
+    let closed = BudgetStatus(b, today: try #require(DayKey.date("2026-11-03")))
+    let ins = Budget.insights(b, previous: [], status: closed)
+    #expect(ins.contains { $0.id.hasPrefix("sin-marcar") && $0.text.contains("Luz") })
+    // 2000 − (800 + 250 + 20) − 0 ahorrado − 90 de la luz sin marcar.
+    #expect(ins.first { $0.id.hasPrefix("cierre") }?.transfer == 840)
+    #expect(ins.first { $0.id.hasPrefix("cierre") }?.month == "2026-10")
+}
+
+@Test func thirdReviewOfExpensePhrases() throws {
+    let today = try #require(DayKey.date("2026-10-23"))
+    let cats = Edit.defaultBudgetLines.map(\.0)
+    let a = try #require(ExpenseParser.parse("€12 pan", categories: cats, today: today))
+    #expect(a.amount == 12 && a.note == "pan")
+    #expect(ExpenseParser.parse("2 cafés 3,50", categories: cats, today: today)?.amount == 3.5)
+    #expect(ExpenseParser.parse("alquiler 1.250,50", categories: cats, today: today)?.amount == 1250.5)
+    #expect(ExpenseParser.parse("1.200 alquiler", categories: cats, today: today)?.amount == 1200)
+    #expect(ExpenseParser.parse("gym o2 40", categories: cats, today: today)?.amount == 40)
+    let r = try #require(ExpenseParser.parse("devolución 30 Zara", categories: cats, today: today))
+    #expect(r.amount == -30 && r.note == "devolución Zara")
+    guard case .expense(let q)? = QuickCommand.parse("reembolso 15,20 Amazon", today: today, categories: cats) else {
+        Issue.record("«reembolso …» no se entiende"); return
+    }
+    #expect(q.amount == -15.2 && QuickCommand.expense(q).summary.hasPrefix("Devolución de 15,20"))
+
+    // Al corregir no se aprenden las palabras que ya son de una partida.
+    #expect(ExpenseParser.learnable("seguro coche", categories: cats) == ["coche"])
+    let learned = Dictionary(uniqueKeysWithValues: ExpenseParser.learnable("seguro coche", categories: cats).map { ($0, "Transporte") })
+    #expect(ExpenseParser.parse("seguro vida 37", categories: cats, learned: learned, today: today)?.category == "Seguro vida")
+    #expect(ExpenseParser.parse("seguro coche 300", categories: cats, learned: learned, today: today)?.category == "Transporte")
+}
+
+@MainActor @Test func expensesCanBeCorrectedAndMovedToAnotherMonth() throws {
+    let store = try undoVault()
+    store.addExpense(22, category: "Alimentación", note: "pan", date: try #require(DayKey.date("2026-10-14")))
+    var b = try #require(store.budget("2026-10"))
+    store.updateExpense(b, try #require(b.moves.first), date: try #require(DayKey.date("2026-10-15")), amount: 25.5, note: "pan y leche")
+    b = try #require(store.budget("2026-10"))
+    let m = try #require(b.moves.first)
+    #expect(b.moves.count == 1 && m.amount == 25.5 && m.note == "pan y leche" && DayKey.string(m.date) == "2026-10-15")
+
+    // A otro mes: sale de octubre, entra en septiembre, y se deshace de una vez.
+    store.updateExpense(b, m, date: try #require(DayKey.date("2026-09-30")), amount: 25.5, note: "pan y leche")
+    #expect(store.budget("2026-10")?.moves.isEmpty == true)
+    #expect(store.budget("2026-09")?.moves.first?.amount == 25.5)
+    store.undo()
+    #expect(store.message == nil, "\(store.message ?? "")")
+    #expect(store.budget("2026-10")?.moves.count == 1, "\(store.read(store.budgetPath("2026-10")))")
+    #expect(store.budget("2026-09")?.moves.isEmpty != false)
+
+    // Un movimiento que ya cambió en la nota no se toca.
+    let stale = BudgetMove(date: m.date, amount: 99, category: m.category, note: "", line: m.line)
+    store.updateExpense(try #require(store.budget("2026-10")), stale, date: m.date, amount: 1, note: "")
+    #expect(store.budget("2026-10")?.moves.first?.amount == 25.5)
+}
+
+@MainActor @Test func renamingALineKeepsWhatWasLearned() throws {
+    let store = try undoVault()
+    let saved = store.expenseLearned
+    defer { store.expenseLearned = saved }
+    store.addExpense(40, category: "Imprevistos / otros", note: "dentista", date: try #require(DayKey.date("2026-10-14")))
+    store.expenseLearned = ["dentista": "Imprevistos / otros"]
+    let b = try #require(store.budget("2026-10"))
+    store.renameBudgetLine(b, try #require(b.line(named: "Imprevistos / otros")), to: "Salud")
+    #expect(store.expenseLearned["dentista"] == "Salud")
+}
+
+@MainActor @Test func expensesAreExportedToCSV() throws {
+    let store = try undoVault()
+    store.addExpense(12.5, category: "Alimentación", note: "pan, leche", date: try #require(DayKey.date("2026-10-14")))
+    let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
+    let files = try store.exportData(to: out)
+    let csv = try String(contentsOf: try #require(files.first { $0.lastPathComponent == "gastos.csv" }), encoding: .utf8)
+    #expect(csv == "mes,fecha,importe_eur,partida,nota\n2026-10,2026-10-14,12.5,Alimentación,\"pan, leche\"\n")
+}
+
+@MainActor @Test func firstExpenseOfAMonthUndoesInOneStep() throws {
+    let store = try undoVault()
+    store.addExpense(9, category: "Transporte", note: "metro", date: try #require(DayKey.date("2026-12-02")))
+    #expect(store.budget("2026-12")?.moves.count == 1)
+    store.undo()
+    #expect(store.message == nil && store.budget("2026-12") == nil && !store.canUndo)
 }

@@ -17,7 +17,7 @@ struct FinanzasView: View {
                 let s = BudgetStatus(b)
                 HStack(spacing: 12) {
                     Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos")
-                    Tile(title: "Puedes gastar hoy", value: Money.format(s.perDay), tint: s.perDay > 0 ? Brand.accent : Brand.bad)
+                    Tile(title: "Puedes gastar hoy", value: Money.format(s.leftToday), tint: s.leftToday > 0 ? Brand.accent : Brand.bad)
                     Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), tint: s.endLeft < 0 ? Brand.bad : nil)
                 }
             } else {

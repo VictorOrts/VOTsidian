@@ -99,6 +99,22 @@ struct Budget: Equatable {
     var spent: Double { lines.filter { $0.kind != .ahorro }.reduce(0) { $0 + real($1) } + unassigned }
     var saved: Double { lines.filter { $0.kind == .ahorro }.reduce(0) { $0 + real($1) } }
     var plannedExpenses: Double { lines.filter { $0.kind != .ahorro }.reduce(0) { $0 + $1.planned } }
+    /// Gasto previsto de un mes típico: los cargos de cada varios meses cuentan su parte (el seguro anual, 1/12).
+    /// No cambia según toque o no un cargo este mes, así que sirve de base para el fondo de emergencia.
+    var typicalMonthExpenses: Double { lines.filter { $0.kind != .ahorro }.reduce(0) { $0 + $1.amount / Double(max($1.every, 1)) } }
+
+    /// Fijos que tocaban este mes, con algo previsto, sin marcar ni ningún movimiento.
+    var unpaidFixed: [BudgetLine] { lines.filter { !$0.isDiscretionary && $0.kind != .ahorro && $0.planned > 0 && !$0.paid && real($0) == 0 } }
+
+    /// Movimientos con una partida que no está en la tabla, agrupados por ese nombre: así se ve qué partida falta.
+    var unassignedByCategory: [(name: String, total: Double)] {
+        let names = Set(lines.map { MD.fold($0.name) })
+        var out: [(name: String, total: Double)] = []
+        for m in moves where !names.contains(MD.fold(m.category)) {
+            if let i = out.firstIndex(where: { MD.fold($0.name) == MD.fold(m.category) }) { out[i].total += m.amount } else { out.append((m.category, m.amount)) }
+        }
+        return out
+    }
 
     func line(named name: String) -> BudgetLine? { lines.first { MD.fold($0.name) == MD.fold(name) } }
 }
@@ -113,6 +129,13 @@ struct BudgetStatus {
     var perDay: Double
     var endLeft: Double
     var projection: [String: Double]
+    /// Gastado hoy en partidas variables.
+    var spentToday: Double = 0
+    /// Lo que tocaba gastar hoy al empezar el día: lo que quedaba para variables repartido entre los días que faltan.
+    var todayAllowance: Double = 0
+    /// Lo que queda de lo de hoy. Gastar hoy baja este número, no el de mañana: con `perDay` solo, un gasto
+    /// de 25 € un día de 10 € apenas movía «Puedes gastar hoy».
+    var leftToday: Double { max(0, todayAllowance - spentToday) }
 
     var fraction: Double { Double(day) / Double(days) }
     var daysLeft: Int { days - day + 1 }
@@ -138,9 +161,16 @@ struct BudgetStatus {
         // Lo que queda en variables según lo previsto, pero nunca más que el dinero que de verdad queda tras los fijos:
         // si los ingresos no cubren lo previsto, «puedes gastar hoy» no puede prometer lo que no hay.
         let cash = b.income - others - variables.reduce(0) { $0 + b.real($1) } - b.unassigned
-        variableLeft = max(0, min(variables.reduce(0) { $0 + $1.planned - b.real($1) }, cash))
+        let plannedLeft = variables.reduce(0) { $0 + $1.planned - b.real($1) }
+        variableLeft = max(0, min(plannedLeft, cash))
         perDay = current ? variableLeft / Double(max(days - day + 1, 1)) : 0
         endLeft = b.income - others - variables.reduce(0) { $0 + (proj[$1.name] ?? 0) } - b.unassigned
+        if current {
+            let keys = Set(variables.map { MD.fold($0.name) })
+            let todayKey = DayKey.string(today)
+            spentToday = b.moves.filter { DayKey.string($0.date) == todayKey && keys.contains(MD.fold($0.category)) }.reduce(0) { $0 + $1.amount }
+            todayAllowance = max(0, min(plannedLeft + spentToday, cash + spentToday)) / Double(max(days - day + 1, 1))
+        }
     }
 
     /// Lo que queda del mes, día a día: real hasta hoy y previsto desde hoy (pagos fijos en su día y variables al ritmo actual).
@@ -153,10 +183,11 @@ struct BudgetStatus {
             let d = k == b.month ? cal.component(.day, from: m.date) : k < b.month ? 1 : days
             spentOn[d, default: 0] += m.amount
         }
-        // Partidas pagadas sin movimientos: cuentan en su día, o el 1 si no tienen.
+        // Partidas pagadas sin movimientos: cuentan en su día, o el 1 si no tienen. Si está marcada pero su día aún no ha
+        // llegado (se pagó antes), cuenta hoy: ese dinero ya no está y «Hoy quedan» no debe contarlo.
         for l in b.lines where l.paid {
             let key = MD.fold(l.name)
-            if !b.moves.contains(where: { MD.fold($0.category) == key }) { spentOn[min(l.day ?? 1, days), default: 0] += l.planned }
+            if !b.moves.contains(where: { MD.fold($0.category) == key }) { spentOn[min(l.day ?? 1, isCurrent ? max(day, 1) : days), default: 0] += l.planned }
         }
         var real: [(Int, Double)] = []
         var left = b.income
@@ -189,6 +220,8 @@ struct BudgetInsight: Identifiable, Equatable {
     var notePath: String? = nil
     /// Sobrante de un mes cerrado que se puede pasar al fondo de emergencia.
     var transfer: Double? = nil
+    /// Mes del que es el sobrante (puede ser el anterior al que se está viendo).
+    var month: String? = nil
 }
 
 extension Budget {
@@ -229,17 +262,33 @@ extension Budget {
         for e in events where e.amount > 0 {
             out.append(BudgetInsight(id: "evento-\(e.path)", level: .info, text: "\(e.name): aportación de \(Money.format(e.amount)) sin pagar.", notePath: e.path))
         }
-        if !s.isCurrent, s.day == s.days, b.lines.contains(where: { $0.kind == .ahorro }) {
-            let left = b.income - b.spent - b.saved
-            if left >= 5 {
-                out.append(BudgetInsight(id: "cierre", level: .good, text: "En \(Budget.title(b.month).lowercased()) sobraron \(Money.exact(left)). Pásalos al fondo de emergencia para que no se diluyan en el mes siguiente.", transfer: left))
-            }
-        }
+        if !s.isCurrent, s.day == s.days { out += closing(b) }
         if s.isCurrent, s.day >= 3 {
             if s.endLeft > 50 {
                 out.append(BudgetInsight(id: "sobra", level: .good, text: "A este ritmo sobrarán ~\(Money.format(s.endLeft)) el \(s.days). Al cerrar el mes puedes pasarlos al fondo de emergencia."))
             } else if s.endLeft < 0 {
                 out.append(BudgetInsight(id: "falta", level: .bad, text: "A este ritmo faltarán ~\(Money.format(-s.endLeft)) a fin de mes. Mira qué partida variable se puede frenar."))
+            }
+        }
+        return out
+    }
+
+    /// Avisos de un mes ya cerrado: pagos sin marcar y el sobrante para el fondo. Salen al mirar ese mes y, los primeros
+    /// días, también en el mes en curso, que es donde se está al empezar el mes.
+    static func closing(_ b: Budget) -> [BudgetInsight] {
+        var out: [BudgetInsight] = []
+        let name = Budget.title(b.month).lowercased()
+        // Un fijo sin marcar ni apuntar puede ser un pago olvidado. Se avisa y no entra en el sobrante,
+        // para no pasar al fondo dinero que en realidad se fue en esa factura.
+        let unpaid = b.unpaidFixed
+        if !unpaid.isEmpty {
+            out.append(BudgetInsight(id: "sin-marcar-\(b.month)", level: .warn,
+                text: "En \(name) quedaron sin marcar como pagados: \(unpaid.map { "\($0.name) (\(Money.format($0.planned)))" }.joined(separator: ", ")). Si los pagaste, márcalos en la tabla de partidas de ese mes."))
+        }
+        if b.lines.contains(where: { $0.kind == .ahorro }) {
+            let left = b.income - b.spent - b.saved - unpaid.reduce(0) { $0 + $1.planned }
+            if left >= 5 {
+                out.append(BudgetInsight(id: "cierre-\(b.month)", level: .good, text: "En \(name) sobraron \(Money.exact(left))\(unpaid.isEmpty ? "" : " (sin contar los pagos sin marcar)"). Pásalos al fondo de emergencia para que no se diluyan en el mes siguiente.", transfer: left, month: b.month))
             }
         }
         return out
@@ -283,7 +332,7 @@ extension Parse {
                     : everyText.contains("trimestr") ? 3 : everyText.contains("bimestr") ? 2 : times ?? 1
                 let start = cell(row.cells, st).range(of: #"^\d{4}-\d{2}"#, options: .regularExpression).map { String(cell(row.cells, st)[$0]) }
                 var l = BudgetLine(name: cell(row.cells, n), planned: full, kind: kind,
-                                   paid: paid.contains("✅") || ["x", "si", "pagado"].contains(MD.fold(paid)),
+                                   paid: ["✅", "✔", "☑", "✓"].contains { paid.contains($0) } || ["x", "[x]", "si", "pagado", "pagada"].contains(MD.fold(paid)),
                                    day: Int(cell(row.cells, d)).flatMap { (1...31).contains($0) ? $0 : nil }, line: row.index,
                                    amount: full, every: every, start: start ?? (every > 1 ? month : nil))
                 if !l.isDue(month) { l.planned = 0; l.paid = false }
@@ -381,6 +430,18 @@ extension Edit {
         lines.insert(rowString([DayKey.string(date), budgetNumber(amount), category, note]), at: last.index + 1)
         return lines.joined(separator: "\n")
     }
+
+    /// Cambia fecha, importe y nota de un movimiento, solo si la fila sigue siendo ese movimiento (misma fecha e importe).
+    static func updateBudgetMove(_ text: String, month: String, move m: BudgetMove, date: Date, amount: Double, note: String) -> String? {
+        guard let now = Parse.budget(text, month: month, path: "").moves.first(where: { $0.line == m.line }), now.date == m.date, now.amount == m.amount else { return nil }
+        var t = normalizeBudgetTable(text, section: "Movimientos")
+        for (column, value) in [("Fecha", DayKey.string(date)), ("Importe", budgetNumber(amount)), ("Nota", note)] {
+            guard let first = MD.cells(MD.lines(t)[m.line]).first,
+                  let next = setSectionCell(t, section: "Movimientos", line: m.line, expectFirst: first, column: column, value: value) else { return nil }
+            t = next
+        }
+        return t
+    }
 }
 
 // MARK: - Entender «22 € cena con Ana»
@@ -407,18 +468,32 @@ enum ExpenseParser {
             .split { !$0.isLetter }.map(String.init).filter { $0.count >= 3 && !stop.contains($0) }
     }
 
+    /// Las palabras que vale la pena aprender de una corrección: no las que ya forman parte del nombre de una partida.
+    /// Corregir «seguro coche» de «Seguro vida» a «Transporte» aprende «coche»; si aprendiera «seguro», luego
+    /// «seguro vida 37» también iría a Transporte, porque lo aprendido manda sobre el nombre.
+    static func learnable(_ note: String, categories: [String]) -> [String] {
+        let names = Set(categories.flatMap { MD.fold($0).split { !$0.isLetter }.map(String.init) })
+        return keywords(note).filter { !names.contains($0) }
+    }
+
+    /// Palabras que convierten el importe en una devolución: entra dinero en la partida en vez de salir.
+    private static let refundWords = ["devolucion", "devuelto", "devuelta", "devolvieron", "reembolso", "abono", "reintegro"]
+
     static func parse(_ input: String, categories: [String], people: [String] = [], learned: [String: String] = [:], today: Date = DayKey.today()) -> Result? {
         // La fecha va primero: en «22/10 gasolina 40» o «el 12 pan 3» el número de la fecha no es el importe.
         let dated = NaturalDate.extractKind(input.trimmingCharacters(in: .whitespaces), today: today)
         var rest = dated.text
         // «1.200» son mil doscientos (punto de miles), «12,50» y «12.5» llevan decimales.
         // El número empieza en límite de palabra: en «gym o2 40» el importe es 40, no el 2 de «o2».
+        // Sin €, un número con céntimos gana a uno entero: en «2 cafés 3,50» el 2 es cuántos, no cuánto.
         guard let m = rest.firstMatch(of: /\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/)
-                ?? rest.firstMatch(of: /\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)/) else { return nil }
-        let amount = Money.parse(String(m.1))
+                ?? rest.firstMatch(of: /(?:€\s*)?\b(\d{1,3}(?:\.\d{3})+,\d{1,2}|\d{1,6}[.,]\d{1,2})\b(?![.,]\d)/)
+                ?? rest.firstMatch(of: /(?:€\s*)?\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)/) else { return nil }
+        var amount = Money.parse(String(m.1))
         guard amount > 0 else { return nil }
         rest.removeSubrange(m.range)
         rest = rest.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
+        if refundWords.contains(where: { MD.fold(rest).contains($0) }) { amount = -amount }
         rest = rest.replacingOccurrences(of: #"^(?i)(en|de|del|por)\s+"#, with: "", options: .regularExpression)
         let folded = " " + MD.fold(rest).replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression) + " "
 
@@ -525,8 +600,11 @@ extension Store {
 
     func addExpense(_ amount: Double, category: String, note: String, date: Date) {
         let month = Budget.monthKey(date)
-        guard createBudget(month) else { return }
-        edit(budgetPath(month)) { Edit.addBudgetMove($0, date: date, amount: amount, category: category, note: note) }
+        // Si hay que crear la nota del mes, crearla y apuntar se deshacen juntos: deshacer el gasto no deja una nota vacía.
+        grouped {
+            guard createBudget(month) else { return }
+            edit(budgetPath(month)) { Edit.addBudgetMove($0, date: date, amount: amount, category: category, note: note) }
+        }
     }
 
     func setBudgetCell(_ b: Budget, section: String, line: Int, name: String, column: String, value: String) {
@@ -556,7 +634,9 @@ extension Store {
         let clean = name.replacingOccurrences(of: "|", with: "/").trimmingCharacters(in: .whitespaces)
         guard !clean.isEmpty, clean != l.name else { return }
         guard b.line(named: clean) == nil || MD.fold(clean) == MD.fold(l.name) else { message = "Ya hay una partida llamada «\(clean)»."; return }
-        edit(b.path) { Edit.renameBudgetLine($0, line: l.line, from: l.name, to: clean) }
+        guard edit(b.path, { Edit.renameBudgetLine($0, line: l.line, from: l.name, to: clean) }) else { return }
+        // Lo aprendido apuntaba al nombre viejo: sin esto, «dentista» dejaría de ir a su partida tras renombrarla.
+        expenseLearned = expenseLearned.mapValues { MD.fold($0) == MD.fold(l.name) ? clean : $0 }
     }
 
     /// Quita la partida de este mes. Sus movimientos se quedan en la nota y siguen contando como gasto.
@@ -573,6 +653,24 @@ extension Store {
         }
     }
 
+    /// Corrige un gasto apuntado. Si la fecha nueva es de otro mes, el gasto se pasa a la nota de ese mes (se deshace de una vez).
+    func updateExpense(_ b: Budget, _ m: BudgetMove, date: Date, amount: Double, note: String) {
+        let clean = note.trimmingCharacters(in: .whitespaces)
+        guard date != m.date || amount != m.amount || clean != m.note else { return }
+        if Budget.monthKey(date) == b.month {
+            edit(b.path) { Edit.updateBudgetMove($0, month: b.month, move: m, date: date, amount: amount, note: clean) }
+            return
+        }
+        grouped {
+            guard createBudget(Budget.monthKey(date)) else { return }
+            let before = noteTexts[b.path]
+            deleteExpense(b, m)
+            // Solo se apunta en el otro mes si de verdad se quitó de este: si no, quedaría duplicado.
+            guard noteTexts[b.path] != before else { return }
+            addExpense(amount, category: m.category, note: clean, date: date)
+        }
+    }
+
     /// Partidas para adivinar un gasto: las del mes en curso, o las del último mes con nota, o las de la hoja de Numbers.
     var expenseCategories: [String] {
         (budget(Budget.monthKey(DayKey.today())) ?? budgetMonths.last.flatMap { budget($0) })?.lines.map(\.name) ?? Edit.defaultBudgetLines.map(\.0)
@@ -585,7 +683,7 @@ extension Store {
     }
 
     func learnExpense(note: String, category: String) {
-        let words = ExpenseParser.keywords(note)
+        let words = ExpenseParser.learnable(note, categories: expenseCategories)
         guard !words.isEmpty else { return }
         var l = expenseLearned
         for w in words { l[w] = category }
@@ -602,7 +700,7 @@ extension Store {
         let cats = expenseCategories
         guard let c = p.category ?? cats.first(where: { MD.fold($0).contains("imprevist") }) ?? cats.last else { return "No hay partidas donde apuntarlo." }
         addExpense(p.amount, category: c, note: p.note, date: p.date)
-        return "Apuntado: \(Money.exact(p.amount)) en \(c)" + (Budget.monthKey(p.date) != Budget.monthKey(DayKey.today()) ? " (\(Budget.title(Budget.monthKey(p.date)).lowercased()))" : "")
+        return (p.amount < 0 ? "Devolución apuntada: \(Money.exact(-p.amount))" : "Apuntado: \(Money.exact(p.amount))") + " en \(c)" + (Budget.monthKey(p.date) != Budget.monthKey(DayKey.today()) ? " (\(Budget.title(Budget.monthKey(p.date)).lowercased()))" : "")
     }
 
     /// Cambia la partida de un gasto ya apuntado y aprende de la corrección.
@@ -623,8 +721,11 @@ extension Store {
               let last = DayKey.calendar().date(byAdding: DateComponents(month: 1, day: -1), to: first) else { return }
         // Los dos cambios se deshacen juntos; si el movimiento no se pudo apuntar, el fondo no se toca.
         grouped {
-            guard edit(b.path, { Edit.addBudgetMove($0, date: last, amount: amount, category: saving.name, note: "sobrante del mes") }),
-                  FileManager.default.fileExists(atPath: url(VaultPath.finanzas).path) else { return }
+            guard edit(b.path, { Edit.addBudgetMove($0, date: last, amount: amount, category: saving.name, note: "sobrante del mes") }) else { return }
+            guard FileManager.default.fileExists(atPath: url(VaultPath.finanzas).path) else {
+                message = "El sobrante se apuntó en \(saving.name), pero no existe \(VaultPath.finanzas) para sumarlo al fondo. Pon lo que tienes en la tarjeta del fondo."
+                return
+            }
             edit(VaultPath.finanzas) { t in
                 let key = "fondo_emergencia_eur"
                 let value = Edit.budgetNumber(Money.parse(MD.frontmatter(t)[key] ?? "") + amount)

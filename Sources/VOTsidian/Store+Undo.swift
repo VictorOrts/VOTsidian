@@ -58,7 +58,16 @@ extension Store {
         case let .write(rel, _, written):
             if let written, let current = readOptional(rel), current != written { return rel }
             return nil
-        case .batch(let steps): return steps.lazy.compactMap { self.changedOutside($0) }.first
+        case .batch(let steps):
+            // Un archivo escrito varias veces en el mismo grupo (crear la nota del mes y apuntar en ella) solo tiene que
+            // seguir como lo dejó la última escritura; comparar con las anteriores lo daba por cambiado fuera.
+            func flat(_ s: UndoStep) -> [UndoStep] { if case .batch(let inner) = s { inner.flatMap(flat) } else { [s] } }
+            var seen = Set<String>()
+            for s in steps.flatMap(flat).reversed() {
+                if case let .write(rel, _, _) = s, !seen.insert(rel).inserted { continue }
+                if let rel = changedOutside(s) { return rel }
+            }
+            return nil
         case .trash, .rename: return nil
         }
     }

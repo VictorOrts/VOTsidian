@@ -72,7 +72,7 @@ struct AjustesView: View {
                     }
                 }
                 brokenLinksCard
-                Card(title: "Exportar", icon: "square.and.arrow.up", info: "El CSV incluye peso, pinchazos, medidas, hábitos, tareas y ánimo y sueño; se abre con Numbers o Excel. El resumen sirve para enseñarlo en una consulta.") {
+                Card(title: "Exportar", icon: "square.and.arrow.up", info: "El CSV incluye peso, pinchazos, medidas, hábitos, tareas, gastos y ánimo y sueño; se abre con Numbers o Excel. El resumen sirve para enseñarlo en una consulta.") {
                     HStack {
                         Picker("Año", selection: $exportYear) { ForEach(Array((exportYear - 4)...(Calendar.current.component(.year, from: Date()) + 0)), id: \.self) { Text(String($0)).tag($0) } }.frame(width: 140)
                         Button("Resumen del año (PDF)…") { exportYearPDF() }

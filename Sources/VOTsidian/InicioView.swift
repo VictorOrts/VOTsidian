@@ -378,7 +378,7 @@ struct InicioView: View {
             if let b = store.budget(month) {
                 let s = BudgetStatus(b)
                 HStack(spacing: 22) {
-                    macro("hoy puedes", Money.format(s.perDay), s.perDay > 0 ? Brand.accent : Brand.bad)
+                    macro("hoy puedes", Money.format(s.leftToday), s.leftToday > 0 ? Brand.accent : Brand.bad)
                     macro("sobrará el \(s.days)", Money.format(s.endLeft), s.endLeft < 0 ? Brand.bad : Brand.info)
                     macro("gastado", Money.format(b.spent), Brand.amber)
                 }

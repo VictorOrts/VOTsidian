@@ -30,7 +30,7 @@ enum QuickCommand: Equatable {
         case .measure(let f, let v, let d): return "Medida de \(f.lowercased()): \(MD.formatNumber(v, comma: true)) (\(day(d)))"
         case .shopping(let items): return "Añadir a la compra: \(items.joined(separator: ", "))"
         case .expense(let p):
-            return "Gasto de \(Money.exact(p.amount))" + (p.category.map { " en \($0)" } ?? "") + (p.note.isEmpty ? "" : " · \(p.note)") + " (\(day(p.date)))"
+            return (p.amount < 0 ? "Devolución de \(Money.exact(-p.amount))" : "Gasto de \(Money.exact(p.amount))") + (p.category.map { " en \($0)" } ?? "") + (p.note.isEmpty ? "" : " · \(p.note)") + " (\(day(p.date)))"
         }
     }
 
@@ -86,6 +86,9 @@ enum QuickCommand: Equatable {
             return .appointment(p.text, p.date ?? today)
         case "gasto", "gaste", "pague", "pago":
             return ExpenseParser.parse(arg, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
+        case "devolucion", "devuelto", "reembolso", "abono":
+            // La palabra se queda en el texto: es la que hace que el importe cuente como devolución.
+            return ExpenseParser.parse(text, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
         case "compra", "comprar", "lista":
             let items = arg.replacingOccurrences(of: " y ", with: ",").split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }

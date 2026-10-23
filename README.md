@@ -51,7 +51,7 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 - **Plantillas con preguntas**: en `Plantillas/`, `{{?Destino}}` o `{{?Estado|pendiente}}` piden el dato al crear la nota.
 - **Inicio personalizable**: botón «Personalizar» para reordenar y ocultar tarjetas.
 - **Barra de menús**: panel con peso, pinchazo, tareas de hoy (marcables), hábitos de hoy, ánimo y añadir tareas.
-- **Exportar** (Ajustes): resumen del año en PDF, datos en CSV (peso, pinchazos, medidas, hábitos, tareas, ánimo y sueño) y todas las notas en .zip.
+- **Exportar** (Ajustes): resumen del año en PDF, datos en CSV (peso, pinchazos, medidas, hábitos, tareas, gastos, ánimo y sueño) y todas las notas en .zip.
 - **Rendimiento**: la app solo vuelve a leer los archivos que cambian y vigila la carpeta con FSEvents (recarga al instante cuando algo cambia fuera).
 
 - **Peso**: la fecha estimada de llegada usa la tendencia suavizada y muestra un rango (ritmo de 2 meses, 4 meses o todo el historial), también dibujado en la gráfica.
@@ -59,6 +59,8 @@ Varias notas abiertas a la vez: pestañas arriba (⌘T nueva, ⌘W cerrar, ⇧�
 - **Notas**: «Enlazada desde» muestra la línea que enlaza, y al pasar el ratón sobre un enlace del panel sale una vista previa de esa nota.
 
 - **Fiabilidad** (octubre 2026): las fechas imposibles («31/2», «el 31» en un mes de 30 días) ya no se convierten en otra fecha; al cerrar la app (⌘Q) se guarda lo que el autoguardado aún no había guardado; renombrar una nota actualiza también los enlaces con carpeta (`[[Salud/Médico]]`) o con otras tildes y mayúsculas; borrar una nota no quita los enlaces si queda otra con el mismo nombre; el grafo se actualiza al añadir enlaces; las notas con saltos de línea de Windows se leen bien; los avisos del sistema se reprograman cada día aunque la app siga abierta.
+
+- **Gastos** (octubre 2026): «Puedes gastar hoy» resta lo gastado hoy (antes un gasto grande apenas lo movía); devoluciones («devolución 30 Zara», «reembolso 15 Amazon») restan de su partida; doble clic en un movimiento para corregir importe, fecha o nota (con fecha de otro mes pasa a esa nota); buscador y total en Movimientos; los movimientos con una partida que no está en la tabla dicen cuál es y se puede crear con un clic; un pago marcado antes de su día ya no cuenta en «Hoy quedan»; la meta del fondo usa un mes típico (el seguro anual cuenta 1/12 cada mes); al cerrar un mes, los fijos sin marcar se avisan y no se pasan al fondo, y la primera quincena del mes siguiente ese cierre sale también en el mes en curso; al corregir una partida ya no se aprenden palabras que son de otra partida («seguro»), y renombrar una partida conserva lo aprendido; «2 cafés 3,50» toma 3,50 y «€12 pan» deja la nota limpia; deshacer el primer gasto de un mes quita también la nota creada; `gastos.csv` en la exportación.
 
 ## Recuperar versiones y enlaces rotos
 

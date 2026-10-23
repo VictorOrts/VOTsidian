@@ -199,7 +199,7 @@ struct QuickAddSheet: View {
             case .gasto:
                 TextField("22 € cena con Ana, gasolina 48, ayer 12,50 Mercadona", text: $text).focused($focused).onSubmit(save)
                 if let p = store.parseExpense(text) {
-                    Label("\(Money.exact(p.amount)) en \(p.category ?? "Imprevistos") · \(p.date == DayKey.today() ? "hoy" : longDate(p.date))", systemImage: "creditcard")
+                    Label("\(p.amount < 0 ? "Devolución de \(Money.exact(-p.amount))" : Money.exact(p.amount)) en \(p.category ?? "Imprevistos") · \(p.date == DayKey.today() ? "hoy" : longDate(p.date))", systemImage: "creditcard")
                         .font(.caption).foregroundStyle(Brand.accent)
                 } else { Text("Se apunta en la nota del mes de Gastos. La partida se adivina por las palabras.").font(.caption).foregroundStyle(.secondary) }
             case .idea:

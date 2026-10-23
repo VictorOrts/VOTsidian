@@ -19,6 +19,7 @@ struct GastosView: View {
     @State private var newEvery = 1
     @State private var renaming: BudgetLine?
     @State private var renameText = ""
+    @State private var search = ""
 
     private var month: String {
         Budget.monthKey(DayKey.calendar().date(byAdding: .month, value: offset, to: DayKey.today()) ?? DayKey.today())
@@ -67,14 +68,14 @@ struct GastosView: View {
         let parsed = ExpenseParser.parse(quick, categories: categories, people: store.people.map(\.name), learned: store.expenseLearned)
         let category = chosen ?? parsed?.category
         return Card(title: "Añadir gasto", icon: "plus.circle",
-                    info: "Escribe como hablas: «22 € cena con Ana», «gasolina 48», «ayer 12,50 pan». La partida se adivina por las palabras; si falla, elígela en el menú. Se apunta en la nota del mes de la fecha.") {
+                    info: "Escribe como hablas: «22 € cena con Ana», «gasolina 48», «ayer 12,50 pan», «devolución 30 Zara». La partida se adivina por las palabras; si falla, elígela en el menú y la próxima vez acertará. Se apunta en la nota del mes de la fecha. Doble clic en un movimiento para corregirlo.") {
             HStack {
                 TextField("22 € cena con Ana", text: $quick).textFieldStyle(.roundedBorder).onSubmit { add(parsed, category) }
                 Button("Añadir") { add(parsed, category) }.buttonStyle(.borderedProminent).disabled(parsed == nil || category == nil)
             }
             if let p = parsed {
                 FlowLayout(spacing: 6) {
-                    chip(Money.exact(p.amount), tint: Brand.accent)
+                    chip(p.amount < 0 ? "devolución \(Money.exact(-p.amount))" : Money.exact(p.amount), tint: p.amount < 0 ? Brand.good : Brand.accent)
                     ChoiceMenu(options: categories, current: category ?? "", width: 220, emptyLabel: "Elige partida") { chosen = $0 }
                     chip(DayKey.days(from: DayKey.today(), to: p.date) == 0 ? "hoy" : longDate(p.date), tint: .secondary)
                     if let person = p.person { chip("con \(person)", tint: Brand.info) }
@@ -102,7 +103,7 @@ struct GastosView: View {
         store.addExpense(p.amount, category: category, note: p.note, date: p.date)
         // Si va a otro mes que el que estás viendo, se dice: si no, parece que no se apuntó.
         let elsewhere = Budget.monthKey(p.date) != month ? " · en \(Budget.title(Budget.monthKey(p.date)).lowercased())" : ""
-        lastAdded = "Apuntado: \(Money.exact(p.amount)) en \(category)" + (p.note.isEmpty ? "" : " · \(p.note)") + elsewhere
+        lastAdded = (p.amount < 0 ? "Devolución apuntada: \(Money.exact(-p.amount))" : "Apuntado: \(Money.exact(p.amount))") + " en \(category)" + (p.note.isEmpty ? "" : " · \(p.note)") + elsewhere
         quick = ""
         chosen = nil
     }
@@ -111,17 +112,25 @@ struct GastosView: View {
 
     @ViewBuilder private func content(_ b: Budget, previous: [Budget]) -> some View {
         let s = BudgetStatus(b)
-        let insights = Budget.insights(b, previous: previous, status: s, events: s.isCurrent ? store.pendingContributions : [])
+        // Al empezar el mes se está mirando el mes nuevo: el cierre del anterior (sobrante, pagos sin marcar) sale aquí también.
+        let prevKey = BudgetLine.monthIndex(b.month).map { BudgetLine.month($0 - 1) }
+        let closingPrevious = s.isCurrent && s.day <= 15 ? previous.first { $0.month == prevKey }.map(Budget.closing) ?? [] : []
+        let insights = closingPrevious + Budget.insights(b, previous: previous, status: s, events: s.isCurrent ? store.pendingContributions : [])
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
             if s.isCurrent {
-                Tile(title: "Puedes gastar hoy", value: Money.format(s.perDay), note: "\(Money.format(s.variableLeft)) para variables en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")", tint: s.perDay > 0 ? Brand.accent : Brand.bad)
-                Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), note: "si sigues al ritmo de estos \(s.day) días", tint: s.endLeft < 0 ? Brand.bad : nil)
+                Tile(title: "Puedes gastar hoy", value: Money.format(s.leftToday),
+                     note: s.spentToday > 0 ? "llevas \(Money.exact(s.spentToday)) de \(Money.format(s.todayAllowance)) · \(Money.format(s.variableLeft)) en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")"
+                        : "\(Money.format(s.variableLeft)) para variables en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")",
+                     tint: s.leftToday > 0 ? Brand.accent : Brand.bad)
+                // Los dos primeros días la previsión es lo previsto, no el ritmo (ver BudgetStatus).
+                Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), note: s.day < 3 ? "según lo previsto" : "si sigues al ritmo de estos \(s.day) días", tint: s.endLeft < 0 ? Brand.bad : nil)
             } else {
                 Tile(title: s.day == 0 ? "Previsto que sobre" : "Sobró", value: Money.format(s.day == 0 ? b.income - b.planned : b.income - b.spent - b.saved), tint: Brand.accent)
                 Tile(title: "Ahorrado", value: Money.format(b.saved))
             }
             Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos · ingresos \(Money.format(b.income))")
-            let fixed = b.lines.filter { !$0.isDiscretionary && $0.isDue(b.month) }
+            // Sin importe previsto no es un pago pendiente, es una partida por rellenar.
+            let fixed = b.lines.filter { !$0.isDiscretionary && $0.isDue(b.month) && ($0.planned > 0 || b.real($0) > 0) }
             let pending = fixed.filter { !$0.paid && b.real($0) == 0 }
             Tile(title: "Pagos fijos", value: "\(fixed.count - pending.count) de \(fixed.count)",
                  note: pending.isEmpty ? "todos pagados" : "\(Money.format(pending.reduce(0) { $0 + $1.planned })) por pagar")
@@ -210,7 +219,7 @@ struct GastosView: View {
                         Text(i.text).font(.callout).fixedSize(horizontal: false, vertical: true)
                         if let c = i.category { Button("Ver movimientos de \(c)") { filter = c }.buttonStyle(.accentLink).font(.caption) }
                         if let p = i.notePath { Button("Abrir nota") { store.pendingNote = p }.buttonStyle(.accentLink).font(.caption) }
-                        if let t = i.transfer, let b = store.budget(month) {
+                        if let t = i.transfer, let b = store.budget(i.month ?? month) {
                             Button("Pasar \(Money.exact(t)) al fondo") { store.transferLeftover(b, amount: t) }.buttonStyle(.borderedProminent).controlSize(.small)
                         }
                     }
@@ -225,14 +234,14 @@ struct GastosView: View {
 
     private func fundCard(_ b: Budget, _ s: BudgetStatus) -> some View {
         let now = Money.parse(store.noteMeta[VaultPath.finanzas]?["fondo_emergencia_eur"] ?? "")
-        let goal = b.plannedExpenses * 3
+        let goal = b.typicalMonthExpenses * 3
         let planned = b.lines.filter { $0.kind == .ahorro }.reduce(0) { $0 + $1.planned }
         let perMonth = monthly ?? (planned > 0 ? planned : 300)
         let extra = addLeftover && s.isCurrent ? max(0, s.endLeft) : 0
         let months = perMonth > 0 ? Int(((goal - now - extra) / perMonth).rounded(.up)) : 0
         let reach = DayKey.calendar().date(byAdding: .month, value: max(months, 0), to: Budget.firstDay(b.month) ?? DayKey.today()) ?? DayKey.today()
         return Card(title: "Fondo de emergencia", icon: "shield.lefthalf.filled",
-                    info: "La meta son 3 meses de tus gastos previstos (sin el ahorro). Lo que tienes se guarda en la propiedad fondo_emergencia_eur de la nota Finanzas.") {
+                    info: "La meta son 3 meses de tus gastos previstos (sin el ahorro; los cargos de cada varios meses cuentan su parte de cada mes). Lo que tienes se guarda en la propiedad fondo_emergencia_eur de la nota Finanzas.") {
             HStack {
                 Text("Tienes").foregroundStyle(.secondary)
                 PropertyField(file: VaultPath.finanzas, key: "fondo_emergencia_eur", width: 90)
@@ -313,8 +322,17 @@ struct GastosView: View {
                     Text(Money.format(b.spent + b.saved)).monospacedDigit().fontWeight(.semibold)
                 }
             }
-            if b.unassigned > 0 {
-                Label("\(Money.format(b.unassigned)) en movimientos con una partida que no está en la tabla.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.warn)
+            // Movimientos con una partida que no está en la tabla (escrita a mano, o de una partida quitada): cuentan
+            // como gasto pero no se ven en ninguna fila. Se dice cuál falta y se puede crear con un clic.
+            ForEach(b.unassignedByCategory, id: \.name) { u in
+                HStack(spacing: 8) {
+                    Label("\(Money.exact(u.total)) en «\(u.name.isEmpty ? "sin partida" : u.name)», que no está en la tabla", systemImage: "exclamationmark.triangle")
+                        .font(.caption).foregroundStyle(Brand.warn)
+                    Button("Ver") { filter = u.name }.buttonStyle(.accentLink).font(.caption)
+                    if !u.name.isEmpty {
+                        Button("Crear partida") { store.addBudgetLine(b, name: u.name, amount: 0, kind: .variable, every: 1, start: nil) }.buttonStyle(.accentLink).font(.caption)
+                    }
+                }
             }
             Divider()
             HStack {
@@ -397,11 +415,21 @@ struct GastosView: View {
 
     private func movesCard(_ b: Budget) -> some View {
         let all = b.moves.sorted { ($0.date, $0.line) > ($1.date, $1.line) }
-        let shown = filter.map { f in all.filter { MD.fold($0.category) == MD.fold(f) } } ?? all
-        return Card(title: filter.map { "Movimientos · \($0)" } ?? "Movimientos", icon: "list.dash", actionTitle: filter == nil ? nil : "Ver todos", action: { filter = nil }) {
-            if shown.isEmpty { EmptyNote(filter == nil ? "Aún no hay gastos apuntados este mes." : "Ningún gasto en esta partida.", icon: "tray") }
+        let byCategory = filter.map { f in all.filter { MD.fold($0.category) == MD.fold(f) } } ?? all
+        let q = MD.fold(search)
+        let shown = q.isEmpty ? byCategory : byCategory.filter { MD.fold($0.note + " " + $0.category).contains(q) || Edit.budgetNumber($0.amount).contains(q) }
+        let filtered = filter != nil || !q.isEmpty
+        return Card(title: filter.map { "Movimientos · \($0)" } ?? "Movimientos", icon: "list.dash", actionTitle: filtered ? "Ver todos" : nil, action: { filter = nil; search = "" }) {
+            if all.count > 8 || !q.isEmpty {
+                TextField("Buscar en la nota o el importe", text: $search).textFieldStyle(.roundedBorder).frame(maxWidth: 280)
+            }
+            if shown.isEmpty { EmptyNote(!filtered ? "Aún no hay gastos apuntados este mes." : "Ningún gasto con ese filtro.", icon: "tray") }
             ForEach(shown.prefix(40)) { m in MoveRow(budget: b, move: m, categories: b.lines.map(\.name)) }
             if shown.count > 40 { Text("y \(shown.count - 40) más en la nota del mes").font(.caption).foregroundStyle(.secondary) }
+            if filtered, !shown.isEmpty {
+                Text("\(shown.count) \(shown.count == 1 ? "movimiento" : "movimientos") · \(Money.exact(shown.reduce(0) { $0 + $1.amount }))")
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
         }
     }
 
@@ -470,6 +498,7 @@ private struct MoveRow: View {
     let move: BudgetMove
     let categories: [String]
     @State private var hover = false
+    @State private var editing = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -477,12 +506,20 @@ private struct MoveRow: View {
             Text(move.category).font(.callout).lineLimit(1).frame(width: 190, alignment: .leading)
             Text(MDParser.inline(move.note)).font(.callout).lineLimit(1)
             Spacer()
-            Text(Money.exact(move.amount)).monospacedDigit().fontWeight(.medium)
+            // Una devolución (importe negativo) se ve como dinero que vuelve.
+            Text(move.amount < 0 ? "+" + Money.exact(-move.amount) : Money.exact(move.amount)).monospacedDigit().fontWeight(.medium)
+                .foregroundStyle(move.amount < 0 ? Brand.good : .primary)
+            Button { editing = true } label: { Image(systemName: "pencil").accessibilityLabel("Corregir gasto") }
+                .buttonStyle(.borderless).opacity(hover || editing ? 1 : 0)
+                .popover(isPresented: $editing, arrowEdge: .trailing) { MoveEditor(budget: budget, move: move) }
             Button { store.deleteExpense(budget, move) } label: { Image(systemName: "trash").accessibilityLabel("Borrar gasto") }
                 .buttonStyle(.borderless).opacity(hover ? 1 : 0)
         }
+        .contentShape(Rectangle())
         .onHover { hover = $0 }
+        .onTapGesture(count: 2) { editing = true }
         .contextMenu {
+            Button("Corregir…") { editing = true }
             // Corregir la partida también enseña al adivinador: la próxima vez que escribas lo mismo irá aquí.
             Menu("Cambiar partida") {
                 ForEach(categories, id: \.self) { c in
@@ -491,5 +528,51 @@ private struct MoveRow: View {
             }
             Button("Borrar gasto", role: .destructive) { store.deleteExpense(budget, move) }
         }
+    }
+}
+
+/// Corregir un gasto ya apuntado: importe, fecha y nota. Una fecha de otro mes lo pasa a la nota de ese mes.
+private struct MoveEditor: View {
+    @Environment(Store.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let budget: Budget
+    let move: BudgetMove
+    @State private var amount = ""
+    @State private var date = Date()
+    @State private var note = ""
+
+    private var value: Double? {
+        let t = amount.trimmingCharacters(in: .whitespaces)
+        let v = Money.parse(t)
+        return t.isEmpty || v == 0 ? nil : v
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Corregir gasto · \(move.category)").font(.headline)
+            HStack {
+                TextField("Importe", text: $amount).textFieldStyle(.roundedBorder).monospacedDigit().frame(width: 100).onSubmit(save)
+                Text("€").foregroundStyle(.secondary)
+                DatePicker("", selection: $date, displayedComponents: .date).labelsHidden()
+            }
+            TextField("Nota", text: $note).textFieldStyle(.roundedBorder).frame(width: 280).onSubmit(save)
+            if Budget.monthKey(date) != budget.month {
+                Text("Pasará a la nota de \(Budget.title(Budget.monthKey(date)).lowercased()).").font(.caption).foregroundStyle(Brand.info)
+            }
+            Text("Un importe negativo es una devolución.").font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Guardar", action: save).keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(value == nil)
+            }
+        }
+        .padding(16)
+        .onAppear { amount = Edit.budgetNumber(move.amount); date = move.date; note = move.note }
+    }
+
+    private func save() {
+        guard let v = value else { return }
+        store.updateExpense(budget, move, date: DayKey.calendar().startOfDay(for: date), amount: v, note: note)
+        dismiss()
     }
 }
