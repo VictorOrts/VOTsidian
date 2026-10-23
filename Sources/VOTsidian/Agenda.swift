@@ -156,7 +156,7 @@ extension Store {
         "tareas": .tareas, "proyectos": .proyectos, "habitos": .semana, "revision semanal": .semana, "revision mensual": .mes, "revisiones": .semana,
         "calendario": .calendario, "grafo": .grafo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
         "medicos": .salud, "analiticas": .salud, "analisis": .salud, "medico": .salud, "doctor": .salud, "inicio": .inicio,
-        "enlaces rotos": .enlaces,
+        "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos,
     ]
 
     func screenAlias(_ name: String) -> Screen? { Store.screenAliases[MD.fold((name as NSString).lastPathComponent)] }

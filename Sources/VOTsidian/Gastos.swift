@@ -128,9 +128,12 @@ struct BudgetStatus {
         }
         projection = proj
         let variables = b.lines.filter { $0.kind == .variable }
-        variableLeft = max(0, variables.reduce(0) { $0 + $1.planned - b.real($1) })
-        perDay = current ? variableLeft / Double(max(days - day + 1, 1)) : 0
         let others = b.lines.filter { $0.kind != .variable }.reduce(0) { $0 + (current ? max(b.real($1), $1.paid ? 0 : $1.planned) : b.real($1)) }
+        // Lo que queda en variables según lo previsto, pero nunca más que el dinero que de verdad queda tras los fijos:
+        // si los ingresos no cubren lo previsto, «puedes gastar hoy» no puede prometer lo que no hay.
+        let cash = b.income - others - variables.reduce(0) { $0 + b.real($1) } - b.unassigned
+        variableLeft = max(0, min(variables.reduce(0) { $0 + $1.planned - b.real($1) }, cash))
+        perDay = current ? variableLeft / Double(max(days - day + 1, 1)) : 0
         endLeft = b.income - others - variables.reduce(0) { $0 + (proj[$1.name] ?? 0) } - b.unassigned
     }
 
@@ -180,7 +183,7 @@ extension Budget {
             guard !past.isEmpty else { continue }
             let avg = past.reduce(0, +) / Double(past.count)
             let r = b.real(l)
-            if l.kind == .fijo, r > 0, r >= avg * 1.1, r - avg >= 5 {
+            if l.kind == .fijo, r > l.planned, r >= avg * 1.1, r - avg >= 5 {
                 out.append(BudgetInsight(id: "sube-\(l.name)", level: .warn,
                     text: "\(l.name): \(Money.format(r)), un \(Int(((r - avg) / avg * 100).rounded())) % más que tu media de \(past.count == 1 ? "el mes anterior" : "los últimos \(past.count) meses") (\(Money.format(avg))). Si cambió la tarifa, sube lo previsto.",
                     category: l.name))
@@ -331,9 +334,10 @@ extension Edit {
     /// Cambia el nombre de una partida y el de sus movimientos, para que sigan contando en ella.
     static func renameBudgetLine(_ text: String, line: Int, from old: String, to new: String) -> String? {
         var lines = MD.lines(text)
-        guard line < lines.count, MD.cells(lines[line]).first == old, let r = MD.section(lines, containing: "Movimientos") else { return nil }
+        guard line < lines.count, MD.cells(lines[line]).first == old else { return nil }
         var cells = MD.cells(lines[line]); cells[0] = new
         lines[line] = rowString(cells)
+        guard let r = MD.section(lines, containing: "Movimientos") else { return lines.joined(separator: "\n") }
         let rows = MD.tableRows(lines).filter { r.contains($0.index) }
         guard let col = rows.first?.cells.firstIndex(where: { MD.fold($0) == "partida" }) else { return lines.joined(separator: "\n") }
         for row in rows.dropFirst() where col < row.cells.count && MD.fold(row.cells[col]) == MD.fold(old) {
@@ -362,7 +366,7 @@ enum ExpenseParser {
     private static let hints: [(words: [String], partida: [String])] = [
         (["cena", "comida fuera", "restaurante", "bar", "cafe", "copas", "cine", "concierto", "viaje", "hotel", "vuelo", "entrada"], ["restaurante", "ocio", "entreten"]),
         (["gasolina", "metro", "taxi", "uber", "cabify", "bus", "autobus", "parking", "tren", "peaje", "renfe"], ["transporte"]),
-        (["mercadona", "super", "supermercado", "compra", "carrefour", "lidl", "dia", "fruta", "aldi", "alcampo"], ["alimenta", "comida"]),
+        (["mercadona", "super", "supermercado", "compra", "carrefour", "lidl", "fruta", "aldi", "alcampo", "eroski", "consum"], ["alimenta", "comida"]),
         (["luz", "agua", "gas", "factura", "endesa", "iberdrola"], ["suministro", "luz"]),
         (["gym", "gimnasio", "o2"], ["gym"]),
         (["spotify", "netflix", "icloud", "music", "hbo", "disney", "suscripcion"], ["suscrip"]),
@@ -371,19 +375,23 @@ enum ExpenseParser {
     ]
 
     static func parse(_ input: String, categories: [String], people: [String] = [], today: Date = DayKey.today()) -> Result? {
-        let text = input.trimmingCharacters(in: .whitespaces)
-        guard let m = text.firstMatch(of: /(\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)?/), let amount = Double(String(m.1).replacingOccurrences(of: ",", with: ".")), amount > 0 else { return nil }
-        var rest = text
+        // La fecha va primero: en «22/10 gasolina 40» o «el 12 pan 3» el número de la fecha no es el importe.
+        let dated = NaturalDate.extract(input.trimmingCharacters(in: .whitespaces), today: today)
+        var rest = dated.text
+        guard let m = rest.firstMatch(of: /(\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/) ?? rest.firstMatch(of: /(\d{1,6}(?:[.,]\d{1,2})?)/),
+              let amount = Double(String(m.1).replacingOccurrences(of: ",", with: ".")), amount > 0 else { return nil }
         rest.removeSubrange(m.range)
-        let dated = NaturalDate.extract(rest, today: today)
-        rest = dated.text.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
+        rest = rest.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
         rest = rest.replacingOccurrences(of: #"^(?i)(en|de|del|por)\s+"#, with: "", options: .regularExpression)
         let folded = " " + MD.fold(rest).replacingOccurrences(of: #"[^\p{L}\p{N}]+"#, with: " ", options: .regularExpression) + " "
 
-        // Primero, una palabra del propio nombre de la partida («gym», «transporte»); después, las pistas.
-        var category = categories.first { c in
-            MD.fold(c).split { !$0.isLetter }.map(String.init).filter { $0.count >= 4 }.contains { folded.contains(" \($0) ") }
-        }
+        // Primero, palabras del propio nombre de la partida («gym», «transporte»): gana la que más comparte y, a igualdad,
+        // la de nombre más corto («seguro vida» va a «Seguro vida», no a «Vivienda (…, seguro)»). Después, las pistas.
+        let scored = categories.map { c -> (String, Int, Int) in
+            let words = MD.fold(c).split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count >= 4 || $0.contains(where: \.isNumber) }
+            return (c, words.filter { folded.contains(" \($0) ") }.count, words.count)
+        }.filter { $0.1 > 0 }
+        var category = scored.max { ($0.1, -$0.2) < ($1.1, -$1.2) }?.0
         if category == nil {
             for h in hints where h.words.contains(where: { folded.contains(" \($0) ") }) {
                 if let c = categories.first(where: { c in h.partida.contains { MD.fold(c).contains($0) } }) { category = c; break }
@@ -400,7 +408,20 @@ enum ExpenseParser {
                 break
             }
         }
-        return Result(amount: amount, category: category, note: rest, person: person, date: dated.date ?? today)
+        return Result(amount: amount, category: category, note: rest, person: person, date: pastDate(dated.date, input: input, today: today) ?? today)
+    }
+
+    /// Las fechas de las tareas miran al futuro («el viernes» es el próximo); un gasto ya pasó: «el viernes» es el último
+    /// y «22/10» es el de este año. «mañana» o «en 3 días» se respetan (un pago que se apunta por adelantado).
+    private static func pastDate(_ d: Date?, input: String, today: Date) -> Date? {
+        guard let d, d > today else { return d }
+        let cal = DayKey.calendar()
+        let folded = MD.fold(input)
+        if ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"].contains(where: { folded.contains($0) }) {
+            return DayKey.adding(days: -7, to: d)
+        }
+        if DayKey.days(from: today, to: d) > 7, let back = cal.date(byAdding: .year, value: -1, to: d), back <= today { return back }
+        return d
     }
 }
 

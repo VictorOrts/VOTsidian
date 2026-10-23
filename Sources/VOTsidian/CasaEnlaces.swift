@@ -42,6 +42,18 @@ enum Money {
         f.maximumFractionDigits = 0
         return f.string(from: NSNumber(value: v)) ?? "\(Int(v)) €"
     }
+
+    /// Como `format`, pero con céntimos si los tiene («12,50 €»): para gastos sueltos, donde redondear despista.
+    static func exact(_ v: Double) -> String {
+        guard v != v.rounded() else { return format(v) }
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = "EUR"
+        f.locale = Locale(identifier: "es_ES")
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        return f.string(from: NSNumber(value: v)) ?? format(v)
+    }
 }
 
 extension Parse {

@@ -74,12 +74,12 @@ struct GastosView: View {
             }
             if let p = parsed {
                 FlowLayout(spacing: 6) {
-                    chip(Money.format(p.amount).replacingOccurrences(of: ",00", with: ""), tint: Brand.accent)
+                    chip(Money.exact(p.amount), tint: Brand.accent)
                     ChoiceMenu(options: categories, current: category ?? "", width: 220, emptyLabel: "Elige partida") { chosen = $0 }
                     chip(DayKey.days(from: DayKey.today(), to: p.date) == 0 ? "hoy" : longDate(p.date), tint: .secondary)
                     if let person = p.person { chip("con \(person)", tint: Brand.info) }
                     if let c = category, let r = reference, Budget.monthKey(p.date) == r.month, let l = r.line(named: c) {
-                        Text("\(c) pasaría a \(Money.format(r.real(l) + p.amount)) de \(Money.format(l.planned))")
+                        Text("\(c) pasaría a \(Money.exact(r.real(l) + p.amount)) de \(Money.format(l.planned))")
                             .font(.caption).foregroundStyle(r.real(l) + p.amount > l.planned ? Brand.bad : .secondary)
                     }
                 }
@@ -98,7 +98,7 @@ struct GastosView: View {
     private func add(_ p: ExpenseParser.Result?, _ category: String?) {
         guard let p, let category else { return }
         store.addExpense(p.amount, category: category, note: p.note, date: p.date)
-        lastAdded = "Apuntado: \(Money.format(p.amount)) en \(category)" + (p.note.isEmpty ? "" : " · \(p.note)")
+        lastAdded = "Apuntado: \(Money.exact(p.amount)) en \(category)" + (p.note.isEmpty ? "" : " · \(p.note)")
         quick = ""
         chosen = nil
     }
@@ -110,7 +110,7 @@ struct GastosView: View {
         let insights = Budget.insights(b, previous: previous, status: s, events: s.isCurrent ? store.pendingContributions : [])
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
             if s.isCurrent {
-                Tile(title: "Puedes gastar hoy", value: Money.format(s.perDay), note: "\(Money.format(s.variableLeft)) en variables para \(s.daysLeft) días", tint: Brand.accent)
+                Tile(title: "Puedes gastar hoy", value: Money.format(s.perDay), note: "\(Money.format(s.variableLeft)) para variables en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")", tint: s.perDay > 0 ? Brand.accent : Brand.bad)
                 Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), note: "si sigues al ritmo de estos \(s.day) días", tint: s.endLeft < 0 ? Brand.bad : nil)
             } else {
                 Tile(title: s.day == 0 ? "Previsto que sobre" : "Sobró", value: Money.format(s.day == 0 ? b.income - b.planned : b.income - b.spent - b.saved), tint: Brand.accent)
@@ -127,10 +127,10 @@ struct GastosView: View {
         }
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: 16) {
-                VStack(spacing: 16) { paceCard(b, s); remainingCard(b, s) }.frame(maxWidth: .infinity)
+                VStack(spacing: 16) { paceCard(b, s); if s.day > 0 { remainingCard(b, s) } }.frame(maxWidth: .infinity)
                 VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }.frame(width: 360)
             }
-            VStack(spacing: 16) { paceCard(b, s); insightsCard(insights); remainingCard(b, s); fundCard(b, s) }
+            VStack(spacing: 16) { paceCard(b, s); insightsCard(insights); if s.day > 0 { remainingCard(b, s) }; fundCard(b, s) }
         }
         if b.lines.contains(where: { $0.every > 1 }) { reserveCard(b) }
         incomeCard(b)
@@ -237,7 +237,8 @@ struct GastosView: View {
                 Spacer()
                 Text(Money.format(perMonth)).monospacedDigit().fontWeight(.semibold)
             }.font(.callout)
-            Slider(value: Binding(get: { perMonth }, set: { monthly = $0 }), in: 50...1000, step: 25).tint(Brand.accent)
+            Slider(value: Binding(get: { perMonth }, set: { monthly = $0 }), in: 25...max(1000, (planned * 2).rounded(.up)), step: 25).tint(Brand.accent)
+            if planned == 0, monthly == nil { Text("Sin ahorro previsto este mes: la simulación usa 300 €.").font(.caption).foregroundStyle(.secondary) }
             if s.isCurrent, s.endLeft > 0 { Toggle("Sumar lo que sobre este mes (~\(Money.format(s.endLeft)))", isOn: $addLeftover).toggleStyle(.checkbox).font(.callout) }
             Text(goal <= 0 ? "Pon lo previsto de las partidas para calcular la meta." : now + extra >= goal ? "Ya tienes los 3 meses cubiertos." : "Llegarías en \(DayKey.esLong(reach, .dateTime.month(.wide).year())) · \(months) \(months == 1 ? "mes" : "meses") ahorrando \(Money.format(perMonth)).")
                 .font(.callout).padding(10).frame(maxWidth: .infinity, alignment: .leading)
@@ -262,7 +263,7 @@ struct GastosView: View {
 
     private func linesCard(_ b: Budget, previous: [Budget]) -> some View {
         Card(title: "Partidas", icon: "list.bullet.rectangle",
-             info: "«Real» es la suma de los movimientos de cada partida; si no tiene y está marcada como pagada, cuenta lo previsto. «Vs media» compara con los meses anteriores. Edita lo previsto y pulsa intro.") {
+             info: "«Real» es la suma de los movimientos de cada partida; si no tiene y está marcada como pagada, cuenta lo previsto. «Vs media» compara con los meses anteriores. Lo previsto se guarda al pulsar intro o al dejar de escribir.") {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 7) {
                 GridRow {
                     Text(""); Text("Partida"); Text(""); Text("Previsto"); Text("Real"); Text("Tipo"); Text("Frecuencia"); Text("Vs media")
@@ -272,7 +273,7 @@ struct GastosView: View {
                     let past = previous.compactMap { p in p.line(named: l.name).map { p.real($0) } }.filter { $0 > 0 }
                     let avg = past.isEmpty ? nil : past.reduce(0, +) / Double(past.count)
                     GridRow {
-                        if l.kind == .variable { Color.clear.frame(width: 18, height: 18) } else {
+                        if l.kind == .variable || !l.isDue(b.month) { Color.clear.frame(width: 18, height: 18) } else {
                             Button {
                                 store.setBudgetCell(b, section: "Partidas", line: l.line, name: l.name, column: "Pagado", value: l.paid ? "" : "✅")
                             } label: { Image(systemName: l.paid ? "checkmark.circle.fill" : "circle").foregroundStyle(l.paid ? Brand.good : .secondary) }
@@ -442,9 +443,15 @@ private struct AmountCell: View {
 
     private var current: String { value.map(Edit.budgetNumber) ?? "" }
 
+    private func commit() {
+        let new = text.trimmingCharacters(in: .whitespaces).isEmpty ? "" : Edit.budgetNumber(Money.parse(text))
+        if new != current { save(new) }
+    }
+
     var body: some View {
         TextField("–", text: $text).multilineTextAlignment(.trailing).monospacedDigit().frame(width: 80)
-            .onSubmit { if text != current { save(text.isEmpty ? "" : Edit.budgetNumber(Money.parse(text))) } }
+            .onSubmit(commit)
+            .autosave(on: text, delay: 2, commit)
             .onAppear { text = current }
             .onChange(of: value) { text = current }
     }
@@ -462,7 +469,7 @@ private struct MoveRow: View {
             Text(move.category).font(.callout).lineLimit(1).frame(width: 190, alignment: .leading)
             Text(MDParser.inline(move.note)).font(.callout).lineLimit(1)
             Spacer()
-            Text(Money.format(move.amount)).monospacedDigit().fontWeight(.medium)
+            Text(Money.exact(move.amount)).monospacedDigit().fontWeight(.medium)
             Button { store.deleteExpense(budget, move) } label: { Image(systemName: "trash").accessibilityLabel("Borrar gasto") }
                 .buttonStyle(.borderless).opacity(hover ? 1 : 0)
         }

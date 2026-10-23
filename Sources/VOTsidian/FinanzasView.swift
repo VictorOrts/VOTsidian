@@ -9,9 +9,29 @@ struct FinanzasView: View {
         store.noteMeta.filter { $0.value["tipo"] == "evento" }.map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 }
     }
 
+    /// Resumen del mes de Gastos: lo justo para saber cómo va sin cambiar de pantalla.
+    @ViewBuilder private var gastosCard: some View {
+        let month = Budget.monthKey(DayKey.today())
+        Card(title: "Gastos de \(Budget.title(month).lowercased())", icon: "creditcard", actionTitle: "Abrir Gastos", action: { store.screen = .gastos }) {
+            if let b = store.budget(month) {
+                let s = BudgetStatus(b)
+                HStack(spacing: 12) {
+                    Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos")
+                    Tile(title: "Puedes gastar hoy", value: Money.format(s.perDay), tint: s.perDay > 0 ? Brand.accent : Brand.bad)
+                    Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), tint: s.endLeft < 0 ? Brand.bad : nil)
+                }
+            } else {
+                EmptyNote("Aún no hay presupuesto de este mes.", icon: "calendar.badge.plus")
+                Button("Crear el presupuesto") { store.createBudget(month); store.screen = .gastos }.buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
     var body: some View {
-        let total = eventos.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }
-        let pending = eventos.filter { $0.meta["estado"] != "pagado" }.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }
+        // Los cancelados no cuentan ni en el total ni en lo que falta por pagar.
+        let vivos = eventos.filter { $0.meta["estado"] != "cancelado" }
+        let total = vivos.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }
+        let pending = vivos.filter { $0.meta["estado"] != "pagado" }.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
@@ -19,10 +39,11 @@ struct FinanzasView: View {
                     Tile(title: "Aportaciones", value: Money.format(total))
                     Tile(title: "Por pagar", value: Money.format(pending), tint: pending > 0 ? Brand.warn : Brand.accent)
                 }
-                Card(title: "Hoja de cuentas", icon: "tablecells.badge.ellipsis", info: "Las cuentas siguen en Numbers: la app no puede leer ni editar ese formato.") {
-                    if let u = store.attachmentURL("Simple.numbers") {
+                gastosCard
+                if let u = store.attachmentURL("Simple.numbers") {
+                    Card(title: "Hoja antigua de Numbers", icon: "tablecells.badge.ellipsis", info: "Gastos ya lleva el presupuesto mensual que hacía esta hoja. La app no puede leer ni editar el formato de Numbers.") {
                         Button { NSWorkspace.shared.open(u) } label: { Label("Abrir Simple.numbers en Numbers", systemImage: "arrow.up.forward.app") }
-                    } else { EmptyNote("No encuentro Simple.numbers en tu vault.", icon: "questionmark.folder") }
+                    }
                 }
                 ForEach(eventos, id: \.path) { e in
                     Card(title: ((e.path as NSString).lastPathComponent as NSString).deletingPathExtension, icon: "party.popper", actionTitle: "Abrir nota", action: { store.pendingNote = e.path }) {

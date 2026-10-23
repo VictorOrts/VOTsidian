@@ -206,3 +206,45 @@ mes: 2026-10
     store.removeBudgetLine(b, try #require(b.line(named: "Ordenador")))
     #expect(store.budget("2026-11")?.line(named: "Ordenador") == nil && store.budget("2026-11")?.lines.count == 14)
 }
+
+@Test func reviewFixesForExpenses() throws {
+    let today = try #require(DayKey.date("2026-10-23"))
+    let cats = Edit.defaultBudgetLines.map(\.0) + ["Seguro vivienda"]
+    // La fecha no se toma por importe; si hay varios números, gana el que lleva €.
+    let a = try #require(ExpenseParser.parse("22/10 gasolina 40", categories: cats, today: today))
+    #expect(a.amount == 40 && DayKey.string(a.date) == "2026-10-22" && a.category == "Transporte")
+    #expect(ExpenseParser.parse("2 cafés 3,50 €", categories: cats, today: today)?.amount == 3.5)
+    // Gana la partida que más palabras comparte y, a igualdad, la de nombre más corto.
+    #expect(ExpenseParser.parse("seguro vida 37", categories: cats, today: today)?.category == "Seguro vida")
+    #expect(ExpenseParser.parse("seguro vivienda 280", categories: cats, today: today)?.category == "Seguro vivienda")
+    #expect(ExpenseParser.parse("alquiler 525", categories: cats, today: today)?.category == "Vivienda (alquiler, hipoteca, impuestos, seguro)")
+    #expect(Money.exact(12.5).hasPrefix("12,50") && Money.exact(12) == Money.format(12))
+    // 2026-10-23 es viernes: «el martes» es el martes pasado, no el que viene.
+    #expect(ExpenseParser.parse("el martes cine 9", categories: cats, today: today).map { DayKey.string($0.date) } == "2026-10-20")
+    #expect(ExpenseParser.parse("mañana comunidad 60", categories: cats, today: today).map { DayKey.string($0.date) } == "2026-10-24")
+
+    // «Puedes gastar hoy» no promete más de lo que queda tras los fijos.
+    let short = """
+    ## Ingresos
+    | Concepto | Previsto | Real |
+    | :--- | ---: | ---: |
+    | Nómina | 1000 | 1000 |
+
+    ## Partidas
+    | Partida | Previsto | Tipo | Pagado | Día |
+    | :--- | ---: | :--- | :---: | ---: |
+    | Alquiler | 900 | Fijo | ✅ | 1 |
+    | Comida | 400 | Variable |  |  |
+
+    ## Movimientos
+    | Fecha | Importe | Partida | Nota |
+    | :--- | ---: | :--- | :--- |
+    | 2026-10-05 | 50 | Comida | |
+    """
+    let s = BudgetStatus(Parse.budget(short, month: "2026-10", path: "x"), today: today)
+    #expect(s.variableLeft == 50 && abs(s.perDay - 50.0 / 9) < 0.001)
+
+    // Renombrar funciona aunque la nota no tenga tabla de movimientos.
+    let noMoves = "## Partidas\n| Partida | Previsto |\n| :--- | ---: |\n| Luz | 90 |\n"
+    #expect(Edit.renameBudgetLine(noMoves, line: 3, from: "Luz", to: "Electricidad")?.contains("| Electricidad | 90 |") == true)
+}
