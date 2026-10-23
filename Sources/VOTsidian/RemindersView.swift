@@ -2,8 +2,8 @@ import SwiftUI
 
 struct RemindersView: View {
     @Environment(Store.self) private var store
-    @AppStorage("remMounjaro") private var medicacion = true
-    @AppStorage("remMounjaroMin") private var medicacionMin = 540
+    @AppStorage("remMedicacion") private var medicacion = true
+    @AppStorage("remMedicacionMin") private var medicacionMin = 540
     @AppStorage("remReview") private var review = true
     @AppStorage("remReviewDay") private var reviewDay = 1
     @AppStorage("remReviewMin") private var reviewMin = 1140
@@ -12,7 +12,7 @@ struct RemindersView: View {
     @AppStorage("remWeight") private var weightOn = true
     @AppStorage("remWeightMin") private var weightMin = 540
     @AppStorage("remTasks") private var tasksOn = true
-    @AppStorage("remNala") private var mascotaOn = true
+    @AppStorage("remMascota") private var mascotaOn = true
     @AppStorage("remBirthdays") private var birthdays = true
     @AppStorage("remDocs") private var docs = true
     @AppStorage("remEvents") private var eventsOn = true

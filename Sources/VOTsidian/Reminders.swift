@@ -24,10 +24,10 @@ struct ReminderPlan: Equatable {
         let d = UserDefaults.standard
         func flag(_ k: String) -> Bool { d.object(forKey: k) as? Bool ?? true }
         func int(_ k: String, _ v: Int) -> Int { d.object(forKey: k) as? Int ?? v }
-        var plan = ReminderPlan(medicacion: flag("remMounjaro"), medicacionMinutes: int("remMounjaroMin", 540),
+        var plan = ReminderPlan(medicacion: flag("remMedicacion"), medicacionMinutes: int("remMedicacionMin", 540),
                             review: flag("remReview"), reviewWeekday: int("remReviewDay", 1), reviewMinutes: int("remReviewMin", 1140),
                             monthlyWeight: flag("remWeight"), weightMinutes: int("remWeightMin", 540),
-                            tasks: flag("remTasks"), mascota: flag("remNala"), birthdays: flag("remBirthdays"),
+                            tasks: flag("remTasks"), mascota: flag("remMascota"), birthdays: flag("remBirthdays"),
                             documents: flag("remDocs"), events: flag("remEvents"), payments: flag("remPayments"))
         plan.monthlyReview = flag("remMonthReview")
         plan.monthlyReviewMinutes = int("remMonthReviewMin", 1140)

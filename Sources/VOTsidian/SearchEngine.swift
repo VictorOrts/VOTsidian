@@ -40,7 +40,7 @@ struct SearchQuery: Equatable {
 enum Synonyms {
     static let groups: [[String]] = [
         ["medico", "doctor", "consulta", "cita", "endocrino"], ["peso", "bascula", "kilos", "kg"],
-        ["pinchazo", "inyeccion", "medicacion", "tirzepatida"], ["casa", "hogar", "vivienda", "piso"],
+        ["pinchazo", "inyeccion", "medicacion", "pastilla", "dosis"], ["casa", "hogar", "vivienda", "piso"],
         ["reforma", "obra", "obras"], ["compra", "comprar", "adquirir"], ["tarea", "pendiente"],
         ["habito", "rutina"], ["gato", "mascota", "mascota"], ["dinero", "finanzas", "ahorro", "gasto", "pago"],
         ["analisis", "analitica", "pruebas", "resultados"], ["ropa", "armario", "moda", "vestuario"],

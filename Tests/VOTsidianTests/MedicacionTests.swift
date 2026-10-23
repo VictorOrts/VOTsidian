@@ -37,7 +37,7 @@ private func newNote() throws -> String {
         t = try #require(Edit.addIntake(t, date: day(d), med: n, dose: dose, site: site, note: "", replaceSameDay: false))
     }
     let m = Parse.medicacion(t)
-    #expect(!m.legacy && m.name == "Medicación" && m.meds.map(\.name) == ["Metformina", "Vitamina D", "Ozempic", "Ibuprofeno"])
+    #expect(!m.singleTable && m.name == "Medicación" && m.meds.map(\.name) == ["Metformina", "Vitamina D", "Ozempic", "Ibuprofeno"])
     #expect(m.meds[0].perDay == 2 && m.meds[3].asNeeded && m.intakes.count == 4)
     // el periódico es el principal: Inicio, «Me pinché hoy» y la gráfica de dosis siguen a ese
     #expect(m.main?.name == "Ozempic" && m.doses.count == 1 && m.last?.site == "Abdomen izquierdo")
@@ -66,17 +66,17 @@ private func newNote() throws -> String {
 
 @Test func oldNoteReadsAsOneInjectionAndUpgrades() throws {
     let old = Parse.medicacion(medicacionFixture)
-    #expect(old.legacy && old.name == "Mounjaro" && old.meds.count == 1 && old.meds[0].every == 9 && old.meds[0].isInjection)
-    #expect(old.doses.count == 2 && old.intakes.allSatisfy { $0.med == "Mounjaro" } && old.last?.site == "Abdomen izquierdo")
+    #expect(old.singleTable && old.name == "Ozempic" && old.meds.count == 1 && old.meds[0].every == 9 && old.meds[0].isInjection)
+    #expect(old.doses.count == 2 && old.intakes.allSatisfy { $0.med == "Ozempic" } && old.last?.site == "Abdomen izquierdo")
     // en la nota de antes los pinchazos se siguen apuntando por posición
     let more = try #require(Edit.addDose(medicacionFixture, date: day("2026-10-18"), dose: 7.5, site: "Abdomen derecho", note: ""))
     #expect(more.contains("| 2026-10-18 | 7,5 mg | Abdomen derecho |  |") && Parse.medicacion(more).doses.count == 3)
     // al añadir otro medicamento la nota pasa al formato nuevo sin perder nada
     let up = try #require(Edit.addMedication(medicacionFixture, Medication(name: "Vitamina D", dose: "1 cápsula", form: "Cápsula", every: 1), current: old.meds[0]))
     let m = Parse.medicacion(up)
-    #expect(!m.legacy && m.name == "Medicación" && m.meds.map(\.name) == ["Mounjaro", "Vitamina D"])
+    #expect(!m.singleTable && m.name == "Medicación" && m.meds.map(\.name) == ["Ozempic", "Vitamina D"])
     #expect(m.meds[0].every == 9 && m.meds[0].dose == "7,5 mg" && m.meds[0].isInjection)
-    #expect(m.intakes.count == 2 && m.intakes.allSatisfy { $0.med == "Mounjaro" } && m.main?.name == "Mounjaro" && m.doses.count == 2)
+    #expect(m.intakes.count == 2 && m.intakes.allSatisfy { $0.med == "Ozempic" } && m.main?.name == "Ozempic" && m.doses.count == 2)
     #expect(up.contains("## Medicamentos") && up.contains("| Fecha | Medicamento | Dosis | Zona | Notas |") && up.contains("cada_dias: 9"))
     #expect(up.range(of: "## Medicamentos")!.lowerBound < up.range(of: "## Registro")!.lowerBound)
     // y se sigue escribiendo bien en las dos tablas
@@ -103,7 +103,7 @@ private func newNote() throws -> String {
 @MainActor @Test func takingAndAlertsOnAStore() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("med-\(UUID().uuidString)")
     let root = tmp.appendingPathComponent("V")
-    try FileManager.default.createDirectory(at: root.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: root.appendingPathComponent(VaultPath.folder("medicacion")), withIntermediateDirectories: true)
     try newNote().write(to: root.appendingPathComponent(VaultPath.medicacion), atomically: true, encoding: .utf8)
     let store = Store(root: root, backups: tmp.appendingPathComponent("C"))
     let today = DayKey.today()

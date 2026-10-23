@@ -19,7 +19,7 @@ import Testing
     #expect(t("renovar 2027-01-05 pasaporte") == ("renovar pasaporte", "2027-01-05"))
     #expect(t("hoy revisar correo") == ("revisar correo", "2026-10-19"))
     #expect(t("5/1") == ("", "2027-01-05"))
-    #expect(t("tomar 5 g de creatina") == ("tomar 5 g de creatina", nil))
+    #expect(t("tomar 5 g de magnesio") == ("tomar 5 g de magnesio", nil))
     #expect(t("sin fecha aquí") == ("sin fecha aquí", nil))
 }
 
@@ -56,7 +56,7 @@ import Testing
     #expect(broken.contains { $0.target == "Inexistente" && $0.suggestion == nil })
     #expect(store.repairLinks() == 1)
     #expect(store.read("Revisiones/Revisión semanal 2026-W43.md").contains("[[Médico]]"))
-    #expect(store.fuzzyResolve("Medicos") == "Organización/Médico/Médico.md")
+    #expect(store.fuzzyResolve("Medicos") == VaultPath.medico)
 }
 
 @Test func recurringTasks() throws {

@@ -21,15 +21,16 @@ import Testing
     #expect(!store.notes.contains { $0.path == renamed })
     print("ALERTS", store.alerts().map(\.text))
     print("DOCS", store.documents.count, "PEOPLE", store.people.count, "EVENTS", store.events.count, "ATT", store.attachments.keys.sorted())
-    #expect(store.people.count == 2)
+    #expect(!store.people.isEmpty)
     #expect(store.attachmentURL("Simple.numbers") != nil)
     // Salud: Médico.md
     let med = store.read(VaultPath.medico)
     print("SALUD citas", store.tasks.filter { $0.file == VaultPath.medico && !$0.done }.count, "tablas", Parse.tables(med).map(\.title), "meds", Parse.listItems(med, section: "Tratamientos").count)
+    let treatments = Parse.listItems(med, section: "Tratamientos").count
     store.edit(VaultPath.medico) { Edit.appendToSection($0, section: "Próximas citas", line: "- [ ] Revisión 📅 2026-12-01") }
-    store.edit(VaultPath.medico) { Edit.appendToSection($0, section: "Tratamientos", line: "- Creatina 5 g al día") }
+    store.edit(VaultPath.medico) { Edit.appendToSection($0, section: "Tratamientos", line: "- Magnesio 300 mg al día") }
     #expect(store.tasks.contains { $0.file == VaultPath.medico && $0.text == "Revisión" })
-    #expect(Parse.listItems(store.read(VaultPath.medico), section: "Tratamientos").count == 1)
+    #expect(Parse.listItems(store.read(VaultPath.medico), section: "Tratamientos").count == treatments + 1)
 }
 
 

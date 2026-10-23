@@ -46,7 +46,7 @@ La primera vez sale el asistente «Empecemos». En él eliges la carpeta (por de
 - **Gráficas en una nota:** un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta.
 - **Buscar (⌘K):**
   - notas, tareas y pantallas, con sinónimos («médico» encuentra «doctor») y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»);
-  - órdenes directas: `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita endocrino el 29/10`, `cintura 98`, `compra leche y pan`.
+  - órdenes directas: `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10`, `cintura 98`, `compra leche y pan`.
 - **Bases, Grafo y Enlaces rotos:**
   - Bases es una tabla de propiedades por tipo de nota, con filtros y vistas guardadas;
   - Grafo es el mapa de enlaces;

@@ -21,7 +21,7 @@ import Testing
 
 @Test func editorCompletionSuggestions() {
     let notes: [(name: String, folder: String, aliases: [String])] = [
-        ("Peso", "Cambio físico", []), ("Plan Nutricional", "Cambio físico", []), ("Personas", "Organización", []),
+        ("Peso", "Salud", []), ("Plan Nutricional", "Salud", []), ("Personas", "Organización", []),
         ("Armario", "Moda", ["Ropa"]), ("Casa", "Casa", []),
     ]
     let a = EditorCompletion.noteSuggestions(query: "pe", notes: notes, current: "Casa", recent: [])

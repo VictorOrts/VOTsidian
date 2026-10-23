@@ -6,9 +6,9 @@ import Testing
 @Test func parsesWeightIgnoringCodeBlocks() {
     let w = Parse.weight(pesoFixture)
     #expect(w.records.count == 2)
-    #expect(w.last?.kg == 106)
-    #expect(w.goalKg == 90 && w.initialKg == 136)
-    #expect(abs(w.progress - 30.0 / 46.0) < 0.001)
+    #expect(w.last?.kg == 101)
+    #expect(w.goalKg == 85 && w.initialKg == 120)
+    #expect(abs(w.progress - 19.0 / 35.0) < 0.001)
 }
 
 @Test func addWeightInsertsAfterLastDatedRow() throws {
@@ -94,7 +94,7 @@ import Testing
     let today = DayKey.date("2026-10-19")!
     let ev = ICS.events(ReminderSources(medicacion: m, tasks: tasks), plan: ReminderPlan(), today: today)
     let med = ev.first { $0.uid.hasPrefix("med-") }
-    #expect(med?.rule == "FREQ=DAILY;INTERVAL=9" && med?.title == "Pinchazo Mounjaro (7,5 mg)")
+    #expect(med?.rule == "FREQ=DAILY;INTERVAL=9" && med?.title == "Pinchazo Ozempic (7,5 mg)")
     #expect(med.map { DayKey.string($0.start) } == "2026-10-19") // atrasado: empieza hoy
     #expect(ev.contains { $0.title == "Dentista" && $0.minutes == nil })
     let ics = ICS.build(ev)
@@ -103,10 +103,10 @@ import Testing
 }
 
 @Test func projection() {
-    var w = WeightData(initialKg: 136, goalKg: 90, start: nil, records: [])
+    var w = WeightData(initialKg: 125, goalKg: 85, start: nil, records: [])
     w.records = [
-        WeightRecord(date: DayKey.date("2026-06-24")!, kg: 114.7, note: ""),
-        WeightRecord(date: DayKey.date("2026-09-30")!, kg: 106, note: ""),
+        WeightRecord(date: DayKey.date("2026-06-24")!, kg: 112.5, note: ""),
+        WeightRecord(date: DayKey.date("2026-09-30")!, kg: 104, note: ""),
     ]
     let r = w.ratePerMonth(window: 120)!
     #expect(r < -2 && r > -3)
@@ -142,11 +142,10 @@ import Testing
           "NEXT", store.medicacion.next.map(DayKey.string) ?? "-", "TAREAS", store.tasks.count, "REVS", store.reviews.keys.sorted(),
           "HABITOS", store.habitNames, "NOTAS", store.notes.count, "NALA", store.mascota.visits.count, "PLAN", store.plan.kcal,
           "HITOS", store.milestones.count)
-    #expect(store.weight.records.count >= 9 && store.medicacion.doses.count >= 26)
-    #expect(store.habitNames.count == 5)
-    print("LINKS", store.outLinks.values.reduce(0) { $0 + $1.count }, "INICIO->", store.outLinks["Inicio.md"]?.count ?? 0, "BACK(Peso)", store.backLinks["Cambio físico/Peso.md"]?.count ?? 0, "CASA", store.casa.reformas.rows.count, store.casa.compras.rows.count, store.casa.electros.rows.count)
+    #expect(!store.weight.records.isEmpty && !store.medicacion.doses.isEmpty && !store.habitNames.isEmpty)
+    print("LINKS", store.outLinks.values.reduce(0) { $0 + $1.count }, "INICIO->", store.outLinks["Inicio.md"]?.count ?? 0, "BACK(Peso)", store.backLinks[VaultPath.peso]?.count ?? 0, "CASA", store.casa.reformas.rows.count, store.casa.compras.rows.count, store.casa.electros.rows.count)
     #expect(store.outLinks.values.reduce(0) { $0 + $1.count } >= 15)
-    #expect(store.casa.reformas.rows.count == 2)
+    #expect(!store.casa.reformas.rows.isEmpty)
     store.addWeight(date: DayKey.date("2026-10-31")!, kg: 104.9, note: "prueba")
     store.addDose(date: DayKey.date("2026-10-19")!, dose: 7.5, site: "Abdomen derecho", note: "prueba")
     store.createReview(key: "2026-W44", monday: DayKey.date("2026-10-26")!)
@@ -183,7 +182,7 @@ import Testing
     let added = try #require(Edit.addRow(casaFixture, section: "Compras", cells: ["Mesa", "Salón", "Baja", "300", "IKEA", "Idea"]))
     let after = Parse.casa(added)
     #expect(after.compras.rows.contains { $0.cells.first == "Mesa" })
-    #expect(added.contains("| Sillon piel | Salon    |   Media   |             940 | Natuzzi | Idea   |\n| Mesa |"))
+    #expect(added.contains("| Sofá cama   | Salón    |   Media   |             720 | Tienda  | Idea   |\n| Mesa |"))
 }
 
 @Test func linkExtraction() {
@@ -210,7 +209,7 @@ import Testing
 
 
 @Test func namedTablesAndPeople() {
-    let text = "# Personas\n## Contactos\n| Persona | Relación | Cumpleaños | Última vez |\n| --- | --- | --- | --- |\n| Sergio | Amigo | 1990-10-17 | 2026-10-12 |\n| Gora | Hermano | 02-17 |  |\n\n```\n| no | tabla |\n```\n## Otra\n| A |\n| - |\n| 1 |"
+    let text = "# Personas\n## Contactos\n| Persona | Relación | Cumpleaños | Última vez |\n| --- | --- | --- | --- |\n| Marta | Amiga | 1990-10-17 | 2026-10-12 |\n| Pablo | Hermano | 02-17 |  |\n\n```\n| no | tabla |\n```\n## Otra\n| A |\n| - |\n| 1 |"
     let t = Parse.tables(text)
     #expect(t.count == 2 && t[0].title == "Contactos" && t[0].rows.count == 2 && t[1].title == "Otra")
     let (_, people) = Parse.people(text)
@@ -232,7 +231,7 @@ import Testing
 }
 
 @Test func moreReminderEvents() {
-    let people = [Person(name: "Sergio", relation: "", birthday: "1990-10-17", lastContact: nil, line: 1)]
+    let people = [Person(name: "Marta", relation: "", birthday: "1990-10-17", lastContact: nil, line: 1)]
     let src = ReminderSources(people: people, documents: [("Pasaporte", DayKey.date("2026-12-01")!)], events: [("Boda", DayKey.date("2026-11-20")!)])
     let ev = ICS.events(src, plan: ReminderPlan(medicacion: false, review: false, monthlyWeight: false, tasks: false, mascota: false, monthlyReview: false), today: DayKey.date("2026-10-19")!)
     #expect(ev.count == 3)

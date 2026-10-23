@@ -4,6 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 # Versión: VERSION=1.2 ./scripts/build-app.sh. Por defecto 1.0; el número de compilación es el nº de commits.
 VERSION="${VERSION:-1.0}"
+# Identificador de la app: BUNDLE_ID=com.tunombre.votsidian ./scripts/build-app.sh. Cambiarlo es como instalar otra
+# app: empieza con sus propias preferencias.
+BUNDLE_ID="${BUNDLE_ID:-com.votsidian.app}"
 BUILD="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/VOTsidian"
@@ -31,7 +34,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0"><dict>
   <key>CFBundleName</key><string>VOTsidian</string>
   <key>CFBundleDisplayName</key><string>VOTsidian</string>
-  <key>CFBundleIdentifier</key><string>com.victor.votsidian</string>
+  <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleExecutable</key><string>VOTsidian</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>

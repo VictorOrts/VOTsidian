@@ -205,7 +205,7 @@ struct MedicacionView: View {
                     }
                 }
             }
-            if m.legacy, !m.meds.isEmpty {
+            if m.singleTable, !m.meds.isEmpty {
                 Text("Al añadir otro medicamento, la nota pasa a tener una tabla de medicamentos y una columna «Medicamento» en el registro. Se puede deshacer.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
@@ -249,13 +249,13 @@ struct MedicacionView: View {
             if recent.isEmpty { EmptyNote("Sin tomas apuntadas.") }
             Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
                 if !recent.isEmpty {
-                    GridRow { Text("Fecha"); if !m.legacy { Text("Medicamento") }; Text("Dosis"); Text("Zona"); Text("Notas"); Text("") }.font(.caption).foregroundStyle(.secondary)
+                    GridRow { Text("Fecha"); if !m.singleTable { Text("Medicamento") }; Text("Dosis"); Text("Zona"); Text("Notas"); Text("") }.font(.caption).foregroundStyle(.secondary)
                     Divider()
                 }
                 ForEach(recent) { x in
                     GridRow {
                         Text(DayKey.string(x.date)).monospacedDigit()
-                        if !m.legacy { Text(x.med) }
+                        if !m.singleTable { Text(x.med) }
                         Text(x.dose); Text(x.site)
                         Text(x.note).foregroundStyle(.secondary).lineLimit(1)
                         EditButton { spec = RowSpec(file: VaultPath.medicacion, mode: .edit(line: x.line), title: "toma") }

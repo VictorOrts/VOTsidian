@@ -6,9 +6,9 @@ import Testing
 let pesoFixture = """
 ---
 tipo: control_peso
-objetivo_peso_kg: 90
-peso_inicial_kg: 136
-fecha_inicio: 24/02/2026
+objetivo_peso_kg: 85
+peso_inicial_kg: 120
+fecha_inicio: 12/01/2026
 ---
 
 # Peso
@@ -19,8 +19,8 @@ const x = "| 01/01/2020 | 999 |";
 
 | Fecha      | Peso (kg) | Notas |
 | :--------- | :-------: | :---- |
-| 24/02/2026 |    136    | Inicio |
-| 30/09/2026 |    106    | Atascado |
+| 12/01/2026 |    120    | Inicio |
+| 30/09/2026 |    101    | Sin cambios |
 |            |           |       |
 
 ---
@@ -29,6 +29,7 @@ const x = "| 01/01/2020 | 999 |";
 let medicacionFixture = """
 ---
 tipo: medicacion
+nombre: Ozempic
 cada_dias: 9
 ---
 ## Registro
@@ -68,9 +69,27 @@ tipo: revision_semanal
 
 
 func tempVaultCopy(_ path: String) throws -> URL {
-    let dest = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/Vault")
-    try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try FileManager.default.copyItem(at: URL(fileURLWithPath: path), to: dest)
+    let fm = FileManager.default
+    let dest = fm.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/Vault")
+    try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try fm.copyItem(at: URL(fileURLWithPath: path), to: dest)
+    // Los tests usan las rutas por defecto. Si la app tiene rutas propias (Ajustes → Módulos), en la copia esas notas
+    // se mueven a las de por defecto, con lo que va junto a ellas («Menú y compra» junto al plan).
+    let appID = ProcessInfo.processInfo.environment["VOT_APP_ID"] ?? "com.votsidian.app"
+    let custom = (UserDefaults(suiteName: appID)?.dictionary(forKey: "vaultPathOverrides") as? [String: String]) ?? [:]
+    let beside = ["plan": ["Menú y compra.md"]]
+    for (key, rel) in custom {
+        guard let target = VaultPath.defaults[key], target != rel, fm.fileExists(atPath: dest.appendingPathComponent(rel).path),
+              !fm.fileExists(atPath: dest.appendingPathComponent(target).path) else { continue }
+        let to = dest.appendingPathComponent(target)
+        try fm.createDirectory(at: to.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fm.moveItem(at: dest.appendingPathComponent(rel), to: to)
+        for name in beside[key] ?? [] {
+            let from = dest.appendingPathComponent(rel).deletingLastPathComponent().appendingPathComponent(name)
+            let next = to.deletingLastPathComponent().appendingPathComponent(name)
+            if fm.fileExists(atPath: from.path), !fm.fileExists(atPath: next.path) { try fm.moveItem(at: from, to: next) }
+        }
+    }
     return dest
 }
 
@@ -87,7 +106,7 @@ let casaFixture = """
 ## Compras
 | Qué         | Estancia | Prioridad | Precio estimado | Dónde   | Estado |
 | :---------- | :------- | :-------: | --------------: | :------ | :----- |
-| Sillon piel | Salon    |   Media   |             940 | Natuzzi | Idea   |
+| Sofá cama   | Salón    |   Media   |             720 | Tienda  | Idea   |
 |             |          |           |                 |         |        |
 
 ## Electrodomésticos
@@ -99,7 +118,7 @@ let casaFixture = """
 
 @MainActor func undoVault() throws -> Store {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
-    try FileManager.default.createDirectory(at: dir.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: dir.appendingPathComponent(VaultPath.folder("peso")), withIntermediateDirectories: true)
     try pesoFixture.write(to: dir.appendingPathComponent(VaultPath.peso), atomically: true, encoding: .utf8)
     try "# A\nver [[B]]\n".write(to: dir.appendingPathComponent("A.md"), atomically: true, encoding: .utf8)
     try "# B\n".write(to: dir.appendingPathComponent("B.md"), atomically: true, encoding: .utf8)
@@ -127,20 +146,20 @@ func syntheticVault() throws -> URL {
 /// Partidas de un presupuesto real para los tests de Gastos (préstamos, gym, cuotas…): no dependen de las que trae la app.
 let testBudgetLines: [(String, BudgetLine.Kind)] = [
     ("Vivienda (alquiler, hipoteca, impuestos, seguro)", .fijo), ("Alimentación", .variable), ("Transporte", .variable),
-    ("Suministros agua y luz", .fijo), ("Restaurantes, viajes, entretenimiento", .variable), ("Préstamo padre", .fijo),
-    ("Préstamo personal", .fijo), ("Ordenador", .fijo), ("Seguro vida", .fijo), ("Gym + O2", .fijo), ("Gastos comunidad", .fijo),
-    ("Imprevistos / otros", .variable), ("Ahorro / fondo de emergencia", .ahorro), ("Suscripciones (Music + iCloud)", .fijo),
+    ("Suministros agua y luz", .fijo), ("Restaurantes, viajes, entretenimiento", .variable), ("Préstamo familiar", .fijo),
+    ("Préstamo personal", .fijo), ("Ordenador", .fijo), ("Seguro vida", .fijo), ("Gym + fibra", .fijo), ("Gastos comunidad", .fijo),
+    ("Imprevistos / otros", .variable), ("Ahorro / fondo de emergencia", .ahorro), ("Suscripciones (música y nube)", .fijo),
 ]
 
 /// Presupuesto de un mes con lo previsto y gastos repartidos hasta hoy (o el mes entero si `full`).
 func gastosFixture(_ date: Date, full: Bool = false) -> String {
     let month = Budget.monthKey(date)
     let planned: [String: Double] = ["Vivienda (alquiler, hipoteca, impuestos, seguro)": 850, "Alimentación": 350, "Transporte": 120,
-        "Suministros agua y luz": 90, "Restaurantes, viajes, entretenimiento": 150, "Préstamo padre": 200, "Préstamo personal": 180,
-        "Ordenador": 60, "Seguro vida": 25, "Gym + O2": 55, "Gastos comunidad": 60, "Imprevistos / otros": 100,
-        "Ahorro / fondo de emergencia": 300, "Suscripciones (Music + iCloud)": 15]
-    let days = ["Vivienda (alquiler, hipoteca, impuestos, seguro)": 1, "Suministros agua y luz": 5, "Préstamo padre": 10, "Préstamo personal": 15,
-                "Ordenador": 20, "Seguro vida": 3, "Gym + O2": 1, "Gastos comunidad": 28, "Ahorro / fondo de emergencia": 28, "Suscripciones (Music + iCloud)": 12]
+        "Suministros agua y luz": 90, "Restaurantes, viajes, entretenimiento": 150, "Préstamo familiar": 200, "Préstamo personal": 180,
+        "Ordenador": 60, "Seguro vida": 25, "Gym + fibra": 55, "Gastos comunidad": 60, "Imprevistos / otros": 100,
+        "Ahorro / fondo de emergencia": 300, "Suscripciones (música y nube)": 15]
+    let days = ["Vivienda (alquiler, hipoteca, impuestos, seguro)": 1, "Suministros agua y luz": 5, "Préstamo familiar": 10, "Préstamo personal": 15,
+                "Ordenador": 20, "Seguro vida": 3, "Gym + fibra": 1, "Gastos comunidad": 28, "Ahorro / fondo de emergencia": 28, "Suscripciones (música y nube)": 12]
     var text = Edit.budgetNote(month: month, from: nil, defaults: testBudgetLines)
     var b = Parse.budget(text, month: month, path: "")
     for l in b.lines {

@@ -29,7 +29,7 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     let withMed = try #require(Edit.addMedication(try starter("medicacion"), Medication(name: "Ozempic", dose: "0,5 mg", form: "Inyección", every: 7), current: nil))
     let med = try #require(Edit.addDose(withMed, date: day, dose: 0.5, site: "Abdomen", note: "", med: "Ozempic"))
     let m = Parse.medicacion(med)
-    #expect(m.name == "Medicación" && !m.legacy && m.main?.name == "Ozempic" && m.everyDays == 7 && m.doses.count == 1 && m.doses[0].site == "Abdomen")
+    #expect(m.name == "Medicación" && !m.singleTable && m.main?.name == "Ozempic" && m.everyDays == 7 && m.doses.count == 1 && m.doses[0].site == "Abdomen")
     // mascota
     let pet = try #require(Edit.addMascotaVisit(try starter("mascota", name: "Luna"), date: day, tipo: "Vacuna", detalle: "Rabia", proxima: DayKey.adding(days: 365, to: day), coste: "40"))
     let n = Parse.mascota(pet)
@@ -69,10 +69,11 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     }
 }
 
-@Test func namesKeepTheOldNotesAndAreGenericWithoutOne() {
-    #expect(Parse.medicacion(medicacionFixture).name == "Mounjaro")   // notas de antes, sin «nombre:»
+@Test func namesComeFromTheNoteAndAreGenericWithoutOne() {
+    #expect(Parse.medicacion(medicacionFixture).name == "Ozempic")   // nota de una sola tabla con «nombre:»
     #expect(Parse.medicacion("").name == "Medicación" && Parse.mascota("").name == "Mascota")
-    #expect(Parse.mascota("---\nnacimiento: 01/01/2020\n---\n").name == "Nala")
+    #expect(Parse.mascota("---\nnacimiento: 01/01/2020\n---\n").name == "Mascota")
+    #expect(Parse.medicacion("| Fecha | Dosis | Zona | Notas |\n| --- | --- | --- | --- |\n| 2026-10-01 | 1 mg | Brazo | |\n").name == "Medicación")
     #expect(Parse.mascota("---\nnombre: \"Luna: la gata\"\n---\n").name == "Luna: la gata")
     #expect(Starter.yaml("Luna: la gata") == "\"Luna: la gata\"" && Starter.yaml("Ozempic") == "Ozempic")
 }
@@ -147,31 +148,17 @@ private func starter(_ key: String, name: String? = nil) throws -> String { try 
     }
 }
 
-@Test func newFoldersGetNeutralPathsButOldNotesKeepTheirs() throws {
-    let root = FileManager.default.temporaryDirectory.appendingPathComponent("rutas-\(UUID().uuidString)")
-    let fresh = VaultPath.freshOverrides(root: root)   // la carpeta ni existe
-    #expect(fresh["peso"] == "Salud/Peso.md" && fresh["mascota"] == "Mascota/Mascota.md" && fresh["medicacion"] == "Salud/Medicación.md")
-    #expect(fresh["casa"] == nil && fresh["inbox"] == nil)   // las que no eran personales no cambian
-    #expect(fresh.values.allSatisfy { !$0.contains("Cambio físico") && !$0.contains("Nala") })
-    // una carpeta con notas de antes conserva esas rutas, también si iCloud aún no las ha descargado
-    try FileManager.default.createDirectory(at: root.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
-    try FileManager.default.createDirectory(at: root.appendingPathComponent("Nala"), withIntermediateDirectories: true)
-    try "x".write(to: root.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
-    try "x".write(to: root.appendingPathComponent("Nala/.Nala.md.icloud"), atomically: true, encoding: .utf8)
-    let mixed = VaultPath.freshOverrides(root: root)
-    #expect(mixed["peso"] == nil && mixed["mascota"] == nil && mixed["medicacion"] == "Salud/Medicación.md")
+@Test func defaultPathsAreNeutral() {
+    #expect(VaultPath.defaults["peso"] == "Salud/Peso.md" && VaultPath.defaults["mascota"] == "Mascota/Mascota.md")
+    #expect(Set(VaultPath.defaults.keys) == Set(Starter.labels.keys))   // cada ruta tiene su nombre en Ajustes
     // lo que va junto a cada nota sigue su carpeta
-    #expect(VaultPath.beside("peso", "Fotos") == "Cambio físico/Fotos" && VaultPath.folder("medico") == "Organización/Médico")
+    #expect(VaultPath.beside("peso", "Fotos") == "Salud/Fotos" && VaultPath.folder("medico") == "Salud")
 }
 
-@MainActor @Test func oldSavedKeysStillWork() {
-    // el orden de Inicio guardado con los ids de antes
-    let layout = HomeLayout(raw: "mounjaro:0,nala:1,peso:1")
-    #expect(layout.items.prefix(3).map(\.card) == [.medicacion, .mascota, .peso] && layout.items[0].visible == false)
-    #expect(layout.raw.hasPrefix("medicacion:0,mascota:1,peso:1"))
-    // una ruta cambiada con la clave de antes se sigue leyendo; si están las dos, gana la nueva
-    #expect(VaultPath.normalized(["nala": "Gatos/Misi.md", "peso": "Salud/Báscula.md"]) == ["mascota": "Gatos/Misi.md", "peso": "Salud/Báscula.md"])
-    #expect(VaultPath.normalized(["mounjaro": "A.md", "medicacion": "B.md"]) == ["medicacion": "B.md"])
+@Test func homeLayoutIgnoresUnknownCards() {
+    let layout = HomeLayout(raw: "desconocida:0,mascota:0,peso:1")
+    #expect(layout.items.prefix(2).map(\.card) == [.mascota, .peso] && layout.items[0].visible == false)
+    #expect(layout.items.count == HomeCard.allCases.count)   // las que faltan se añaden al final, visibles
 }
 
 @MainActor @Test func monthlyReviewIsRemindedAtTheEndOfTheMonth() throws {

@@ -42,14 +42,11 @@ struct HomeLayout: Equatable {
     init(items: [(card: HomeCard, visible: Bool)]) { self.items = items }
 
     /// Lee lo guardado; ignora ids desconocidos y añade al final las tarjetas nuevas.
-    /// Ids con que se guardaban antes algunas tarjetas.
-    static let legacyIds = ["mounjaro": "medicacion", "nala": "mascota"]
-
     init(raw: String) {
         var out: [(HomeCard, Bool)] = []
         for part in raw.split(separator: ",") {
             let kv = part.split(separator: ":")
-            guard kv.count == 2, let c = HomeCard(rawValue: HomeLayout.legacyIds[String(kv[0])] ?? String(kv[0])), !out.contains(where: { $0.0 == c }) else { continue }
+            guard kv.count == 2, let c = HomeCard(rawValue: String(kv[0])), !out.contains(where: { $0.0 == c }) else { continue }
             out.append((c, kv[1] != "0"))
         }
         for c in HomeCard.allCases where !out.contains(where: { $0.0 == c }) { out.append((c, true)) }

@@ -3,19 +3,21 @@ import Foundation
 import Observation
 import SwiftUI
 
-/// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta sin tocar el código:
-/// `defaults write <id de la app> vaultPathOverrides -dict peso "Salud/Peso.md" inbox "Bandeja.md"`
+/// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta en Ajustes → Módulos → Rutas de
+/// las notas, o desde la terminal: `defaults write <id de la app> vaultPathOverrides -dict peso "Mis notas/Báscula.md"`
 /// (claves: peso, medicacion, plan, proyecto, mascota, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
 enum VaultPath {
     static let defaults: [String: String] = [
-        "peso": "Cambio físico/Peso.md",
-        "medicacion": "Cambio físico/Mounjaro.md",
-        "plan": "Cambio físico/Plan Nutricional.md",
-        "proyecto": "Proyectos/Cambio físico 2026.md",
-        "mascota": "Nala/Nala.md",
+        "peso": "Salud/Peso.md",
+        "medidas": "Salud/Medidas.md",
+        "medicacion": "Salud/Medicación.md",
+        "plan": "Salud/Plan nutricional.md",
+        "medico": "Salud/Médico.md",
+        "proyecto": "Proyectos/Objetivo de peso.md",
+        "mascota": "Mascota/Mascota.md",
         "casa": "Casa/Casa.md",
+        "compra": "Casa/Lista de la compra.md",
         "moda": "Moda/Armario.md",
-        "medico": "Organización/Médico/Médico.md",
         "inbox": "Organización/Inbox.md",
         "documentos": "Organización/Documentos.md",
         "personas": "Organización/Personas.md",
@@ -23,45 +25,23 @@ enum VaultPath {
         "finanzas": "Finanzas/Finanzas.md",
         "gastos": "Finanzas/Gastos",
         "revisiones": "Revisiones",
-        "compra": "Cambio físico/Lista de la compra.md",
-        "medidas": "Cambio físico/Medidas.md",
     ]
     static func path(_ key: String) -> String {
         overrides[key].flatMap { $0.isEmpty ? nil : $0 } ?? defaults[key] ?? key
     }
-    /// Claves con que se guardaban antes algunas rutas cambiadas; se siguen leyendo.
-    static let legacyKeys = ["mounjaro": "medicacion", "nala": "mascota"]
-    /// Rutas para una carpeta nueva: las de `defaults` son las de la primera carpeta de la app («Cambio físico/…» y demás),
-    /// que se mantienen para quien ya las usa. El asistente pone estas solo para las notas que aún no existen.
-    static let fresh: [String: String] = [
-        "peso": "Salud/Peso.md",
-        "medidas": "Salud/Medidas.md",
-        "medicacion": "Salud/Medicación.md",
-        "plan": "Salud/Plan nutricional.md",
-        "medico": "Salud/Médico.md",
-        "proyecto": "Proyectos/Objetivo de peso.md",
-        "compra": "Casa/Lista de la compra.md",
-        "mascota": "Mascota/Mascota.md",
-    ]
 
-    /// Carpeta de la nota de `key` («Cambio físico» para peso), o `""` si está en la raíz.
+    /// Carpeta de la nota de `key` («Salud» para peso), o `""` si está en la raíz.
     static func folder(_ key: String) -> String { (path(key) as NSString).deletingLastPathComponent }
     /// `name` en la misma carpeta que la nota de `key`: las fotos junto al peso, los análisis junto a Médico…
     static func beside(_ key: String, _ name: String) -> String { folder(key).isEmpty ? name : folder(key) + "/" + name }
 
     /// Rutas cambiadas (Ajustes → Módulos), por clave.
-    static var overrides: [String: String] { normalized(UserDefaults.standard.dictionary(forKey: "vaultPathOverrides") ?? [:]) }
-    /// Lo guardado, con las claves antiguas pasadas a las nuevas.
-    static func normalized(_ raw: [String: Any]) -> [String: String] {
-        let saved = raw.compactMapValues { $0 as? String }
-        var out: [String: String] = [:]
-        for (k, v) in saved { out[legacyKeys[k] ?? k] = v }
-        for (k, v) in saved where legacyKeys[k] == nil { out[k] = v }   // si están las dos, gana la nueva
-        return out
+    static var overrides: [String: String] {
+        (UserDefaults.standard.dictionary(forKey: "vaultPathOverrides") ?? [:]).compactMapValues { $0 as? String }
     }
     /// Cambia la ruta de una clave; `nil` vuelve a la de siempre.
     static func setOverride(_ key: String, _ value: String?) {
-        var o = overrides   // ya con las claves nuevas: al guardar, las antiguas desaparecen
+        var o = overrides
         o[key] = value
         if o.isEmpty { UserDefaults.standard.removeObject(forKey: "vaultPathOverrides") } else { UserDefaults.standard.set(o, forKey: "vaultPathOverrides") }
     }

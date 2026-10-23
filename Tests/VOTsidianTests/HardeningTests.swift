@@ -72,7 +72,7 @@ import Testing
 
 @MainActor @Test func pathOverridesAndLooseVaultValidity() throws {
     // clave inventada: así no afecta a otros tests que corren a la vez
-    #expect(VaultPath.path("clave-de-prueba") == "clave-de-prueba" && VaultPath.peso == "Cambio físico/Peso.md")
+    #expect(VaultPath.path("clave-de-prueba") == "clave-de-prueba" && VaultPath.peso == "Salud/Peso.md")
     UserDefaults.standard.set(["clave-de-prueba": "Salud/Otro.md"], forKey: "vaultPathOverrides")
     defer { UserDefaults.standard.removeObject(forKey: "vaultPathOverrides") }
     #expect(VaultPath.path("clave-de-prueba") == "Salud/Otro.md" && VaultPath.inbox == "Organización/Inbox.md")

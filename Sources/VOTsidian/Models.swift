@@ -120,8 +120,6 @@ struct MascotaVisit: Identifiable, Equatable {
 
 struct MascotaData: Equatable {
     var name = "Mascota"
-    /// Como `MedicacionData.legacyName`.
-    static let legacyName = "Nala"
     var birth: Date?
     var food = ""
     var visits: [MascotaVisit] = []

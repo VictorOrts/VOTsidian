@@ -9,8 +9,8 @@ import Testing
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("big-\(UUID().uuidString)")
     let vault = tmp.appendingPathComponent("Notas")
     let fm = FileManager.default
-    try fm.createDirectory(at: vault.appendingPathComponent("Cambio físico"), withIntermediateDirectories: true)
-    try "---\nobjetivo_peso_kg: 90\npeso_inicial_kg: 136\n---\n| Fecha | Peso |\n|--|--|\n| 01/01/2026 | 100 |\n".write(to: vault.appendingPathComponent("Cambio físico/Peso.md"), atomically: true, encoding: .utf8)
+    try fm.createDirectory(at: vault.appendingPathComponent(VaultPath.folder("peso")), withIntermediateDirectories: true)
+    try "---\nobjetivo_peso_kg: 85\npeso_inicial_kg: 120\n---\n| Fecha | Peso |\n|--|--|\n| 01/01/2026 | 100 |\n".write(to: vault.appendingPathComponent(VaultPath.peso), atomically: true, encoding: .utf8)
     for f in 0..<30 {
         let dir = vault.appendingPathComponent("Carpeta \(f)")
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -87,6 +87,6 @@ import Testing
     #expect(best == "Otra línea con peso y báscula")
     let h = SearchEngine.highlight("Peso y peso", q)
     #expect(h.runs.filter { $0.font != nil }.count == 2 && String(h.characters) == "Peso y peso")
-    #expect(SearchEngine.passesFilters(path: "a.md", folder: "Cambio físico", type: "plan", tags: ["salud"], SearchQuery.parse("#sal carpeta:cambio tipo:plan")))
-    #expect(!SearchEngine.passesFilters(path: "a.md", folder: "Casa", type: nil, tags: [], SearchQuery.parse("carpeta:cambio")))
+    #expect(SearchEngine.passesFilters(path: "a.md", folder: "Salud y deporte", type: "plan", tags: ["salud"], SearchQuery.parse("#sal carpeta:deporte tipo:plan")))
+    #expect(!SearchEngine.passesFilters(path: "a.md", folder: "Casa", type: nil, tags: [], SearchQuery.parse("carpeta:deporte")))
 }

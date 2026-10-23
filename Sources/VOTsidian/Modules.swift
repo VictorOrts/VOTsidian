@@ -352,23 +352,6 @@ enum Starter {
     }
 }
 
-// MARK: - Rutas para una carpeta nueva
-
-extension VaultPath {
-    /// Rutas de `fresh` que conviene usar en `root`: las de las notas que no están en su ruta de siempre (ni esperando
-    /// a iCloud) y que nadie ha cambiado a mano. Una carpeta con «Cambio físico/Peso.md» sigue usándola.
-    static func freshOverrides(root: URL) -> [String: String] {
-        let fm = FileManager.default
-        func there(_ rel: String) -> Bool {
-            let u = root.appendingPathComponent(rel)
-            let placeholder = u.deletingLastPathComponent().appendingPathComponent("." + u.lastPathComponent + ".icloud")
-            return fm.fileExists(atPath: u.path) || fm.fileExists(atPath: placeholder.path)
-        }
-        let current = overrides
-        return fresh.filter { key, _ in current[key] == nil && !there(defaults[key] ?? key) }
-    }
-}
-
 // MARK: - Store
 
 extension Store {
@@ -405,11 +388,6 @@ extension Store {
     /// Lo que hace el asistente del principio: crea la carpeta y las notas de los módulos elegidos y oculta el resto.
     func setUp(modules: Set<Module>, petName: String? = nil, templates: Bool = false) {
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        // Las rutas son de la app, no de la carpeta: en los tests (raíz explícita) no se tocan.
-        if persistsModules {
-            for (key, rel) in VaultPath.freshOverrides(root: root) { VaultPath.setOverride(key, rel) }
-            reload()
-        }
         let inbox = VaultPath.inbox
         if !exists(inbox), let t = Starter.text(forKey: "inbox") { writeNote(inbox, text: t) }
         createStarterNotes(Module.allCases.filter(modules.contains), petName: petName)
