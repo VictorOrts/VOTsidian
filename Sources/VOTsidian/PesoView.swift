@@ -13,6 +13,8 @@ struct PesoView: View {
     var body: some View {
         let w = store.weight
         let rate = w.ratePerMonth(window: 120)
+        // Con un estancamiento, el ritmo de 4 meses tarda en notarlo: se enseña también el de los 2 últimos.
+        let recent = w.ratePerMonth(window: 60)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .peso)
@@ -20,7 +22,8 @@ struct PesoView: View {
                     Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { dayLabel($0.date) })
                     Tile(title: w.gaining ? "Ganados" : "Perdidos", value: fmt(w.achievedKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
                     Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: w.hasGoal ? "objetivo \(fmt(w.goalKg, 0)) kg" : "sin objetivo en la nota")
-                    Tile(title: "Ritmo reciente", value: rate.map { fmtDelta($0, unit: " kg/mes") } ?? "–", note: "últimos 4 meses")
+                    Tile(title: "Ritmo reciente", value: rate.map { fmtDelta($0, unit: " kg/mes") } ?? "–",
+                         note: "pesajes de 4 meses" + (recent.map { " · 2 meses: \(fmtDelta($0, unit: ""))" } ?? ""))
                 }
 
                 if w.records.isEmpty {
@@ -38,7 +41,7 @@ struct PesoView: View {
 
                 if let p = w.projection() {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("Al ritmo de la tendencia (\(fmtDelta(p.ratePerMonth, unit: " kg/mes"))) llegarías a \(fmt(w.goalKg, 0)) kg hacia \(DayKey.esLong(p.date, .dateTime.month(.wide).year())).",
+                        Label("Al ritmo de la tendencia suavizada (\(fmtDelta(p.ratePerMonth, unit: " kg/mes")), que pesa más los pesajes recientes) llegarías a \(fmt(w.goalKg, 0)) kg hacia \(DayKey.esLong(p.date, .dateTime.month(.wide).year())).",
                               systemImage: "chart.line.downtrend.xyaxis").font(.callout)
                         if DayKey.string(p.earliest) != DayKey.string(p.latest) {
                             Text("Rango según el ritmo de 2 meses, 4 meses o todo el historial: de \(DayKey.esLong(p.earliest, .dateTime.month(.wide).year())) a \(DayKey.esLong(p.latest, .dateTime.month(.wide).year())).")

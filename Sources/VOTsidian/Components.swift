@@ -421,24 +421,22 @@ struct NoteTables: View {
             ForEach(tables) { t in
                 Card(title: titleOverride ?? (t.title.isEmpty ? "Tabla" : t.title), icon: icon) {
                     let rows = t.rows.filter { r in r.cells.contains { !$0.isEmpty } }
-                    ScrollView(.horizontal) {
-                        Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 7) {
+                    Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 7) {
+                        GridRow {
+                            ForEach(Array(t.header.enumerated()), id: \.offset) { _, h in Text(h) }
+                            Color.clear.frame(width: 18, height: 1)
+                        }.font(.caption).foregroundStyle(.secondary)
+                        Divider()
+                        ForEach(rows) { r in
                             GridRow {
-                                ForEach(Array(t.header.enumerated()), id: \.offset) { _, h in Text(h) }
-                                Color.clear.frame(width: 18, height: 1)
-                            }.font(.caption).foregroundStyle(.secondary)
-                            Divider()
-                            ForEach(rows) { r in
-                                GridRow {
-                                    // Dentro del scroll horizontal el texto no se partía y salía cortado: se deja crecer hacia abajo.
-                                    // La última columna (resultado, notas…) suele ser la larga y tiene más sitio.
-                                    ForEach(0..<t.header.count, id: \.self) { i in
-                                        let cell = i < r.cells.count ? r.cells[i] : ""
-                                        Text(MDParser.inline(cell)).lineLimit(4).fixedSize(horizontal: false, vertical: true)
-                                            .frame(maxWidth: i == t.header.count - 1 ? 520 : 340, alignment: .leading).help(cell)
-                                    }
-                                    EditButton { spec = RowSpec(file: file, mode: .edit(line: r.line), title: "fila") }
+                                // Sin scroll horizontal: dentro de uno la altura se medía con el texto en una línea y, al partirse,
+                                // la segunda se cortaba. La última columna (resultado, notas…) suele ser la larga y tiene más sitio.
+                                ForEach(0..<t.header.count, id: \.self) { i in
+                                    let cell = i < r.cells.count ? r.cells[i] : ""
+                                    Text(MDParser.inline(cell)).lineLimit(4).fixedSize(horizontal: false, vertical: true)
+                                        .frame(maxWidth: i == t.header.count - 1 ? 520 : 340, alignment: .leading).help(cell)
                                 }
+                                EditButton { spec = RowSpec(file: file, mode: .edit(line: r.line), title: "fila") }
                             }
                         }
                     }

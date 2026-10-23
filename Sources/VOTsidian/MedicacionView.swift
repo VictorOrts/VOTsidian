@@ -133,7 +133,7 @@ struct MedicacionView: View {
         }
 
         let periods = m.periods(weights: store.weight.records)
-        if !periods.isEmpty, !store.weight.records.isEmpty { periodsCard(periods) }
+        if !periods.isEmpty, !store.weight.records.isEmpty { periodsCard(periods, act: main.isInjection ? "Pinchazos" : "Tomas") }
 
         Card(title: main.isInjection ? "Registrar pinchazo de \(main.name)" : "Registrar toma de \(main.name)", icon: "plus.circle",
              info: "Se añade una fila a \(VaultPath.medicacion)." + (main.isInjection ? " Zona sugerida para alternar: \(m.suggestedSite)." : "")) {
@@ -153,10 +153,10 @@ struct MedicacionView: View {
         }
     }
 
-    private func periodsCard(_ periods: [DosePeriod]) -> some View {
+    private func periodsCard(_ periods: [DosePeriod], act: String) -> some View {
         Card(title: "Peso por dosis", icon: "chart.bar.xaxis", info: "Peso al empezar y al terminar cada tramo de dosis, con el pesaje más cercano. Orientativo: pesas una vez al mes.") {
             Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 7) {
-                GridRow { Text("Dosis"); Text("Desde"); Text("Tomas"); Text("Peso inicial"); Text("Peso final"); Text("Perdidos"); Text("Ritmo") }
+                GridRow { Text("Dosis"); Text("Desde"); Text(act); Text("Peso inicial"); Text("Peso final"); Text("Perdidos"); Text("Ritmo") }
                     .font(.caption).foregroundStyle(.secondary)
                 Divider()
                 ForEach(periods) { p in
@@ -189,7 +189,8 @@ struct MedicacionView: View {
                             Text([med.dose, med.form].filter { !$0.isEmpty }.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
                         }
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(med.frequencyText)
+                            // En una nota de antes la frecuencia ya la dice el control de la derecha.
+                            Text(med.line < 0 ? "" : med.frequencyText)
                             if let e = med.end { Text(e < DayKey.today() ? "acabó el \(DayKey.dmy(e))" : "hasta el \(DayKey.dmy(e))").font(.caption).foregroundStyle(.secondary) }
                         }
                         if let a = m.adherence(med) {

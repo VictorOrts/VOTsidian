@@ -714,3 +714,15 @@ extension URL {
     // con una partida que lleva «O2» en el nombre, va a esa
     #expect(ExpenseParser.parse("o2 40", categories: testBudgetLines.map(\.0), today: today)?.category == "Gym + O2")
 }
+
+@Test func aMonthWithNothingLoggedSaysSo() throws {
+    let text = Edit.budgetNote(month: "2026-10", from: nil, defaults: testBudgetLines).replacingOccurrences(of: "| Alimentación | 0 |", with: "| Alimentación | 350 |")
+    let b = Parse.budget(text, month: "2026-10", path: "x")
+    let early = BudgetStatus(b, today: DayKey.date("2026-10-04")!)
+    let late = BudgetStatus(b, today: DayKey.date("2026-10-23")!)
+    #expect(!b.nothingLogged(early) && b.nothingLogged(late))
+    #expect(Budget.insights(b, previous: [], status: late).first?.id == "sin-apuntar")
+    let moved = try #require(Edit.addBudgetMove(text, date: DayKey.date("2026-10-05")!, amount: 20, category: "Alimentación", note: ""))
+    let logged = Parse.budget(moved, month: "2026-10", path: "x")
+    #expect(!logged.nothingLogged(BudgetStatus(logged, today: DayKey.date("2026-10-23")!)))
+}

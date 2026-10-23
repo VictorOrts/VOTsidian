@@ -235,11 +235,21 @@ struct BudgetInsight: Identifiable, Equatable {
 }
 
 extension Budget {
+    /// Ya va una semana del mes en curso y no hay ni un gasto apuntado: lo normal es que falte apuntarlos, no que no se
+    /// haya gastado. Entonces el ritmo y «lo que sobrará» solo repiten lo previsto.
+    func nothingLogged(_ s: BudgetStatus) -> Bool {
+        s.isCurrent && s.day >= 7 && moves.isEmpty && lines.contains { $0.isDiscretionary && $0.planned > 0 }
+    }
+
     /// Avisos del mes: facturas que suben respecto a la media, partidas que se pasan varios meses seguidos,
     /// aportaciones de eventos sin pagar y lo que sobrará si se sigue al ritmo actual.
     static func insights(_ b: Budget, previous: [Budget], status s: BudgetStatus,
                          events: [(name: String, amount: Double, path: String)] = []) -> [BudgetInsight] {
         var out: [BudgetInsight] = []
+        if b.nothingLogged(s) {
+            out.append(BudgetInsight(id: "sin-apuntar", level: .warn,
+                text: "Llevas \(s.day) días sin apuntar ningún gasto. «Puedes gastar hoy» y lo que sobrará suponen que gastas justo lo previsto. Apúntalos arriba o con la captura rápida (⇧⌘N); vale un total por partida."))
+        }
         for l in b.lines {
             let past = previous.compactMap { p in p.line(named: l.name).map { p.real($0) } }.filter { $0 > 0 }
             guard !past.isEmpty else { continue }

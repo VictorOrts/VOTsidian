@@ -228,13 +228,14 @@ struct GastosView: View {
             ForEach(variables) { l in
                 let r = b.real(l), proj = s.projection[l.name] ?? r
                 let over = r > l.planned, risk = s.isCurrent && proj > l.planned * 1.03
+                let unknown = b.nothingLogged(s)
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(alignment: .firstTextBaseline) {
                         Button(l.name) { filter = l.name }.buttonStyle(.plain).fontWeight(.medium)
                         Text("\(Money.format(r)) de \(Money.format(l.planned))").font(.callout).foregroundStyle(.secondary).monospacedDigit()
                         Spacer()
-                        Text(over ? "pasado en \(Money.format(r - l.planned))" : !s.isCurrent ? "dentro" : risk ? "a este ritmo, ~\(Money.format(proj))" : "vas bien · ~\(Money.format(proj))")
-                            .font(.callout.weight(.medium)).foregroundStyle(over ? Brand.bad : risk ? Brand.warn : Brand.accent)
+                        Text(over ? "pasado en \(Money.format(r - l.planned))" : !s.isCurrent ? "dentro" : unknown ? "sin apuntar" : risk ? "a este ritmo, ~\(Money.format(proj))" : "vas bien · ~\(Money.format(proj))")
+                            .font(.callout.weight(.medium)).foregroundStyle(over ? Brand.bad : risk ? Brand.warn : unknown ? .secondary : Brand.accent)
                     }
                     GeometryReader { g in
                         ZStack(alignment: .leading) {
