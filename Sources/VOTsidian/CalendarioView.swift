@@ -263,10 +263,7 @@ struct CalendarioView: View {
         guard !raw.isEmpty else { return }
         switch kind {
         case .tarea:
-            let p = NaturalDate.extractTask(raw)
-            let day = p.date ?? selected
-            store.addTask(p.text, due: day, recurrence: p.recurrence, priority: p.priority, time: p.time, muted: p.muted)
-            feedback = "Tarea añadida para \(shortDate(day))" + (p.time.map { " a las \(TimeOfDay.text($0))" } ?? "") + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "")
+            feedback = store.addTask(NaturalDate.extractTask(raw), defaultDue: selected)
         case .cita:
             let p = NaturalDate.extractDateTime(raw)
             let day = p.date ?? selected

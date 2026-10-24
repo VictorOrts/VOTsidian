@@ -416,7 +416,7 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 
 En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30».
 
-La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
+La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Si solo dices la hora, sin día, es para hoy. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
 
 ## Órdenes rápidas (⌘K)
 

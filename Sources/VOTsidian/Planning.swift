@@ -212,8 +212,7 @@ struct PlanificarView: View {
         let key = DayKey.string(day)
         let raw = (drafts[key] ?? "").trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }
-        let p = NaturalDate.extractTask(raw)
-        store.addTask(p.text, due: p.date ?? day, recurrence: p.recurrence, priority: p.priority)
+        store.addTask(NaturalDate.extractTask(raw), defaultDue: day)
         drafts[key] = ""
     }
 }

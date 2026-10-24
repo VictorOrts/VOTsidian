@@ -88,6 +88,18 @@ extension Store {
         edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority, time: time, muted: muted) }
     }
 
+    /// Guarda una tarea escrita en lenguaje natural con todo lo que se entendió: fecha (o `defaultDue`), hora, repetición,
+    /// prioridad y «sin aviso». Devuelve el mensaje de confirmación. Todas las entradas rápidas pasan por aquí, para que
+    /// ninguna se deje la hora por el camino.
+    @discardableResult
+    func addTask(_ p: NaturalDate.ParsedTask, defaultDue: Date? = nil) -> String {
+        // Solo con hora («llamar a Ana a las 18:00») es para hoy.
+        let due = p.date ?? defaultDue ?? (p.time != nil ? DayKey.today() : nil)
+        addTask(p.text, due: due, recurrence: p.recurrence, priority: p.priority, time: due == nil ? nil : p.time, muted: p.muted)
+        return (due.map { "Añadida para \(longDate($0))" } ?? "Añadida al Inbox") + (due != nil ? p.time.map { " a las \(TimeOfDay.text($0))" } ?? "" : "")
+            + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "") + (p.muted ? " · sin aviso" : "")
+    }
+
     /// Una cita médica en «Próximas citas» de Médico, con hora si se sabe. Desde Salud, el Calendario y ⌘K.
     func addAppointment(_ text: String, date: Date, time: Int? = nil) {
         edit(VaultPath.medico) { Edit.appendToSection($0, section: "Próximas citas", line: Edit.taskLine(text, due: date, time: time)) }

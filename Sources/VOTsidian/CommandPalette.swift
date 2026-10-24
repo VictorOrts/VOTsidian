@@ -263,8 +263,7 @@ struct QuickAddSheet: View {
         let day = DayKey.calendar().startOfDay(for: date)
         switch kind {
         case .tarea:
-            let p = NaturalDate.extractTask(t)
-            store.addTask(hasDue ? t : p.text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : p.date, recurrence: hasDue ? nil : p.recurrence, priority: hasDue ? 0 : p.priority)
+            if hasDue { store.addTask(t, due: DayKey.calendar().startOfDay(for: due)) } else { store.addTask(NaturalDate.extractTask(t)) }
         case .idea: store.addIdea(t)
         case .gasto: if let p = store.parseExpense(t) { store.addExpense(p) }
         case .peso: if let v = MD.number(kg) { store.addWeight(date: day, kg: v, note: t) }

@@ -215,9 +215,7 @@ struct InicioView: View {
     private func addQuick() {
         let raw = quick.trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }
-        let p = NaturalDate.extractTask(raw)
-        store.addTask(p.text, due: p.date, recurrence: p.recurrence, priority: p.priority)
-        quickMsg = (p.date.map { "Añadida para \(longDate($0))" } ?? "Añadida al Inbox") + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "")
+        quickMsg = store.addTask(NaturalDate.extractTask(raw))
         quick = ""
     }
 

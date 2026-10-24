@@ -143,9 +143,7 @@ struct MenuBarPanel: View {
     private func add() {
         let raw = quick.trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }
-        let p = NaturalDate.extractTask(raw)
-        store.addTask(p.text, due: p.date, recurrence: p.recurrence, priority: p.priority)
-        message = p.date.map { "Añadida para \(shortDate($0))" } ?? "Añadida al Inbox"
+        message = store.addTask(NaturalDate.extractTask(raw))
         quick = ""
     }
 

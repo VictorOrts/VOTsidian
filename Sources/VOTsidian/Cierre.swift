@@ -65,10 +65,7 @@ struct CierreSheet: View {
     private func add() {
         let raw = tomorrow.trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }
-        let p = NaturalDate.extractTask(raw)
-        let day = p.date ?? DayKey.adding(days: 1, to: DayKey.today())
-        store.addTask(p.text, due: day, recurrence: p.recurrence, priority: p.priority)
-        message = "Añadida para \(longDate(day))"
+        message = store.addTask(NaturalDate.extractTask(raw), defaultDue: DayKey.adding(days: 1, to: DayKey.today()))
         tomorrow = ""
     }
 }
