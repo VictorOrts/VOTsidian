@@ -11,6 +11,12 @@ struct BasesView: View {
     @State private var showSave = false
     @State private var newViewName = ""
 
+    init(layout: BaseView.Layout = .tabla) {
+        var q = BaseView(name: "")
+        q.layout = layout
+        _query = State(initialValue: q)
+    }
+
     private static let templateForType = ["proyecto": "Proyecto", "cita_medica": "Cita médica", "evento": "Evento", "casa_item": "Reforma o compra"]
     /// Nombres con tilde que `pretty` no puede adivinar.
     private static let names = ["revision_semanal": "Revisión semanal", "revision_mensual": "Revisión mensual", "cita_medica": "Cita médica",
@@ -34,6 +40,11 @@ struct BasesView: View {
         let columns = freq.sorted { ($1.value, $0.key) < ($0.value, $1.key) }.prefix(7).map(\.key)
         let allKeys = freq.keys.sorted()
         let notes = BaseQuery.apply(query, paths: store.noteMeta.filter { $0.value["tipo"] == current }.keys.sorted(), meta: store.noteMeta, modified: store.modified)
+        // Propiedad del calendario y del tablero: la elegida o, si no vale para esta base, la primera que sirva.
+        let dateKeys = BaseQuery.dateKeys(paths: notes, meta: store.noteMeta)
+        let groupKeys = BaseQuery.groupKeys(paths: notes, meta: store.noteMeta)
+        let dateKey = dateKeys.contains(query.dateKey) ? query.dateKey : (dateKeys.first ?? "")
+        let groupKey = groupKeys.contains(query.groupKey) ? query.groupKey : (groupKeys.first ?? "")
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -50,6 +61,19 @@ struct BasesView: View {
                     TextField("Filtrar por nombre", text: $query.text).frame(width: 240)
                     Button { query.conditions.append(BaseCondition(key: allKeys.first ?? "")) } label: { Label("Filtro", systemImage: "line.3.horizontal.decrease") }.disabled(allKeys.isEmpty)
                     viewsMenu(current)
+                    Picker("Vista", selection: $query.layout) {
+                        ForEach(BaseView.Layout.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }.pickerStyle(.segmented).labelsHidden().fixedSize()
+                    if query.layout == .calendario, !dateKeys.isEmpty {
+                        ChoiceMenu(options: dateKeys.map(Self.pretty), current: Self.pretty(dateKey), width: 150) { label in
+                            query.dateKey = dateKeys.first { Self.pretty($0) == label } ?? dateKey
+                        }.help("Propiedad de fecha del calendario")
+                    }
+                    if query.layout == .tablero, !groupKeys.isEmpty {
+                        ChoiceMenu(options: groupKeys.map(Self.pretty), current: Self.pretty(groupKey), width: 150) { label in
+                            query.groupKey = groupKeys.first { Self.pretty($0) == label } ?? groupKey
+                        }.help("Propiedad que forma las columnas")
+                    }
                     Spacer()
                     Button { showNew = true } label: { Label("Nueva nota de este tipo", systemImage: "plus") }.disabled(current.isEmpty)
                 }
@@ -62,8 +86,15 @@ struct BasesView: View {
                     }
                 }
                 Card(title: current.isEmpty ? "Sin bases" : Self.pretty(current), icon: "square.grid.3x3",
-                     info: all.isEmpty ? nil : "Cada nota con la propiedad «tipo» forma parte de una base. Edita las celdas sin abrir la nota. Las propiedades se guardan en el encabezado de cada nota. Para crear una propiedad nueva, ábrela en Notas y añádela en «Propiedades».") {
+                     info: all.isEmpty ? nil : "Cada nota con la propiedad «tipo» forma parte de una base. En la tabla se editan las celdas sin abrir la nota; en el calendario y el tablero, arrastrar una nota cambia su fecha o su columna (⌥⌘Z lo deshace). Las propiedades se guardan en el encabezado de cada nota.") {
                     if notes.isEmpty { EmptyNote("No hay notas de este tipo.") }
+                    if query.layout == .calendario {
+                        if dateKey.isEmpty { EmptyNote("Ninguna propiedad de estas notas es una fecha (AAAA-MM-DD o DD/MM/AAAA).", icon: "calendar") }
+                        else { BaseCalendarView(paths: notes, dateKey: dateKey) }
+                    } else if query.layout == .tablero {
+                        if groupKey.isEmpty { EmptyNote("Ninguna propiedad tiene pocos valores distintos (como «estado»). Añade una para agrupar.", icon: "rectangle.split.3x1") }
+                        else { BaseBoardView(paths: notes, groupKey: groupKey, details: columns) }
+                    } else {
                     ScrollView(.horizontal) {
                         Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
                             if !notes.isEmpty {
@@ -83,6 +114,7 @@ struct BasesView: View {
                         }
                     }
                     ShowAllButton(total: notes.count, limit: 100, noun: "notas", showAll: $allNotes)
+                    }
                 }
             }
             .padding(24)

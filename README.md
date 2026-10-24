@@ -80,7 +80,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Gráficas** | Un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta. |
 | **Búsqueda** (⌘K) | Notas, tareas y pantallas, con sinónimos y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»). |
 | **Órdenes rápidas** (⌘K) | `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10 a las 17:30`, `cintura 98`, `compra leche y pan`, `libro Dune - Frank Herbert`, `terminé Dune`, `cuota Coche`. |
-| **Bases, Grafo y Enlaces rotos** | Tabla de propiedades por tipo de nota con vistas guardadas, mapa de enlaces y sugerencias para arreglar enlaces que no llevan a nada. |
+| **Bases, Grafo y Enlaces rotos** | Las notas de un mismo tipo en tabla editable, calendario (por una propiedad de fecha) o tablero (por estado u otra propiedad), arrastrando para cambiar la fecha o la columna; con filtros y vistas guardadas, mapa de enlaces y sugerencias para arreglar enlaces que no llevan a nada. |
 
 ## Módulos
 
