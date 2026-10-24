@@ -234,3 +234,22 @@ extension Store {
         }.sorted { $0.name < $1.name }
     }
 }
+
+extension Store {
+    /// Apunta en Gastos un importe que viene de otro módulo (cuota, renovación, repostaje…). La partida es la pedida si existe;
+    /// si no, la que adivina Gastos para la nota, luego la primera que contenga alguna de `fallback` y por último imprevistos.
+    /// Devuelve la partida usada, o `nil` si no hay dónde apuntarlo.
+    @discardableResult
+    func addLinkedExpense(_ amount: Double, note: String, date: Date, category: String? = nil, fallback: [String] = []) -> String? {
+        let cats = expenseCategories
+        func named(_ s: String) -> String? {
+            let key = MD.fold(s)
+            guard !key.isEmpty else { return nil }
+            return cats.first { MD.fold($0) == key } ?? cats.first { MD.fold($0).contains(key) }
+        }
+        let guess = ExpenseParser.parse("\(MD.formatNumber(amount, comma: true)) \(note)", categories: cats, learned: expenseLearned)?.category
+        guard let c = category.flatMap(named) ?? guess ?? fallback.lazy.compactMap(named).first ?? named("imprevist") ?? cats.last else { return nil }
+        addExpense(amount, category: c, note: note, date: date)
+        return c
+    }
+}

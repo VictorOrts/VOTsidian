@@ -195,11 +195,8 @@ extension Store {
         }
     }
 
-    /// El gasto va a la partida que adivine Gastos para la nota (gasolina, taller → transporte) o a imprevistos.
+    /// El gasto va a la partida que adivine Gastos para la nota (gasolina, taller → transporte).
     private func addVehiculoExpense(_ amount: Double, note: String, date: Date) {
-        let cats = expenseCategories
-        let guess = ExpenseParser.parse("\(MD.formatNumber(amount, comma: true)) \(note)", categories: cats, learned: expenseLearned)?.category
-        guard let c = guess ?? cats.first(where: { MD.fold($0).contains("transporte") }) ?? cats.first(where: { MD.fold($0).contains("imprevist") }) ?? cats.last else { return }
-        addExpense(amount, category: c, note: note, date: date)
+        addLinkedExpense(amount, note: note, date: date, fallback: ["transporte"])
     }
 }

@@ -47,6 +47,8 @@ enum Synonyms {
         ["revision", "repaso", "balance"], ["nutricion", "dieta", "comida", "alimentacion", "menu"],
         ["objetivo", "meta"], ["cumpleanos", "cumple", "aniversario"], ["documento", "papeles", "caducidad"],
         ["coche", "vehiculo", "moto", "itv", "taller", "gasolina"],
+        ["suscripcion", "suscripciones", "renovacion", "netflix", "spotify"], ["prestamo", "deuda", "hipoteca", "cuota", "credito"],
+        ["libro", "lectura", "leer", "novela"], ["viaje", "vacaciones", "escapada", "vuelo", "maleta", "equipaje"],
     ]
 
     private static func stem(_ s: String) -> String {
