@@ -93,10 +93,11 @@ extension Parse {
 enum Links {
     /// Nombres de nota enlazados con `[[Nota]]`, `[[Nota|alias]]` o `[[Nota#sección]]`, fuera de bloques de código.
     static func extract(_ text: String) -> [String] {
+        guard MD.hasDoubleBracket(text) else { return [] }
         let lines = MD.lines(text)
         let fence = MD.fenced(lines)
         var out: [String] = []
-        for (i, l) in lines.enumerated() where !fence.contains(i) {
+        for (i, l) in lines.enumerated() where !fence.contains(i) && MD.hasDoubleBracket(l) {
             for m in l.matches(of: /\[\[([^\]]+)\]\]/) {
                 var name = String(m.1)
                 if let r = name.range(of: #"\\?\|"#, options: .regularExpression) { name = String(name[..<r.lowerBound]) }

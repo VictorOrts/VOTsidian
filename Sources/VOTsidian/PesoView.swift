@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PesoView: View {
     @Environment(Store.self) private var store
+    @State private var allWeights = false
     @State private var date = Date()
     @State private var kg = ""
     @State private var note = ""
@@ -82,7 +83,7 @@ struct PesoView: View {
                 Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
                     GridRow { Text("Fecha"); Text("Peso"); Text("Cambio"); Text("Notas"); Text("") }.font(.caption).foregroundStyle(.secondary)
                     Divider()
-                    ForEach(Array(w.records.enumerated().reversed()), id: \.element.id) { i, r in
+                    ForEach(Array(w.records.enumerated().reversed().prefix(allWeights ? w.records.count : 60)), id: \.element.id) { i, r in
                         GridRow {
                             Text(DayKey.dmy(r.date)).monospacedDigit()
                             Text(fmt(r.kg, unit: " kg")).monospacedDigit()
@@ -93,6 +94,7 @@ struct PesoView: View {
                         }
                     }
                 }
+                ShowAllButton(total: w.records.count, limit: 60, noun: "pesajes", showAll: $allWeights)
                 Button("Abrir la nota Peso") { store.pendingNote = VaultPath.peso }.buttonStyle(.accentLink)
             }
             .padding(24)

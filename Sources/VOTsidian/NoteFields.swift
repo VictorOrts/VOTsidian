@@ -10,13 +10,18 @@ struct NoteTables: View {
     var include: (NamedTable) -> Bool = { _ in true }
     var titleOverride: String? = nil
     @State private var spec: RowSpec?
+    /// Tablas (por su línea de cabecera) en las que se ven todas las filas, no solo las últimas.
+    @State private var expanded: Set<Int> = []
+    static let rowLimit = 40
 
     var body: some View {
         let tables = Parse.tables(store.read(file)).filter(include)
         VStack(alignment: .leading, spacing: 16) {
             ForEach(tables) { t in
                 Card(title: titleOverride ?? (t.title.isEmpty ? "Tabla" : t.title), icon: icon) {
-                    let rows = t.rows.filter { r in r.cells.contains { !$0.isEmpty } }
+                    let all = t.rows.filter { r in r.cells.contains { !$0.isEmpty } }
+                    // Las filas nuevas suelen ir al final: por defecto, las últimas.
+                    let rows = expanded.contains(t.id) ? all : Array(all.suffix(Self.rowLimit))
                     Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 7) {
                         GridRow {
                             ForEach(Array(t.header.enumerated()), id: \.offset) { _, h in Text(h) }
@@ -37,6 +42,7 @@ struct NoteTables: View {
                         }
                     }
                     if rows.isEmpty { EmptyNote("Sin filas.") }
+                    ShowAllButton(total: all.count, limit: Self.rowLimit, showAll: Binding(get: { expanded.contains(t.id) }, set: { if $0 { expanded.insert(t.id) } else { expanded.remove(t.id) } }))
                     Button { spec = RowSpec(file: file, mode: .add(afterLine: t.lastLine, headerLine: t.headerLine), title: t.title.isEmpty ? "tabla" : t.title) } label: {
                         Label("Añadir fila", systemImage: "plus")
                     }.buttonStyle(.borderless).font(.callout)

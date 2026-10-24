@@ -39,7 +39,10 @@ enum Parse {
         let fence = MD.fenced(lines)
         var out: [TaskItem] = []
         for (i, line) in lines.enumerated() where !fence.contains(i) {
-            guard let m = line.firstMatch(of: /^\s*(?:[-*+]|\d+\.)\s+\[([ xX])\]\s+(.*)$/) else { continue }
+            // Filtro barato antes de la expresión regular (que es lo caro en una tabla de mil filas): sin «[» o sin empezar por
+            // viñeta o número, la línea no puede ser una tarea.
+            guard line.utf8.contains(UInt8(ascii: "[")), let first = line.first(where: { !$0.isWhitespace }), "-*+".contains(first) || first.isNumber,
+                  let m = line.firstMatch(of: /^\s*(?:[-*+]|\d+\.)\s+\[([ xX])\]\s+(.*)$/) else { continue }
             let body = String(m.2)
             func date(_ emoji: String) -> Date? {
                 guard let r = body.range(of: "\(emoji)\\s*\\d{4}-\\d{2}-\\d{2}", options: .regularExpression) else { return nil }
