@@ -55,7 +55,7 @@ struct Medication: Identifiable, Equatable {
         let t = MD.fold(text)
         if t.isEmpty || t.contains("falta") || t.contains("necesi") || t.contains("demanda") { return 0 }
         if let n = MD.number(t) {
-            let v = max(Int(n), 0)
+            let v = max(MD.int(n) ?? 0, 0)
             if t.contains("seman") { return max(v, 1) * 7 }
             if t.contains("mes") { return max(v, 1) * 30 }
             return v

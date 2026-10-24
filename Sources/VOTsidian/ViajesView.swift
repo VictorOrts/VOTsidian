@@ -34,6 +34,20 @@ struct ViajesView: View {
                         TripRow(trip: t, spent: v.spent(t), expenses: v.expenses.filter { MD.fold($0.trip) == MD.fold(t.name) }, ongoing: v.isOngoing(t, today: today))
                     }
                 }
+                let past = v.trips.filter { t in !upcoming.contains { $0.id == t.id } }.sorted { ($0.start ?? .distantPast) > ($1.start ?? .distantPast) }
+                if !past.isEmpty {
+                    Card(title: "Hechos y cancelados", icon: "checkmark.seal") {
+                        ForEach(past.prefix(8)) { t in
+                            HStack {
+                                Text(t.name).foregroundStyle(.secondary)
+                                if let s = t.start { Text(DayKey.esLong(s, .dateTime.month(.abbreviated).year())).font(.callout).foregroundStyle(.tertiary) }
+                                Spacer()
+                                if v.spent(t) > 0 || t.budget > 0 { Text(t.budget > 0 ? "\(Money.exact(v.spent(t))) de \(Money.exact(t.budget))" : Money.exact(v.spent(t))).monospacedDigit().foregroundStyle(.secondary) }
+                                Text(t.status).font(.caption).foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
+                }
                 Card(title: "Añadir viaje", icon: "plus.circle") {
                     HStack {
                         TextField("Destino", text: $name)

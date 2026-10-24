@@ -424,3 +424,128 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     let outside = AlertList(alerts: alerts, go: { _ in })
     #expect(inside.go == nil && outside.go != nil && inside.emptyText == "Nada")
 }
+
+// MARK: Revisión: calendario, órdenes, duplicados y falsos avisos
+
+@MainActor @Test func hiddenModulesLeaveTheCalendar() throws {
+    let store = Store(root: try syntheticVault())
+    let today = DayKey.today()
+    func titles() -> [String] { store.agenda(from: today, to: DayKey.adding(days: 30, to: today)).values.joined().map(\.title) }
+    #expect(titles().contains("Se renueva Spotify") && titles().contains("Viaje a Lisboa") && titles().contains { $0.hasPrefix("Coche:") })
+    // ocultar un módulo lo quita al momento (la agenda guardada se descarta), y mostrarlo lo devuelve
+    store.hiddenModules.formUnion([.suscripciones, .viajes, .vehiculo])
+    #expect(!titles().contains("Se renueva Spotify") && !titles().contains("Viaje a Lisboa") && !titles().contains { $0.hasPrefix("Coche:") })
+    store.hiddenModules = []
+    #expect(titles().contains("Se renueva Spotify"))
+    // lo que no es de ningún módulo se queda: tareas y notas del día
+    store.hiddenModules = Set(Module.allCases)
+    store.addTask("sigo aquí", due: today, recurrence: nil, priority: 0)
+    #expect(titles().contains("sigo aquí"))
+}
+
+@MainActor @Test func failedQuickCommandsLeaveAMessage() throws {
+    let store = Store(root: try syntheticVault())
+    store.message = nil
+    #expect(store.run(.finishBook("no existe")).hasPrefix("No encuentro") && store.message?.hasPrefix("No encuentro") == true)
+    store.message = nil
+    #expect(store.run(.loanPayment("Ana")).hasPrefix("No encuentro") && store.message != nil)
+    store.hiddenModules.insert(.lecturas)
+    store.message = nil
+    #expect(store.run(.book("X", "")).hasPrefix("Activa primero") && store.message?.hasPrefix("Activa primero") == true)
+    // lo que sale bien no deja ningún aviso
+    store.hiddenModules = []
+    store.message = nil
+    store.run(.book("Dune 2", "Herbert"))
+    #expect(store.message == nil)
+}
+
+@MainActor @Test func subscriptionChargeIsNotLoggedTwiceInAMonth() throws {
+    let store = Store(root: try syntheticVault())
+    let netflix = try #require(store.suscripciones.items.first { $0.name == "Netflix" })
+    #expect(!store.suscripcionLogged(netflix))
+    store.logSuscripcionCharge(netflix)
+    #expect(store.suscripcionLogged(netflix))
+    #expect(!store.suscripcionLogged(netflix, on: DayKey.adding(days: 40, to: DayKey.today())))   // otro mes
+    let spotify = try #require(store.suscripciones.items.first { $0.name == "Spotify" })
+    #expect(!store.suscripcionLogged(spotify))                                                      // otra suscripción
+    store.undo()
+    #expect(!store.suscripcionLogged(netflix))
+    // lo semanal se apunta cuando toca, tantas veces como haga falta
+    let weekly = SuscripcionesData.Item(name: "Netflix", amount: 12.99, period: .weeks(1), anchor: DayKey.today(), category: "", status: .active, notes: "", line: 99)
+    store.logSuscripcionCharge(netflix)
+    #expect(!store.suscripcionLogged(weekly))
+}
+
+@Test func missedInstallmentNeedsAHabitOfLoggingThem() throws {
+    let today = D("2026-10-23")
+    // las cuotas de agosto y septiembre están apuntadas: la de octubre, sin apuntar, es un aviso
+    #expect(Parse.prestamos(prestamosFixture).statuses(today: today).first?.missed == true)
+    // si el mes pasado no se apuntó nada, quien lleva el préstamo no apunta las cuotas: ni aviso ni susto
+    let never = Parse.prestamos(prestamosFixture.replacingOccurrences(of: "| 2026-09-15 |", with: "| 2026-07-15 |"))
+    let s = try #require(never.statuses(today: today).first)
+    #expect(!s.missed && s.nextDue == D("2026-11-15") && s.remaining == 5000)
+    let none = Parse.prestamos(prestamosFixture.replacingOccurrences(of: "| 2026-08-15 | Coche | 500 | |\n| 2026-09-15 | Coche | 500 | |\n", with: ""))
+    #expect(none.payments.isEmpty && none.statuses(today: today).first?.missed == false)
+    // enero con diciembre apuntado: el mes anterior cruza de año
+    let year = Parse.prestamos(prestamosFixture.replacingOccurrences(of: "| 2026-09-15 |", with: "| 2025-12-15 |"))
+    #expect(year.statuses(today: D("2026-01-20")).first?.missed == true)
+}
+
+@MainActor @Test func importedFilesNeverOverwriteAnything() throws {
+    let store = Store(root: try syntheticVault())
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("import-\(UUID().uuidString)")
+    let dir = tmp.appendingPathComponent("Análisis")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    let a = tmp.appendingPathComponent("sangre.pdf"), other = tmp.appendingPathComponent("otro/sangre.pdf")
+    try Data("uno".utf8).write(to: a)
+    try FileManager.default.createDirectory(at: other.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try Data("dos".utf8).write(to: other)
+    func data(_ u: URL) throws -> Data { try Data(contentsOf: u) }
+    func count() throws -> Int { try FileManager.default.contentsOfDirectory(atPath: dir.path).count }
+    // la primera vez se copia (y se crea la carpeta)
+    let first = try #require(store.importFile(a, to: dir))
+    let firstData = try data(first)
+    #expect(first.lastPathComponent == "sangre.pdf" && firstData == Data("uno".utf8))
+    // el mismo archivo otra vez: se reutiliza, no se duplica
+    #expect(store.importFile(a, to: dir) == first)
+    let afterSame = try count()
+    #expect(afterSame == 1)
+    // otro archivo con el mismo nombre: se numera y el primero queda como estaba
+    let second = try #require(store.importFile(other, to: dir))
+    let (kept, added) = (try data(first), try data(second))
+    #expect(second.lastPathComponent == "sangre 2.pdf" && kept == Data("uno".utf8) && added == Data("dos".utf8))
+    #expect(store.importFile(other, to: dir) == second)
+    // con nombre propio (fotos con la fecha delante)
+    #expect(store.importFile(a, to: dir, as: "2026-10-24-sangre.pdf")?.lastPathComponent == "2026-10-24-sangre.pdf")
+    // si no se puede, devuelve nil y lo dice
+    store.message = nil
+    #expect(store.importFile(tmp.appendingPathComponent("no-existe.pdf"), to: dir) == nil && store.message?.hasPrefix("No se pudo copiar no-existe.pdf") == true)
+}
+
+// MARK: Números absurdos no cierran la app
+
+@MainActor @Test func absurdNumbersNeverCrash() throws {
+    let huge = "99999999999999999999999999", tiny = "0,0000001"
+    for n in [huge, "-\(huge)", "1e400", "nan", "inf", tiny] {
+        let susc = Parse.suscripciones("| Servicio | Importe | Cada | Próximo cobro | Estado |\n| - | - | - | - | - |\n| A | \(n) | cada \(n) meses | 2026-01-15 | Activa |\n| B | \(n) | cada \(n) semanas | 2026-01-15 | Activa |\n| C | 1 | cada \(n) años | 2026-01-15 | Activa |\n| D | 1 | cada \(n) días | 2026-01-15 | Activa |")
+        for i in susc.items { _ = (i.next(), i.occurrences(from: DayKey.today(), to: DayKey.adding(days: 800, to: DayKey.today())), i.monthlyCost, i.period.label) }
+        _ = (susc.monthlyTotal, susc.yearlyTotal, susc.upcoming())
+        let loans = Parse.prestamos("| Préstamo | Pendiente | Cuota | Día | Hasta |\n| - | - | - | - | - |\n| A | \(n) | \(n) | \(n) | |\n| B | 1000 | \(tiny) | 5 | |\n| C | \(huge) | 1 | 5 | |\n\n| Fecha | Préstamo | Importe |\n| - | - | - |\n| 2026-01-01 | A | \(n) |")
+        for s in loans.statuses() { _ = (s.progress, s.nextDue, s.installmentsLeft, s.estimatedEnd, loans.dueDates(s, upTo: DayKey.adding(days: 800, to: DayKey.today()))) }
+        let books = Parse.lecturas("---\nobjetivo_anual: \(n)\n---\n| Título | Estado | Nota | Páginas |\n| - | - | - | - |\n| A | Terminado | \(n) | \(n) |")
+        _ = (books.goal, books.books.first?.rating, books.books.first?.pages, books.projection())
+        let trips = Parse.viajes("| Destino | Salida | Presupuesto |\n| - | - | - |\n| A | 2026-12-01 | \(n) |\n\n| Fecha | Viaje | Concepto | Importe |\n| - | - | - | - |\n| 2026-12-01 | A | x | \(n) |")
+        for t in trips.trips { _ = (trips.spent(t), t.days) }
+        let car = Parse.vehiculo("---\nkm: \(n)\n---\n## Mantenimiento\n| Fecha | Km | Qué | Taller | Coste | Cada (km) | Cada (meses) |\n| - | - | - | - | - | - | - |\n| 2026-01-01 | \(n) | X | | \(n) | \(n) | \(n) |\n\n## Repostajes\n| Fecha | Km | Litros | Importe |\n| - | - | - | - |\n| 2026-01-01 | \(n) | \(n) | \(n) |\n| 2026-02-01 | 5 | 1 | 1 |")
+        _ = (car.currentKm, car.nextServices(), car.consumption, car.spent(year: 2026), car.currentKm.map(Vehiculo.kmText))
+        _ = (Parse.medicacion("| Medicamento | Dosis | Forma | Cada |\n| - | - | - | - |\n| A | 1 mg | Pastilla | \(n) |\n| B | 1 mg | Pastilla | cada \(n) semanas |").meds.map(\.every))
+        for verb in ["animo", "peso", "dormi", "gasto", "libro", "cuota", "cintura", "tarea"] { _ = QuickCommand.parse("\(verb) \(n)") }
+        _ = (Edit.budgetNumber(Double(n) ?? 1e30), Money.format(Double(n) ?? 1e30), Money.exact(Double(n) ?? 1e30), Money.parse(n), MD.int(Double(n)))
+    }
+    // los dos valores razonables siguen siendo los que eran
+    #expect(MD.int(5) == 5 && MD.int(-3) == -3 && MD.int(1e12) == nil && MD.int(.nan) == nil && MD.int(.infinity) == nil && MD.int(nil) == nil)
+    #expect(QuickCommand.parse("animo 4") == .mood(4, DayKey.today()) && QuickCommand.parse("animo 6") == nil && QuickCommand.parse("animo 3,5") == nil)
+    #expect(Vehiculo.km("99999999999") == nil && Vehiculo.km("250.000") == 250_000)
+    let loan = try #require(Parse.prestamos("| Préstamo | Pendiente | Cuota | Día |\n| - | - | - | - |\n| A | 1000 | \(tiny) | 5 |").statuses().first)
+    #expect(loan.installmentsLeft == nil && loan.estimatedEnd == nil)   // sin fecha de fin en vez de un cierre
+}

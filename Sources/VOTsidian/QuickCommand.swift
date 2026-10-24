@@ -71,7 +71,7 @@ enum QuickCommand: Equatable {
             guard let (kg, d) = numberAndDate(), (30...400).contains(kg) else { return nil }
             return .weight(kg, d)
         case "animo", "humor":
-            guard let (n, d) = numberAndDate(), n == n.rounded(), (1...5).contains(Int(n)) else { return nil }
+            guard let (n, d) = numberAndDate(), n == n.rounded(), (1...5).contains(n) else { return nil }
             return .mood(Int(n), d)
         case "sueno", "dormi", "dormido":
             guard let (h, d) = numberAndDate(), h > 0, h <= 16 else { return nil }

@@ -160,7 +160,11 @@ struct FotosCard: View {
                                 Button("Abrir") { NSWorkspace.shared.open(p.url) }
                                 Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([p.url]) }
                                 Divider()
-                                Button("Mover a la papelera", role: .destructive) { try? FileManager.default.trashItem(at: p.url, resultingItemURL: nil); store.reload() }
+                                Button("Mover a la papelera", role: .destructive) {
+                                    do { try FileManager.default.trashItem(at: p.url, resultingItemURL: nil) }
+                                    catch { store.message = "No se pudo mover a la papelera: \(error.localizedDescription)" }
+                                    store.reload()
+                                }
                             }
                         Text(p.date.map { DayKey.dmy($0) } ?? "–").font(.caption2).foregroundStyle(.secondary)
                     }
@@ -201,12 +205,10 @@ struct FotosCard: View {
         panel.allowsMultipleSelection = true
         panel.message = "Elige las fotos de progreso"
         guard panel.runModal() == .OK else { return }
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let day = DayKey.string(DayKey.calendar().startOfDay(for: date))
         for u in panel.urls {
             let name = u.lastPathComponent
-            let dest = folder.appendingPathComponent(name.hasPrefix(day) ? name : "\(day)-\(name)")
-            if !FileManager.default.fileExists(atPath: dest.path) { try? FileManager.default.copyItem(at: u, to: dest) }
+            store.importFile(u, to: folder, as: name.hasPrefix(day) ? name : "\(day)-\(name)")
         }
         store.reload()
     }

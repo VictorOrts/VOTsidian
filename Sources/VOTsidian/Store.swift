@@ -122,7 +122,10 @@ final class Store {
     @ObservationIgnored private(set) var persistsModules = true
     /// Módulos que no se usan: sus pantallas, tarjetas y avisos no salen.
     var hiddenModules: Set<Module> = Set((UserDefaults.standard.stringArray(forKey: "hiddenModules") ?? []).compactMap(Module.init)) {
-        didSet { if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") } }
+        didSet {
+            agendaCache = [:]
+            if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") }
+        }
     }
     /// Ya se pasó por el asistente del principio.
     var modulesConfigured = UserDefaults.standard.bool(forKey: "modulesConfigured") {

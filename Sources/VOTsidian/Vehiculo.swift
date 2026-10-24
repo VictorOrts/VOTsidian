@@ -124,7 +124,7 @@ extension Parse {
                     // «Km» va antes que «Cada (km)»: `col("km")` encuentra la primera.
                     d.services.append(.init(date: dt, km: Vehiculo.km(t.value(r, "km")), what: t.value(r, "qué"), shop: t.value(r, "taller"),
                                             cost: Vehiculo.money(t.value(r, "coste")), everyKm: Vehiculo.km(t.value(r, "cada (km)")),
-                                            everyMonths: MD.number(t.value(r, "meses")).map { Int($0) }.flatMap { $0 > 0 ? $0 : nil }, line: r.line))
+                                            everyMonths: MD.int(MD.number(t.value(r, "meses"))).flatMap { $0 > 0 ? $0 : nil }, line: r.line))
                 }
             }
         }
@@ -139,7 +139,7 @@ enum Vehiculo {
     /// Km escritos como «123.456», «123456 km» o «123 456»: el punto y el espacio son de millares, nunca decimales.
     static func km(_ s: String) -> Double? {
         let digits = s.filter(\.isNumber)
-        guard let v = Double(digits), v > 0 else { return nil }
+        guard let v = Double(digits), v > 0, v < 10_000_000 else { return nil }   // más de 10 millones de km es un error al escribir
         return v
     }
 

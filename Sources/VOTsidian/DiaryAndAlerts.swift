@@ -10,7 +10,7 @@ struct MoodPicker: View {
     var body: some View {
         HStack(spacing: 6) {
             ForEach(1...5, id: \.self) { n in
-                let on = value.map { Int($0) == n } ?? false
+                let on = value.map { $0 == Double(n) } ?? false
                 Button { set(on ? nil : Double(n)) } label: {
                     Text("\(n)").font(.caption.weight(.semibold))
                         .frame(width: 26, height: 26)

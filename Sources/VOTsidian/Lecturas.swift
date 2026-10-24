@@ -55,7 +55,7 @@ struct LecturasData: Equatable {
 extension Parse {
     static func lecturas(_ text: String) -> LecturasData {
         var d = LecturasData()
-        d.goal = MD.frontmatter(text)["objetivo_anual"].flatMap(MD.number).map { max(0, Int($0)) } ?? 0
+        d.goal = MD.int(MD.frontmatter(text)["objetivo_anual"].flatMap(MD.number)).map { max(0, $0) } ?? 0
         func date(_ s: String) -> Date? { DayKey.date(s) ?? DayKey.dmyDate(s) }
         for t in tables(text) where t.col("titulo") != nil {
             for r in t.rows {
@@ -69,8 +69,8 @@ extension Parse {
                 let rating = t.value(r, "nota")
                 let stars = rating.filter { $0 == "⭐" || $0 == "★" }.count
                 d.books.append(.init(title: title, author: t.value(r, "autor"), status: status, started: started, finished: finished,
-                                     rating: stars > 0 ? min(5, stars) : MD.number(rating).map { Int($0) }.flatMap { (1...5).contains($0) ? $0 : nil },
-                                     pages: MD.number(t.value(r, "paginas")).map { Int($0) }.flatMap { $0 > 0 ? $0 : nil }, line: r.line))
+                                     rating: stars > 0 ? min(5, stars) : MD.int(MD.number(rating)).flatMap { (1...5).contains($0) ? $0 : nil },
+                                     pages: MD.int(MD.number(t.value(r, "paginas"))).flatMap { $0 > 0 ? $0 : nil }, line: r.line))
             }
         }
         return d

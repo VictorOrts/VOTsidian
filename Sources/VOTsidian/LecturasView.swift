@@ -86,7 +86,7 @@ struct LecturasView: View {
     private func add() {
         let t = title.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
-        store.addLibro(title: t, author: author.trimmingCharacters(in: .whitespaces), pages: MD.number(pages).map { Int($0) }.flatMap { $0 > 0 ? $0 : nil })
+        store.addLibro(title: t, author: author.trimmingCharacters(in: .whitespaces), pages: MD.int(MD.number(pages)).flatMap { $0 > 0 ? $0 : nil })
         title = ""; author = ""; pages = ""
     }
 }

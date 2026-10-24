@@ -379,7 +379,7 @@ extension Parse {
 extension Edit {
     /// Número para la nota: sin decimales si es entero, con coma y dos decimales si no («63,40»).
     static func budgetNumber(_ v: Double) -> String {
-        v == v.rounded() ? String(Int(v)) : String(format: "%.2f", v).replacingOccurrences(of: ".", with: ",")
+        v == v.rounded() && abs(v) < 1e15 ? String(Int(v)) : String(format: "%.2f", v).replacingOccurrences(of: ".", with: ",")
     }
 
     /// Partidas del primer mes, para empezar: luego se renombran, se quitan o se añaden. Los meses siguientes copian las del anterior.

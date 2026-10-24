@@ -56,7 +56,9 @@ struct PrestamosView: View {
                             Spacer()
                             if !s.isPaidOff {
                                 let amount = s.loan.installment > 0 ? min(s.loan.installment, s.remaining) : 0
-                                if amount > 0 {
+                                if s.paidThisMonth && amount > 0 {
+                                    Label("Cuota de este mes apuntada", systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
+                                } else if amount > 0 {
                                     Button("Apuntar cuota (\(Money.exact(amount)))") {
                                         store.addPrestamoPago(s.loan, amount: amount, expense: toGastos && store.isVisible(.gastos))
                                         message = ""
@@ -81,7 +83,7 @@ struct PrestamosView: View {
                         Spacer()
                         Button("Guardar") {
                             store.addPrestamo(name: name.trimmingCharacters(in: .whitespaces), initial: Money.parse(pending), installment: Money.parse(installment) > 0 ? Money.parse(installment) : nil,
-                                              day: MD.number(day).map { Int($0) }.flatMap { (1...31).contains($0) ? $0 : nil }, until: nil, category: category)
+                                              day: MD.int(MD.number(day)).flatMap { (1...31).contains($0) ? $0 : nil }, until: nil, category: category)
                             name = ""; pending = ""; installment = ""; day = ""
                         }.buttonStyle(.borderedProminent).disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || Money.parse(pending) <= 0)
                     }

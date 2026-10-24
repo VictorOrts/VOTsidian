@@ -173,6 +173,12 @@ enum MD {
         return h
     }
 
+    /// Entero de un número escrito en una nota, o `nil` si es absurdo: convertir un `Double` enorme con `Int(_:)` cierra la app.
+    static func int(_ v: Double?) -> Int? {
+        guard let v, v.isFinite, abs(v) <= 1_000_000_000 else { return nil }
+        return Int(v)
+    }
+
     /// Primer número del texto. Entiende coma decimal («105,5») y separador de miles («1.234,5», «1.234.567», «1,234.5»).
     static func number(_ s: String) -> Double? {
         guard let m = s.firstMatch(of: /-?\d+(?:[.,]\d+)*/) else { return nil }

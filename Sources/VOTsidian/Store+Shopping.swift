@@ -40,6 +40,8 @@ extension Store {
     /// Ejecuta una orden rápida y devuelve el mensaje de confirmación.
     @discardableResult
     func run(_ c: QuickCommand) -> String {
+        /// Lo que no se pudo hacer se queda también en el aviso de arriba: ⌘K se cierra y no enseña la respuesta.
+        func fail(_ text: String) -> String { message = text; return text }
         switch c {
         case .weight(let kg, let d): addWeight(date: d, kg: kg, note: "")
         case .mood(let n, let d): setDiaryValue(d, "animo", Double(n))
@@ -52,7 +54,7 @@ extension Store {
             edit(VaultPath.medico) { Edit.appendToSection($0, section: "Próximas citas", line: "- [ ] \(t) 📅 \(DayKey.string(d))") }
         case .measure(let field, let v, let d):
             let (table, _) = Measures.parse(read(Measures.file))
-            guard let t = table, let col = t.col(field) else { return "Activa primero las medidas en Peso." }
+            guard let t = table, let col = t.col(field) else { return fail("Activa primero las medidas en Peso.") }
             var cells = [String](repeating: "", count: t.header.count)
             cells[0] = DayKey.dmy(d); cells[col] = MD.formatNumber(v)
             insertRow(file: Measures.file, afterLine: t.lastLine, cells: cells)
@@ -61,23 +63,23 @@ extension Store {
             return n == 0 ? "Ya estaba en la lista de la compra." : "Añadido a la lista de la compra (\(n))."
         case .expense(let p): return addExpense(p)
         case .book(let t, let a):
-            guard isVisible(.lecturas) else { return "Activa primero Lecturas en Ajustes → Módulos." }
+            guard isVisible(.lecturas) else { return fail("Activa primero Lecturas en Ajustes → Módulos.") }
             addLibro(title: t, author: a, pages: nil)
         case .finishBook(let query):
-            guard isVisible(.lecturas) else { return "Activa primero Lecturas en Ajustes → Módulos." }
+            guard isVisible(.lecturas) else { return fail("Activa primero Lecturas en Ajustes → Módulos.") }
             let key = MD.fold(query)
             let candidates = lecturas.reading + lecturas.pending
             guard let b = candidates.first(where: { MD.fold($0.title) == key }) ?? candidates.first(where: { MD.fold($0.title).contains(key) }) else {
-                return "No encuentro «\(query)» entre los libros que lees o tienes pendientes."
+                return fail("No encuentro «\(query)» entre los libros que lees o tienes pendientes.")
             }
             finishBook(b)
             return "Terminado: \(b.title)."
         case .loanPayment(let query):
-            guard isVisible(.prestamos) else { return "Activa primero Préstamos y deudas en Ajustes → Módulos." }
+            guard isVisible(.prestamos) else { return fail("Activa primero Préstamos y deudas en Ajustes → Módulos.") }
             let key = MD.fold(query)
             let open = prestamos.statuses().filter { !$0.isPaidOff && $0.loan.installment > 0 }
             guard let s = open.first(where: { MD.fold($0.loan.name) == key }) ?? open.first(where: { MD.fold($0.loan.name).contains(key) }) else {
-                return "No encuentro «\(query)» entre los préstamos con cuota."
+                return fail("No encuentro «\(query)» entre los préstamos con cuota.")
             }
             let amount = min(s.loan.installment, s.remaining)
             addPrestamoPago(s.loan, amount: amount, expense: isVisible(.gastos))

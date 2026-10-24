@@ -118,7 +118,7 @@ struct VehiculoView: View {
             store.addRepostaje(date: day, km: Vehiculo.km(km), liters: MD.number(liters), amount: cost, expense: toGastos && store.isVisible(.gastos))
         } else {
             store.addMantenimiento(date: day, km: Vehiculo.km(km), what: what.trimmingCharacters(in: .whitespaces), shop: shop, cost: cost,
-                                   everyKm: Vehiculo.km(everyKm), everyMonths: MD.number(everyMonths).map { Int($0) }.flatMap { $0 > 0 ? $0 : nil },
+                                   everyKm: Vehiculo.km(everyKm), everyMonths: MD.int(MD.number(everyMonths)).flatMap { $0 > 0 ? $0 : nil },
                                    expense: toGastos && store.isVisible(.gastos))
         }
         km = ""; liters = ""; amount = ""; what = ""; shop = ""; everyKm = ""; everyMonths = ""

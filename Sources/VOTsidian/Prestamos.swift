@@ -59,16 +59,22 @@ struct PrestamosData: Equatable {
             let thisMonth = payments.contains {
                 MD.fold($0.loan) == MD.fold(l.name) && cal.component(.year, from: $0.date) == year && cal.component(.month, from: $0.date) == month
             }
+            // «Sin apuntar» solo si el mes pasado sí se apuntó: quien nunca apunta las cuotas no quiere ese aviso.
+            let previous = Self.dueDate(day: 1, monthOf: today, plus: -1).map { cal.dateComponents([.year, .month], from: $0) }
+            let previousLogged = payments.contains { p in
+                MD.fold(p.loan) == MD.fold(l.name) && previous.map { cal.component(.year, from: p.date) == $0.year && cal.component(.month, from: p.date) == $0.month } ?? false
+            }
             var next: Date?
             var missed = false
             if l.installment > 0, remaining > 0, let day = l.day {
                 func date(_ offset: Int) -> Date? { Self.dueDate(day: day, monthOf: today, plus: offset) }
                 if !thisMonth, let d = date(0) {
-                    if d >= today { next = d } else { missed = true; next = date(1) }
+                    if d >= today { next = d } else { missed = previousLogged; next = date(1) }
                 } else { next = date(1) }
                 if let n = next, let until = l.until, n > until { next = nil }
             }
-            let left = l.installment > 0 && remaining > 0 ? Int((remaining / l.installment).rounded(.up)) : nil
+            // Más de 100 años de cuotas es un error al escribir (una cuota de céntimos, por ejemplo): se queda sin fecha de fin.
+            let left = l.installment > 0 && remaining > 0 ? MD.int((remaining / l.installment).rounded(.up)).flatMap { $0 <= 1200 ? $0 : nil } : nil
             let end = left.flatMap { n in next.flatMap { cal.date(byAdding: .month, value: n - 1, to: $0) } }
             return Status(loan: l, paid: paid, remaining: remaining, paidThisMonth: thisMonth, nextDue: next, missed: missed, installmentsLeft: left, estimatedEnd: end)
         }
@@ -110,7 +116,7 @@ extension Parse {
                     let name = r.cells.first ?? ""
                     guard !name.isEmpty else { continue }
                     d.loans.append(.init(name: name, initial: Money.parse(t.value(r, "pendiente")), installment: Money.parse(t.value(r, "cuota")),
-                                         day: MD.number(t.value(r, "dia")).map { Int($0) }.flatMap { (1...31).contains($0) ? $0 : nil },
+                                         day: MD.int(MD.number(t.value(r, "dia"))).flatMap { (1...31).contains($0) ? $0 : nil },
                                          until: DayKey.date(t.value(r, "hasta")) ?? DayKey.dmyDate(t.value(r, "hasta")),
                                          category: t.value(r, "partida"), notes: t.value(r, "notas"), line: r.line))
                 }

@@ -15,7 +15,7 @@ struct SuscripcionesData: Equatable {
         static func parse(_ text: String) -> Period {
             let t = MD.fold(text)
             if t.isEmpty { return .months(1) }
-            let n = MD.number(t).map { max(1, Int($0)) } ?? 1
+            let n = min(MD.int(MD.number(t)).map { max(1, $0) } ?? 1, 1200)
             if t.contains("quincen") { return .weeks(2) }
             if t.contains("dia") && !t.contains("mensual") { return .days(n) }
             if t.contains("seman") { return .weeks(n) }
@@ -170,6 +170,12 @@ extension Store {
     @discardableResult
     func logSuscripcionCharge(_ i: SuscripcionesData.Item, date: Date = DayKey.today()) -> String? {
         addLinkedExpense(i.amount, note: i.name, date: date, category: i.category, fallback: ["suscrip", "ocio"])
+    }
+
+    /// ¿Ya se apuntó en Gastos el cobro de este mes? Solo para lo mensual o más largo; lo semanal o diario se apunta cuando toque.
+    func suscripcionLogged(_ i: SuscripcionesData.Item, on day: Date = DayKey.today()) -> Bool {
+        guard case .months = i.period else { return false }
+        return budget(Budget.monthKey(day))?.moves.contains { MD.fold($0.note) == MD.fold(i.name) && abs($0.amount - i.amount) < 0.005 } ?? false
     }
 
     /// Lo que se renueva pronto y las pruebas que acaban: 7 días antes (14 si es anual).

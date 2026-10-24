@@ -48,7 +48,7 @@ enum Money {
     private static let cents = currency(decimals: 2)
 
     static func format(_ v: Double) -> String {
-        whole.string(from: NSNumber(value: v)) ?? "\(Int(v)) €"
+        whole.string(from: NSNumber(value: v)) ?? String(format: "%.0f €", v)
     }
 
     /// Como `format`, pero con céntimos si los tiene («12,50 €»): para gastos sueltos, donde redondear despista.

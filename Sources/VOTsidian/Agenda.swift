@@ -164,7 +164,8 @@ extension Store {
         for n in notes where n.path.hasPrefix("Diario/") {
             if let d = DayKey.date(n.name) { add(AgendaItem(id: "n\(n.path)", kind: .diary, title: "Nota del día", date: d, path: n.path)) }
         }
-        return out
+        // Como los avisos: lo de los módulos ocultos no sale en el calendario ni en «Hoy».
+        return out.mapValues { $0.filter { $0.screen.map(isVisible) ?? true } }.filter { !$0.value.isEmpty }
     }
 
     /// Añade un punto a la nota del día (`Diario/AAAA-MM-DD.md`), que se crea con la fecha ya puesta.

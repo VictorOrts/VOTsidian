@@ -47,7 +47,9 @@ struct SuscripcionesView: View {
                             Text(Money.exact(i.amount)).monospacedDigit()
                             Text(DayKey.dmy(entry.date)).monospacedDigit().foregroundStyle(.secondary)
                             Text(relativeDays(n)).foregroundStyle(n <= 2 ? Brand.warn : .secondary).frame(width: 90, alignment: .trailing)
-                            if store.isVisible(.gastos), i.status == .active {
+                            if store.isVisible(.gastos), i.status == .active, store.suscripcionLogged(i) {
+                                Label("Apuntado este mes", systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
+                            } else if store.isVisible(.gastos), i.status == .active {
                                 Button("Apuntar en Gastos") {
                                     let c = store.logSuscripcionCharge(i)
                                     message = c.map { "Apuntado en \($0)." } ?? "No hay partidas en Gastos."
