@@ -13,7 +13,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
   - [Peso](#peso) · [Medidas](#medidas) · [Plan nutricional](#plan-nutricional) · [Medicación](#medicación) · [Salud y médicos](#salud-y-médicos)
   - [Finanzas y gastos](#finanzas-y-gastos) · [Suscripciones](#suscripciones) · [Préstamos y deudas](#préstamos-y-deudas)
   - [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo) · [Viajes](#viajes) · [Lecturas](#lecturas)
-  - [Personas](#personas) · [Documentos](#documentos) · [Objetivos](#objetivos)
+  - [Personas](#personas) · [Documentos](#documentos) · [Trámites y seguros](#trámites-y-seguros) · [Objetivos](#objetivos)
 - [Tareas](#tareas) · [Órdenes rápidas](#órdenes-rápidas-k)
 - [Notas que crea la app](#notas-que-crea-la-app)
 - [Gráficas en una nota](#gráficas-en-una-nota)
@@ -54,6 +54,7 @@ Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No
 | Lecturas | Lecturas | `Lecturas/Lecturas.md` |
 | Personas | Personas | `Organización/Personas.md` |
 | Documentos | Documentos | `Organización/Documentos.md` |
+| Trámites y seguros | Trámites y seguros | `Organización/Trámites y seguros.md` |
 | Objetivos | Objetivos | `Organización/Objetivos.md` |
 
 Si tus notas tienen otros nombres o están en otras carpetas, ponlo en **Ajustes → Módulos → Rutas de las notas**. Cada ruta es relativa a la carpeta de notas, por ejemplo `Salud/Báscula.md`.
@@ -72,7 +73,7 @@ Lo más cómodo es apuntar desde la app. Si escribes a mano, ten en cuenta esto:
 | Peso, Medidas | `DD/MM/AAAA` |
 | Mascota (`nacimiento`) | `DD/MM/AAAA` |
 | Mascota (tabla), Medicación, Personas, Salud, Gastos, Tareas | `AAAA-MM-DD` |
-| Documentos, Vehículo, Suscripciones, Préstamos, Viajes, Lecturas | cualquiera |
+| Documentos, Vehículo, Suscripciones, Préstamos, Viajes, Lecturas, Trámites y seguros | cualquiera |
 
 ## Formato de cada nota
 
@@ -358,6 +359,36 @@ Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última 
 - Cualquier tabla con una columna que contenga «caduca», por ejemplo `Documento | Número o referencia | Caduca / renueva | Notas`.
 - La app avisa 30 días antes de cada caducidad.
 - Apunta solo la referencia, nunca el documento.
+
+### Trámites y seguros
+
+```markdown
+## Impuestos y plazos
+
+| Trámite | Plazo | Cada | Importe | Hecho | Notas |
+| :------ | :---- | :--- | ------: | :---- | :---- |
+| Declaración de la renta | 2027-06-30 | Anual | | 2026-05-10 | |
+| IBI | 2026-11-05 | Anual | 420 € | | |
+| Renovar el pasaporte | 2027-02-01 | | | | |
+
+## Pólizas
+
+| Seguro | Compañía | Póliza | Prima | Cada | Renovación | Teléfono | Partida | Notas |
+| :----- | :------- | :----- | ----: | :--- | :--------- | :------- | :------ | :---- |
+| Hogar | Mapfre | H-123 | 320 € | Anual | 2026-11-15 | 900 100 200 | | |
+```
+
+| Columna | Qué poner |
+|---|---|
+| Plazo | La próxima fecha límite. En los que se repiten, cualquier plazo de la serie. |
+| Cada | `Anual`, `Semestral`, `Trimestral`, `Mensual`… Vacío o «una vez» si no se repite. |
+| Hecho | La fecha en que lo hiciste; la pone «Hecho» en la pantalla. Cuenta para el plazo más cercano: la renta presentada en mayo cumple el plazo de junio, y un pago unos días tarde cumple el plazo que acaba de pasar. |
+| Prima, Cada (seguros) | Lo que pagas y cada cuánto; vacío es anual. |
+| Renovación | El día que se renueva y se cobra. |
+| Partida | La de Gastos a la que va la prima al pulsar «Apuntar pago». Sin ella, la de seguros. |
+
+- **Avisos:** 30 días antes de cada plazo (urgente si ya pasó sin marcarlo hecho) y 30 días antes de que se renueve un seguro, para comparar ofertas. En Calendar, 7 días antes de cada plazo y 30 antes de cada renovación, con el teléfono de asistencia.
+- **Documentos** guarda la referencia y la caducidad de pólizas y contratos; aquí van los pagos, las renovaciones y los plazos.
 
 ### Objetivos
 
