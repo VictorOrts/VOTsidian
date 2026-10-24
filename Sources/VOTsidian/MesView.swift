@@ -23,7 +23,7 @@ struct MesView: View {
         let doses = store.medicacion.doses.filter { inMonth($0.date) }
         let done = store.tasks.filter { $0.done && ($0.completed.map(inMonth) ?? false) }
         let weekKeys = store.reviews.keys.sorted().filter { k in
-            guard let m = k.firstMatch(of: /(\d{4})-W(\d{2})/), let y = Int(m.1), let w = Int(m.2) else { return false }
+            guard let m = k.firstMatch(of: /([0-9]{4})-W([0-9]{2})/), let y = Int(m.1), let w = Int(m.2) else { return false }
             var c = DateComponents(); c.yearForWeekOfYear = y; c.weekOfYear = w; c.weekday = 2
             return Calendar(identifier: .iso8601).date(from: c).map(inMonth) ?? false
         }

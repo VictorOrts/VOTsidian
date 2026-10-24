@@ -75,7 +75,7 @@ enum NoteInfo {
         for (i, raw) in lines.enumerated() where i >= start && !fence.contains(i) {
             var l = raw.trimmingCharacters(in: .whitespaces)
             if l.isEmpty || l.hasPrefix("#") || l.hasPrefix("|") || l == "---" { continue }
-            l = l.replacingOccurrences(of: #"^(>\s*(\[![^\]]*\]\s*)?|[-*]\s+(\[[ xX]\]\s+)?|\d+\.\s+)"#, with: "", options: .regularExpression)
+            l = l.replacingOccurrences(of: #"^(>\s*(\[![^\]]*\]\s*)?|[-*]\s+(\[[ xX]\]\s+)?|[0-9]+\.\s+)"#, with: "", options: .regularExpression)
             l = l.replacingOccurrences(of: #"\[\[([^\]|]*\|)?([^\]]*)\]\]"#, with: "$2", options: .regularExpression)
                 .replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "`", with: "")
             if !l.isEmpty { return String(l.prefix(120)) }

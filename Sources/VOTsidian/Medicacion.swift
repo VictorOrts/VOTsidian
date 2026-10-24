@@ -77,7 +77,7 @@ struct Medication: Identifiable, Equatable {
 
     /// Minutos desde medianoche de «09:00» o «9.30»; `nil` si no es una hora.
     static func minutes(_ time: String) -> Int? {
-        guard let m = time.firstMatch(of: /^(\d{1,2})[:.](\d{2})$/), let h = Int(m.1), let mi = Int(m.2), h < 24, mi < 60 else { return nil }
+        guard let m = time.firstMatch(of: /^([0-9]{1,2})[:.]([0-9]{2})$/), let h = Int(m.1), let mi = Int(m.2), h < 24, mi < 60 else { return nil }
         return h * 60 + mi
     }
 

@@ -46,9 +46,9 @@ enum ExpenseParser {
         // «1.200» son mil doscientos (punto de miles), «12,50» y «12.5» llevan decimales.
         // El número empieza en límite de palabra: en «gym o2 40» el importe es 40, no el 2 de «o2».
         // Sin €, un número con céntimos gana a uno entero: en «2 cafés 3,50» el 2 es cuántos, no cuánto.
-        guard let m = rest.firstMatch(of: /\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?\b)/)
-                ?? rest.firstMatch(of: /(?:€\s*)?\b(\d{1,3}(?:\.\d{3})+,\d{1,2}|\d{1,6}[.,]\d{1,2})\b(?![.,]\d)/)
-                ?? rest.firstMatch(of: /(?:€\s*)?\b(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,6}(?:[.,]\d{1,2})?)/) else { return nil }
+        guard let m = rest.firstMatch(of: /\b([0-9]{1,3}(?:\.[0-9]{3})+(?:,[0-9]{1,2})?|[0-9]{1,6}(?:[.,][0-9]{1,2})?)\s*(?:€|eur(?:os)?\b)/)
+                ?? rest.firstMatch(of: /(?:€\s*)?\b([0-9]{1,3}(?:\.[0-9]{3})+,[0-9]{1,2}|[0-9]{1,6}[.,][0-9]{1,2})\b(?![.,][0-9])/)
+                ?? rest.firstMatch(of: /(?:€\s*)?\b([0-9]{1,3}(?:\.[0-9]{3})+(?:,[0-9]{1,2})?|[0-9]{1,6}(?:[.,][0-9]{1,2})?)/) else { return nil }
         var amount = Money.parse(String(m.1))
         guard amount > 0 else { return nil }
         rest.removeSubrange(m.range)

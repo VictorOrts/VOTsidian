@@ -30,7 +30,7 @@ enum Money {
         var t = s.replacingOccurrences(of: "€", with: "").filter { !$0.isWhitespace }
         if t.isEmpty { return 0 }
         if t.contains(",") { t = t.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: ".") }
-        else if t.range(of: #"^\d{1,3}(\.\d{3})+$"#, options: .regularExpression) != nil { t = t.replacingOccurrences(of: ".", with: "") }
+        else if t.range(of: #"^[0-9]{1,3}(\.[0-9]{3})+$"#, options: .regularExpression) != nil { t = t.replacingOccurrences(of: ".", with: "") }
         return Double(t) ?? 0
     }
 

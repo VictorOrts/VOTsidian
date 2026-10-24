@@ -64,7 +64,7 @@ import Testing
     #expect(NaturalDate.extractTask("llamar mañana", today: today).priority == 0)
 }
 
-@MainActor @Test func templatesMoodAndBasesOnCopy() throws {
+@MainActor @Test func templatesAndBasesOnCopy() throws {
     guard let path = ProcessInfo.processInfo.environment["VAULT_COPY"] else { return }
     let store = Store(root: try tempVaultCopy(path))
     #expect(store.userTemplates().isEmpty)

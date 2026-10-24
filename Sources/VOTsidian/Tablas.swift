@@ -164,7 +164,7 @@ enum Recurrence {
             .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
         guard let on = r.range(of: " on the ") else { return (r, nil) }
         let spec = r[on.upperBound...].trimmingCharacters(in: .whitespaces)
-        let day = spec.hasPrefix("last") ? -1 : spec.firstMatch(of: /^(\d{1,2})/).flatMap { Int($0.1) }.flatMap { (1...31).contains($0) ? $0 : nil }
+        let day = spec.hasPrefix("last") ? -1 : spec.firstMatch(of: /^([0-9]{1,2})/).flatMap { Int($0.1) }.flatMap { (1...31).contains($0) ? $0 : nil }
         return (String(r[..<on.lowerBound]).trimmingCharacters(in: .whitespaces), day)
     }
 

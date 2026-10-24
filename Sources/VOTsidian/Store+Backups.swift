@@ -8,11 +8,11 @@ struct BackupEntry: Identifiable, Hashable, Sendable {
     var encrypted: Bool { url.pathExtension == EncryptedBackup.ext }
     var isAuto: Bool { name.contains("-auto-") }
     var beforeRestore: Bool { name.contains("antes-de-restaurar") }
-    var hasTime: Bool { name.firstMatch(of: /\d{4}-\d{2}-\d{2}-\d{4}/) != nil }
+    var hasTime: Bool { name.firstMatch(of: /[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}/) != nil }
 
     /// Fecha (y hora en las manuales) sacada del nombre: `…-auto-2026-10-21`, `…-manual-2026-10-21-1430`.
     var date: Date? {
-        guard let m = name.firstMatch(of: /(\d{4})-(\d{2})-(\d{2})(?:-(\d{2})(\d{2}))?/),
+        guard let m = name.firstMatch(of: /([0-9]{4})-([0-9]{2})-([0-9]{2})(?:-([0-9]{2})([0-9]{2}))?/),
               let y = Int(m.1), let mo = Int(m.2), let d = Int(m.3), let day = DayKey.make(y, mo, d) else { return nil }
         guard let h = m.4.flatMap({ Int($0) }), let min = m.5.flatMap({ Int($0) }) else { return day }
         return DayKey.calendar().date(bySettingHour: h, minute: min, second: 0, of: day)

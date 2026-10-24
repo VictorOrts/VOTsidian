@@ -62,7 +62,7 @@ enum Edit {
         var n = 0
         var j = o + 1
         while j < lines.count, n < 3 {
-            if lines[j].firstMatch(of: /^\s*\d\.\s?(.*)$/) != nil {
+            if lines[j].firstMatch(of: /^\s*[0-9]\.\s?(.*)$/) != nil {
                 if n == index { lines[j] = "\(index + 1). \(value)"; return lines.joined(separator: "\n") }
                 n += 1
             } else if !lines[j].trimmingCharacters(in: .whitespaces).isEmpty { break }
@@ -85,12 +85,12 @@ enum Edit {
         var lines = MD.lines(text)
         guard let i = MD.index(of: task.raw, in: lines, near: task.line) else { return nil }
         var l = lines[i]
-        guard let box = l.firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\])/) else { return nil }
+        guard let box = l.firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)[ xX](\])/) else { return nil }
         l = String(box.1) + (done ? "x" : " ") + String(box.2) + l[box.range.upperBound...]
         if done {
-            if !l.contains("[completion::"), l.range(of: #"✅\s*\d{4}-\d{2}-\d{2}"#, options: .regularExpression) == nil { l += " [completion:: \(DayKey.string(day))]" }
+            if !l.contains("[completion::"), l.range(of: #"✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, options: .regularExpression) == nil { l += " [completion:: \(DayKey.string(day))]" }
         } else {
-            l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*\d{4}-\d{2}-\d{2})"#, with: "", options: .regularExpression)
+            l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2})"#, with: "", options: .regularExpression)
         }
         lines[i] = l
         return lines.joined(separator: "\n")
@@ -154,7 +154,7 @@ extension Edit {
         var lines = MD.lines(done)
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
-        let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
+        let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
         lines.insertClamped(prefix + task.text + priorityMark(task.priority) + dueMark(next, task.time) + durationMark(task.duration) + (task.muted ? " 🔕" : "") + " 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
     }
@@ -198,10 +198,10 @@ extension Edit {
             guard let found = MD.index(of: expect, in: lines, near: line) else { return nil }
             line = found
         }
-        guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)([ xX])(\].*)$/) else { return nil }
+        guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)([ xX])(\].*)$/) else { return nil }
         let wasDone = m.2 != " "
         var l = String(m.1) + (wasDone ? " " : "x") + String(m.3)
-        if wasDone { l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*\d{4}-\d{2}-\d{2})"#, with: "", options: .regularExpression) }
+        if wasDone { l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2})"#, with: "", options: .regularExpression) }
         else if completion, !l.contains("[completion::") { l += " [completion:: \(DayKey.string(day))]" }
         lines[line] = l
         return lines.joined(separator: "\n")
@@ -212,11 +212,11 @@ extension Edit {
     /// `priority`: -1 la deja como está, 0 la quita, 1 a 3 la cambia. `time` y `duration`: `nil` las deja como están; `.some(nil)` las quita.
     static func updateTask(_ text: String, task: TaskItem, newText: String, due: Date?, priority: Int = -1, time: Int?? = nil, muted: Bool? = nil, duration: Int?? = nil) -> String? {
         var lines = MD.lines(text)
-        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
+        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
         let body = String(m.2)
         var tail = ""
         // Se conservan las demás fechas de Obsidian Tasks (programada, inicio, creada, hecha) y la marca de completada.
-        for pattern in [#"⏳\s*\d{4}-\d{2}-\d{2}"#, #"🛫\s*\d{4}-\d{2}-\d{2}"#, #"➕\s*\d{4}-\d{2}-\d{2}"#, #"✅\s*\d{4}-\d{2}-\d{2}"#, #"\[completion::[^\]]*\]"#] {
+        for pattern in [#"⏳\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"🛫\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"➕\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"\[completion::[^\]]*\]"#] {
             if let r = body.range(of: pattern, options: .regularExpression) { tail += " " + body[r] }
         }
         if let r = body.range(of: Recurrence.pattern, options: .regularExpression) { tail = " " + body[r].trimmingCharacters(in: .whitespaces) + tail }

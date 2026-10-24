@@ -43,10 +43,10 @@ enum Parse {
             // Filtro barato antes de la expresión regular (que es lo caro en una tabla de mil filas): sin «[» o sin empezar por
             // viñeta o número, la línea no puede ser una tarea.
             guard line.utf8.contains(UInt8(ascii: "[")), let first = line.first(where: { !$0.isWhitespace }), "-*+".contains(first) || first.isNumber,
-                  let m = line.firstMatch(of: /^\s*(?:[-*+]|\d+\.)\s+\[([ xX])\]\s+(.*)$/) else { continue }
+                  let m = line.firstMatch(of: /^\s*(?:[-*+]|[0-9]+\.)\s+\[([ xX])\]\s+(.*)$/) else { continue }
             let body = String(m.2)
             func date(_ emoji: String) -> Date? {
-                guard let r = body.range(of: "\(emoji)\\s*\\d{4}-\\d{2}-\\d{2}", options: .regularExpression) else { return nil }
+                guard let r = body.range(of: "\(emoji)\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}", options: .regularExpression) else { return nil }
                 return DayKey.date(String(body[r].suffix(10)))
             }
             var clean = body
@@ -58,15 +58,15 @@ enum Parse {
             var time: Int?
             if let tm = body.firstMatch(of: /⏰\s*([0-9]{1,2}):([0-9]{2})/), let h = Int(tm.1), let mi = Int(tm.2), h < 24, mi < 60 { time = h * 60 + mi }
             let duration = body.unicodeScalars.contains("\u{23F1}") ? TaskDuration.find(in: body) : nil   // solo si hay «⏱»
-            for pattern in [#"[📅⏳🛫➕✅]\s*\d{4}-\d{2}-\d{2}"#, #"⏰\s*[0-9]{1,2}:[0-9]{2}"#, TaskDuration.pattern, #"\[completion::[^\]]*\]"#, Recurrence.pattern, "⏫", "🔼", "🔽", "🔕"] {
+            for pattern in [#"[📅⏳🛫➕✅]\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"⏰\s*[0-9]{1,2}:[0-9]{2}"#, TaskDuration.pattern, #"\[completion::[^\]]*\]"#, Recurrence.pattern, "⏫", "🔼", "🔽", "🔕"] {
                 clean = clean.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
             }
             clean = clean.trimmingCharacters(in: .whitespaces)
             guard !clean.isEmpty else { continue }
             var completed: Date?
-            if let r = body.range(of: #"\[completion::\s*\d{4}-\d{2}-\d{2}\]"#, options: .regularExpression) {
+            if let r = body.range(of: #"\[completion::\s*[0-9]{4}-[0-9]{2}-[0-9]{2}\]"#, options: .regularExpression) {
                 completed = DayKey.date(String(body[r].dropLast().suffix(10)))
-            } else if let r = body.range(of: #"✅\s*\d{4}-\d{2}-\d{2}"#, options: .regularExpression) {
+            } else if let r = body.range(of: #"✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, options: .regularExpression) {
                 completed = DayKey.date(String(body[r].suffix(10)))
             }
             out.append(TaskItem(file: file, line: i, raw: line, text: clean, due: date("📅"), scheduled: date("⏳"),
@@ -99,7 +99,7 @@ enum Parse {
             var n = 0
             var j = o + 1
             while j < lines.count, n < 3 {
-                if let m = lines[j].firstMatch(of: /^\s*\d\.\s?(.*)$/) { r.objetivos[n] = String(m.1).trimmingCharacters(in: .whitespaces); n += 1 }
+                if let m = lines[j].firstMatch(of: /^\s*[0-9]\.\s?(.*)$/) { r.objetivos[n] = String(m.1).trimmingCharacters(in: .whitespaces); n += 1 }
                 else if !lines[j].trimmingCharacters(in: .whitespaces).isEmpty { break }
                 j += 1
             }

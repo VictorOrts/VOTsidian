@@ -9,7 +9,7 @@ private let sleepNote = """
 # Diario
 
 ## Sueño
-| Fecha | Horas | Ánimo | Nota |
+| Fecha | Horas | Despertares | Nota |
 |---|---|---|---|
 | 02/10/2026 | 6 | 3 | mal |
 | 01/10/2026 | 7,5 h | 4 | bien |
@@ -28,10 +28,10 @@ tabla: Sueño
 """
 
 @Test func chartBlockIsParsed() {
-    let blocks = MDParser.blocks("Texto\n\n```Gráfica\ntipo: Barras\ny: Horas, Ánimo\n```\n\n```swift\nlet a = 1\n```\n")
+    let blocks = MDParser.blocks("Texto\n\n```Gráfica\ntipo: Barras\ny: Horas, Despertares\n```\n\n```swift\nlet a = 1\n```\n")
     guard case .chart(let body) = blocks[1] else { Issue.record("no es gráfica"); return }
     let s = NoteChart.spec(body)
-    #expect(s.kind == .barras && s.y == ["Horas", "Ánimo"] && s.table == nil && s.x == nil)
+    #expect(s.kind == .barras && s.y == ["Horas", "Despertares"] && s.table == nil && s.x == nil)
     if case .code = blocks[2] {} else { Issue.record("el código normal sigue siendo código") }
     #expect(NoteChart.spec("tipo: quesito\nTítulo: Gastos\nsección: Gastos").kind == .tarta)
     #expect(NoteChart.spec("tipo: inventado").kind == .linea)   // un tipo que no existe deja el de siempre
@@ -41,7 +41,7 @@ tabla: Sueño
     let tables = Parse.tables(sleepNote)
     let d = try NoteChart.data(NoteChart.spec("tabla: sueño"), tables: tables).get()
     // x es la primera columna; y, las columnas con números (no «Nota»); las fechas se ordenan
-    #expect(d.byDate && d.xTitle == "Fecha" && d.series == ["Horas", "Ánimo"])
+    #expect(d.byDate && d.xTitle == "Fecha" && d.series == ["Horas", "Despertares"])
     #expect(d.points.map(\.label) == ["01/10/2026", "01/10/2026", "02/10/2026", "02/10/2026", "03/10/2026"])
     #expect(d.points.filter { $0.series == "Horas" }.map(\.value) == [7.5, 6])   // la celda vacía no es un 0
     #expect(d.points.map(\.id) == Array(0..<5))

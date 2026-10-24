@@ -175,7 +175,7 @@ extension Store {
     func autoBackups() -> [URL] {
         let items = (try? FileManager.default.contentsOfDirectory(at: backupsFolder, includingPropertiesForKeys: nil)) ?? []
         let prefix = "\(vaultName)-auto-"
-        return items.filter { $0.lastPathComponent.hasPrefix(prefix) && $0.lastPathComponent.range(of: #"-auto-\d{4}-\d{2}-\d{2}(\.dmg)?$"#, options: .regularExpression) != nil }
+        return items.filter { $0.lastPathComponent.hasPrefix(prefix) && $0.lastPathComponent.range(of: #"-auto-[0-9]{4}-[0-9]{2}-[0-9]{2}(\.dmg)?$"#, options: .regularExpression) != nil }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 

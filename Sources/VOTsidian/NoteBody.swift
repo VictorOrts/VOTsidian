@@ -72,7 +72,7 @@ enum MDParser {
                 if let r = q.range(of: #"^\[![^\]]*\]\s*"#, options: .regularExpression) { q = String(q[r.upperBound...]) }
                 out.append(.quote(q)); i += 1; continue
             }
-            if let m = l.firstMatch(of: /^(\s*)(?:[-*]|\d+\.)\s+(?:\[([ xX])\]\s+)?(.*)$/) {
+            if let m = l.firstMatch(of: /^(\s*)(?:[-*]|[0-9]+\.)\s+(?:\[([ xX])\]\s+)?(.*)$/) {
                 let mark = m.2.map { $0 == " " ? "☐" : "☑" } ?? "•"
                 out.append(.bullet(String(m.3), indent: m.1.count / 2, mark: mark, line: i, raw: l)); i += 1; continue
             }
