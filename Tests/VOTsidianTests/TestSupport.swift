@@ -256,10 +256,38 @@ tipo: viajes
 
 """
 
+/// La renta con plazo en 10 días, el IBI hecho este año, la tasa de basuras vencida, un trámite de una vez y dos seguros.
+let tramitesFixture = """
+---
+tipo: tramites
+---
+
+# Trámites y seguros
+
+## Impuestos y plazos
+
+| Trámite | Plazo | Cada | Importe | Hecho | Notas |
+| :------ | :---- | :--- | ------: | :---- | :---- |
+| Renta | \(isoDay(10)) | Anual | | | |
+| IBI | 2025-11-05 | Anual | 420 € | \(isoDay(-20)) | |
+| Basuras | \(isoDay(-3)) | Semestral | 60 € | | |
+| Renovar DNI | 2026-01-10 | | | 2026-01-08 | |
+| Sin fecha | | Anual | | | |
+
+## Pólizas
+
+| Seguro | Compañía | Póliza | Prima | Cada | Renovación | Teléfono | Partida | Notas |
+| :----- | :------- | :----- | ----: | :--- | :--------- | :------- | :------ | :---- |
+| Hogar | Mapfre | H-123 | 320 € | Anual | \(isoDay(20)) | 900 100 200 | | |
+| Salud | Sanitas | | 55 € | Mensual | 2026-01-15 | 900 300 400 | Seguro vida | |
+| Vida | | | 25 € | | | | | |
+
+"""
+
 func syntheticVault() throws -> URL {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
     let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture, VaultPath.suscripciones: suscripcionesFixture,
-                 VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture,
+                 VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture, VaultPath.tramites: tramitesFixture,
                  "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture,
                  "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n",
                  "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),

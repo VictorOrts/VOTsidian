@@ -333,11 +333,11 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
 @Test func newModulesAreHiddenOnlyWhenNothingExistsYet() {
     let everything = Module.allCases.map(\.rawValue)
     // antes de que la app recordara cuáles conocía, se parte de los de siempre
-    #expect(Module.arrivals(known: nil, hasNotes: { _ in false }) == [.suscripciones, .prestamos, .vehiculo, .viajes, .lecturas])
-    #expect(Module.arrivals(known: nil, hasNotes: { $0 == .vehiculo }) == [.suscripciones, .prestamos, .viajes, .lecturas])   // si ya hay nota, se queda
+    #expect(Module.arrivals(known: nil, hasNotes: { _ in false }) == [.suscripciones, .prestamos, .vehiculo, .viajes, .lecturas, .tramites])
+    #expect(Module.arrivals(known: nil, hasNotes: { $0 == .vehiculo }) == [.suscripciones, .prestamos, .viajes, .lecturas, .tramites])   // si ya hay nota, se queda
     #expect(Module.arrivals(known: everything, hasNotes: { _ in false }).isEmpty)
     #expect(Module.arrivals(known: ["peso", "casa"], hasNotes: { _ in false }).count == Module.allCases.count - 2)
-    #expect(Module.original.count + 5 == Module.allCases.count)
+    #expect(Module.original.count + 6 == Module.allCases.count)
 }
 
 @MainActor @Test func registeringNewModulesHidesAndAnnouncesThemOnce() throws {
@@ -357,8 +357,8 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     let store = try vault([VaultPath.peso: pesoFixture])
     store.modulesConfigured = true
     store.registerNewModules(defaults: defaults)
-    #expect(store.hiddenModules == [.suscripciones, .prestamos, .vehiculo, .viajes, .lecturas])
-    #expect(store.message?.hasPrefix("Módulos nuevos: Suscripciones, Préstamos y deudas, Vehículo, Viajes, Lecturas.") == true)
+    #expect(store.hiddenModules == [.suscripciones, .prestamos, .vehiculo, .viajes, .lecturas, .tramites])
+    #expect(store.message?.hasPrefix("Módulos nuevos: Suscripciones, Préstamos y deudas, Vehículo, Viajes, Lecturas, Trámites y seguros.") == true)
     #expect(defaults.stringArray(forKey: "knownModules") == Module.allCases.map(\.rawValue))
     store.message = nil
     store.hiddenModules = []                      // el usuario los activa
@@ -372,7 +372,7 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     // carpeta con notas pero sin pasar por el asistente: también se ocultan los que no tienen nota
     let used = try vault([VaultPath.peso: pesoFixture, VaultPath.vehiculo: vehiculoFixture])
     used.registerNewModules(defaults: UserDefaults(suiteName: suite + "-3")!)
-    #expect(used.hiddenModules == [.suscripciones, .prestamos, .viajes, .lecturas])
+    #expect(used.hiddenModules == [.suscripciones, .prestamos, .viajes, .lecturas, .tramites])
     UserDefaults(suiteName: suite + "-3")?.removePersistentDomain(forName: suite + "-3")
 }
 
@@ -412,7 +412,7 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     #expect(HomeCard.viajes.module == .viajes && HomeCard.lecturas.module == .lecturas)
     // una carpeta con la disposición guardada de antes recibe las tarjetas nuevas al final y visibles (si su módulo está oculto, no salen)
     let old = HomeLayout(raw: "atencion:1,hoy:1,peso:0")
-    #expect(old.items.count == HomeCard.allCases.count && old.items.suffix(5).map(\.card) == [.vehiculo, .suscripciones, .prestamos, .viajes, .lecturas] && old.items.suffix(5).allSatisfy(\.visible))
+    #expect(old.items.count == HomeCard.allCases.count && old.items.suffix(6).map(\.card) == [.vehiculo, .suscripciones, .prestamos, .viajes, .lecturas, .tramites] && old.items.suffix(6).allSatisfy(\.visible))
 }
 
 @MainActor @Test func moduleAlertsStayPlainInsideTheirOwnScreen() throws {
@@ -548,4 +548,88 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     #expect(Vehiculo.km("99999999999") == nil && Vehiculo.km("250.000") == 250_000)
     let loan = try #require(Parse.prestamos("| Préstamo | Pendiente | Cuota | Día |\n| - | - | - | - |\n| A | 1000 | \(tiny) | 5 |").statuses().first)
     #expect(loan.installmentsLeft == nil && loan.estimatedEnd == nil)   // sin fecha de fin en vez de un cierre
+}
+
+// MARK: Trámites y seguros
+
+@Test func tramitesAreParsedAndTheirNextDeadlineFollowsWhatWasDone() throws {
+    let d = Parse.tramites(tramitesFixture)
+    #expect(d.procedures.map(\.name) == ["Renta", "IBI", "Basuras", "Renovar DNI"])   // sin plazo no cuenta
+    #expect(d.insurances.map(\.name) == ["Hogar", "Salud", "Vida"])
+    let today = DayKey.today()
+    let renta = try #require(d.procedures.first)
+    #expect(renta.pending == DayKey.adding(days: 10, to: today) && renta.period == .months(12) && renta.amount == nil)
+    // el IBI hecho hace 20 días cumple el plazo más cercano: el siguiente es el de dentro de un año
+    let ibi = d.procedures[1]
+    #expect(ibi.amount == 420 && ibi.pending.map { $0 > today } == true)
+    // vencido y sin hacer: sigue pendiente, con fecha pasada
+    #expect(d.procedures[2].pending == DayKey.adding(days: -3, to: today) && d.procedures[2].period == .months(6))
+    // de una sola vez y hecho: ya no está pendiente
+    #expect(d.procedures[3].period == nil && d.procedures[3].pending == nil)
+    #expect(d.pendingProcedures.map(\.procedure.name) == ["Basuras", "Renta", "IBI"])
+    // seguros: anual por defecto, coste al año y próxima renovación
+    #expect(d.insurances[0].company == "Mapfre" && d.insurances[0].policy == "H-123" && d.insurances[0].phone == "900 100 200" && d.insurances[2].period == .months(12))
+    #expect(d.yearlyInsurance == 320 + 55 * 12 + 25)
+    #expect(d.insurances[0].nextRenewal(from: today) == DayKey.adding(days: 20, to: today) && d.insurances[2].nextRenewal(from: today) == nil)
+    #expect(try d.insurances[1].nextRenewal(from: #require(DayKey.date("2026-10-24"))) == DayKey.date("2026-11-15"))
+}
+
+@Test func doneCountsForTheNearestDeadline() throws {
+    func p(_ anchor: String, done: String?) -> TramitesData.Procedure {
+        .init(name: "X", anchor: D(anchor), period: .months(12), amount: nil, done: done.map(D), notes: "", line: 1)
+    }
+    #expect(p("2026-06-30", done: nil).pending == D("2026-06-30"))
+    #expect(p("2026-06-30", done: "2026-05-10").pending == D("2027-06-30"))   // presentada antes del plazo
+    #expect(p("2026-06-30", done: "2026-07-05").pending == D("2027-06-30"))   // unos días tarde: cumple el que acaba de pasar
+    #expect(p("2026-06-30", done: "2027-06-01").pending == D("2028-06-30"))   // un año después, el siguiente
+    #expect(p("2026-06-30", done: "2025-12-01").pending == D("2026-06-30"))   // hecho antes del primer plazo apuntado
+    #expect(TramitesData.Period.parseOptional("") == nil && TramitesData.Period.parseOptional("Una vez") == nil && TramitesData.Period.parseOptional("Anual") == .months(12))
+}
+
+@MainActor @Test func tramitesAlertCalendarAndGastos() throws {
+    let store = Store(root: try syntheticVault())
+    let today = DayKey.today()
+    let alerts = store.tramiteAlerts(today: today)
+    #expect(alerts.contains { $0.text.hasPrefix("Basuras: el plazo acabó") && $0.level == .urgent })
+    #expect(alerts.contains { $0.text.hasPrefix("Renta: plazo en 10 días") && $0.level == .info })
+    #expect(alerts.contains { $0.text.hasPrefix("El seguro de Hogar se renueva en 20 días (320 €)") || $0.text.hasPrefix("El seguro de Hogar se renueva en 20 días") })
+    #expect(store.alerts(today: today).contains { $0.screen == .tramites })
+    // marcarlo hecho apunta la fecha y el gasto; deshacer quita las dos cosas
+    let month = Budget.monthKey(today)
+    let before = store.budget(month)?.moves.count ?? 0
+    let basuras = try #require(store.tramites.procedures.first { $0.name == "Basuras" })
+    store.markTramiteDone(basuras, expense: true)
+    let done = try #require(store.tramites.procedures.first { $0.name == "Basuras" })
+    #expect(done.done == today && done.pending.map { $0 > today } == true && store.budget(month)?.moves.count == before + 1)
+    #expect(!store.tramiteAlerts(today: today).contains { $0.text.hasPrefix("Basuras") })
+    store.undo()
+    #expect(store.tramites.procedures.first { $0.name == "Basuras" }?.done == nil && store.budget(month)?.moves.count == before)
+    // la prima va a la partida de la fila y no se apunta dos veces
+    let salud = try #require(store.tramites.insurances.first { $0.name == "Salud" })
+    #expect(!store.seguroLogged(salud) && store.logSeguroPayment(salud) == "Seguro vida" && store.seguroLogged(salud))
+    // calendario y Calendar
+    let days = store.agenda(from: DayKey.adding(days: -5, to: today), to: DayKey.adding(days: 30, to: today)).values.joined()
+    #expect(days.contains { $0.title == "Plazo: Renta" } && days.contains { $0.title == "Renueva el seguro de Hogar" } && days.contains { $0.kind == .tramite && $0.title == "Plazo: Basuras" })
+    let ev = ICS.events(store.reminderSources(), plan: ReminderPlan(), today: today)
+    #expect(ev.contains { $0.title == "Plazo: Renta" && $0.extraTriggers == ["-P7D"] } && ev.contains { $0.title.hasPrefix("Renueva el seguro de Hogar") && $0.extraTriggers == ["-P30D"] && $0.notes.contains("900 100 200") })
+    #expect(!ev.contains { $0.title.contains("Basuras") })   // ya vencido: no va a Calendar
+    store.hiddenModules.insert(.tramites)
+    #expect(!store.alerts(today: today).contains { $0.screen == .tramites } && ICS.events(store.reminderSources(), plan: ReminderPlan(), today: today).allSatisfy { !$0.uid.hasPrefix("tramite") && !$0.uid.hasPrefix("seguro") })
+}
+
+@MainActor @Test func tramitesTemplateTakesTheFirstEntriesAndExports() throws {
+    let day = D("2026-10-20")
+    let t1 = try #require(Edit.addTramite(try tpl("tramites"), name: "Tasa | basuras", due: day, every: "Semestral", amount: 60))
+    let t2 = try #require(Edit.addSeguro(t1, name: "Coche", company: "X", premium: 400, every: "Anual", renewal: day, phone: "1", category: ""))
+    let d = Parse.tramites(t2)
+    #expect(d.procedures.map(\.name) == ["Tasa | basuras"] && d.procedures[0].period == .months(6) && d.procedures[0].amount == 60)
+    // las filas de ejemplo de la plantilla siguen ahí, sin prima ni fecha (no suman ni avisan), y el nuevo va detrás
+    #expect(d.insurances.map(\.name) == ["Hogar", "Salud", "Coche"] && d.insurances[2].premium == 400 && d.yearlyInsurance == 400)
+    #expect(d.insurances.prefix(2).allSatisfy { $0.premium == 0 && $0.nextRenewal() == nil })
+    // exportar
+    let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
+    let names = Set(try Store(root: try syntheticVault()).exportData(to: out).map(\.lastPathComponent))
+    #expect(names.isSuperset(of: ["tramites.csv", "seguros.csv"]))
+    let csv = try String(contentsOf: out.appendingPathComponent("seguros.csv"), encoding: .utf8)
+    #expect(csv.contains("Hogar,Mapfre,H-123,320,cada año,") && csv.contains(",900 100 200,"))
 }

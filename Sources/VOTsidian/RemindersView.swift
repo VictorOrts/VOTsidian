@@ -17,6 +17,7 @@ struct RemindersView: View {
     @AppStorage("remSuscripciones") private var suscripcionesOn = true
     @AppStorage("remPrestamos") private var prestamosOn = true
     @AppStorage("remViajes") private var viajesOn = true
+    @AppStorage("remTramites") private var tramitesOn = true
     @AppStorage("remBirthdays") private var birthdays = true
     @AppStorage("remDocs") private var docs = true
     @AppStorage("remEvents") private var eventsOn = true
@@ -39,7 +40,7 @@ struct RemindersView: View {
                      monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, mascota: mascotaOn,
                      birthdays: birthdays, documents: docs, events: eventsOn, payments: payments,
                      monthlyReview: monthReview, monthlyReviewMinutes: monthReviewMin, vehiculo: vehiculoOn,
-                     suscripciones: suscripcionesOn, prestamos: prestamosOn, viajes: viajesOn)
+                     suscripciones: suscripcionesOn, prestamos: prestamosOn, viajes: viajesOn, tramites: tramitesOn)
     }
 
     /// Fila de un aviso: nombre, sus ajustes (día, hora) y el interruptor, todo en la misma línea.
@@ -92,6 +93,7 @@ struct RemindersView: View {
                         if store.isVisible(.suscripciones) { Divider(); row("Renovaciones y fin de pruebas de suscripciones (el día antes)", $suscripcionesOn) }
                         if store.isVisible(.prestamos) { Divider(); row("Cuotas de préstamos (el día antes)", $prestamosOn) }
                         if store.isVisible(.viajes) { Divider(); row("Viajes (7 días antes)", $viajesOn) }
+                        if store.isVisible(.tramites) { Divider(); row("Plazos de trámites (7 días antes) y renovación de seguros (30 días antes)", $tramitesOn) }
                         if store.isVisible(.personas) { Divider(); row("Cumpleaños (cada año)", $birthdays) }
                         if store.isVisible(.documentos) { Divider(); row("Caducidad de documentos (30 días antes)", $docs) }
                         if store.isVisible(.finanzas) || store.isVisible(.casa) { Divider(); row("Eventos y fechas de Casa (7 días antes)", $eventsOn) }

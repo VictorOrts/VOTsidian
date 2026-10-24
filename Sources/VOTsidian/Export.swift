@@ -63,7 +63,7 @@ extension Store {
             diaryDays: notes.filter { $0.path.hasPrefix("Diario/") && (DayKey.date($0.name).map(inYear) ?? false) }.count)
     }
 
-    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, vehículo, suscripciones, préstamos, viajes, lecturas, ánimo y sueño) y un resumen. Devuelve los archivos creados.
+    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, vehículo, suscripciones, préstamos, viajes, lecturas, trámites, seguros, ánimo y sueño) y un resumen. Devuelve los archivos creados.
     @discardableResult
     func exportData(to dir: URL) throws -> [URL] {
         let fm = FileManager.default
@@ -235,6 +235,15 @@ extension Store {
         if !t.trips.isEmpty {
             try write("viajes.csv", CSV.file(["destino", "salida", "vuelta", "presupuesto_eur", "gastado_eur", "estado"],
                                              t.trips.map { [$0.name, date($0.start), date($0.end), CSV.num($0.budget), CSV.num(t.spent($0)), $0.status] }))
+        }
+        let tr = tramites
+        if !tr.procedures.isEmpty {
+            try write("tramites.csv", CSV.file(["tramite", "plazo_pendiente", "cada", "importe_eur", "hecho"],
+                                               tr.procedures.map { [$0.name, date($0.pending), $0.period?.label ?? "una vez", CSV.num($0.amount), date($0.done)] }))
+        }
+        if !tr.insurances.isEmpty {
+            try write("seguros.csv", CSV.file(["seguro", "compania", "poliza", "prima_eur", "cada", "proxima_renovacion", "coste_anual_eur", "telefono", "partida"],
+                                              tr.insurances.map { [$0.name, $0.company, $0.policy, CSV.num($0.premium), $0.period.label, date($0.nextRenewal()), CSV.num($0.yearlyCost), $0.phone, $0.category] }))
         }
         if !t.expenses.isEmpty { try write("viajes_gastos.csv", CSV.file(["fecha", "viaje", "concepto", "importe_eur"], t.expenses.map { [DayKey.string($0.date), $0.trip, $0.concept, CSV.num($0.amount)] })) }
     }

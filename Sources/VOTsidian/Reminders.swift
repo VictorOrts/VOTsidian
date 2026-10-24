@@ -24,6 +24,8 @@ struct ReminderPlan: Equatable {
     var suscripciones = true
     var prestamos = true
     var viajes = true
+    /// Plazos de trámites (7 días antes) y renovaciones de seguros (30 días antes).
+    var tramites = true
 
     /// El plan guardado en Avisos (mismas claves y valores por defecto que `RemindersView`).
     static var stored: ReminderPlan {
@@ -41,6 +43,7 @@ struct ReminderPlan: Equatable {
         plan.suscripciones = flag("remSuscripciones")
         plan.prestamos = flag("remPrestamos")
         plan.viajes = flag("remViajes")
+        plan.tramites = flag("remTramites")
         return plan
     }
 }
@@ -53,6 +56,7 @@ struct ReminderSources {
     var suscripciones = SuscripcionesData()
     var prestamos = PrestamosData()
     var viajes = ViajesData()
+    var tramites = TramitesData()
     var people: [Person] = []
     var documents: [(name: String, date: Date)] = []
     var events: [(name: String, date: Date)] = []
@@ -183,6 +187,18 @@ enum ICS {
                 guard let s = t.start, s >= today else { continue }
                 out.append(ICSEvent(uid: "viaje-" + stableID(t.name + DayKey.string(s)), title: "Viaje: \(t.name)",
                                     notes: "Viaje en la nota Viajes.", start: s, minutes: nil, rule: nil, extraTriggers: ["-P7D"]))
+            }
+        }
+        if plan.tramites {
+            for (p, due) in src.tramites.pendingProcedures where due >= today {
+                out.append(ICSEvent(uid: "tramite-" + stableID(p.name + DayKey.string(due)), title: "Plazo: \(p.name)" + (p.amount.map { " (\(Money.exact($0)))" } ?? ""),
+                                    notes: "Trámite en la nota \(VaultPath.tramites). Márcalo hecho en VOTsidian.", start: due, minutes: nil, rule: nil, extraTriggers: ["-P7D"]))
+            }
+            for i in src.tramites.insurances {
+                for d in i.renewals(from: today, to: year).prefix(12) {
+                    out.append(ICSEvent(uid: "seguro-" + stableID(i.name + DayKey.string(d)), title: "Renueva el seguro de \(i.name)" + (i.premium > 0 ? " (\(Money.exact(i.premium)))" : ""),
+                                        notes: i.phone.isEmpty ? "Seguro en la nota \(VaultPath.tramites)." : "Asistencia: \(i.phone).", start: d, minutes: nil, rule: nil, extraTriggers: ["-P30D"]))
+                }
             }
         }
         if plan.birthdays {

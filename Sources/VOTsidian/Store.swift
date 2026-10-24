@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta en Ajustes → Módulos → Rutas de
 /// las notas, o desde la terminal: `defaults write <id de la app> vaultPathOverrides -dict peso "Mis notas/Báscula.md"`
-/// (claves: peso, medicacion, plan, proyecto, mascota, vehiculo, suscripciones, prestamos, lecturas, viajes, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
+/// (claves: peso, medicacion, plan, proyecto, mascota, vehiculo, suscripciones, prestamos, lecturas, viajes, tramites, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
 enum VaultPath {
     static let defaults: [String: String] = [
         "peso": "Salud/Peso.md",
@@ -20,6 +20,7 @@ enum VaultPath {
         "prestamos": "Finanzas/Préstamos.md",
         "lecturas": "Lecturas/Lecturas.md",
         "viajes": "Viajes/Viajes.md",
+        "tramites": "Organización/Trámites y seguros.md",
         "casa": "Casa/Casa.md",
         "compra": "Casa/Lista de la compra.md",
         "moda": "Moda/Armario.md",
@@ -60,6 +61,7 @@ enum VaultPath {
     static var prestamos: String { path("prestamos") }
     static var lecturas: String { path("lecturas") }
     static var viajes: String { path("viajes") }
+    static var tramites: String { path("tramites") }
     static var casa: String { path("casa") }
     static var moda: String { path("moda") }
     static var medico: String { path("medico") }
@@ -98,6 +100,7 @@ final class Store {
     private(set) var prestamos = PrestamosData()
     private(set) var lecturas = LecturasData()
     private(set) var viajes = ViajesData()
+    private(set) var tramites = TramitesData()
     private(set) var plan = PlanData()
     private(set) var milestones: [Milestone] = []
     private(set) var habitDefs: [HabitDef] = []
@@ -389,6 +392,7 @@ final class Store {
         derive(VaultPath.prestamos) { prestamos = Parse.prestamos($0) }
         derive(VaultPath.lecturas) { lecturas = Parse.lecturas($0) }
         derive(VaultPath.viajes) { viajes = Parse.viajes($0) }
+        derive(VaultPath.tramites) { tramites = Parse.tramites($0) }
         derive(VaultPath.plan) { plan = Parse.plan($0) }
         derive(VaultPath.proyecto) { milestones = Parse.milestones($0) }
         tasks = allTasks

@@ -79,7 +79,7 @@ extension Store {
             let n = DayKey.days(from: today, to: u.date)
             if n <= 14 { out.append(Alert(level: .info, icon: "pawprint", text: "\(mascota.name): \(u.title) \(relativeDays(n))", screen: .mascota)) }
         }
-        out += vehiculoAlerts(today: today) + suscripcionAlerts(today: today) + prestamoAlerts(today: today) + viajeAlerts(today: today)
+        out += vehiculoAlerts(today: today) + suscripcionAlerts(today: today) + prestamoAlerts(today: today) + viajeAlerts(today: today) + tramiteAlerts(today: today)
         for e in events {
             let n = DayKey.days(from: today, to: e.date)
             if n >= 0, n <= 14, noteMeta[e.path]?["estado"] != "pagado" {

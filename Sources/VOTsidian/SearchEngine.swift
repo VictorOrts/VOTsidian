@@ -49,6 +49,7 @@ enum Synonyms {
         ["coche", "vehiculo", "moto", "itv", "taller", "gasolina"],
         ["suscripcion", "suscripciones", "renovacion", "netflix", "spotify"], ["prestamo", "deuda", "hipoteca", "cuota", "credito"],
         ["libro", "lectura", "leer", "novela"], ["viaje", "vacaciones", "escapada", "vuelo", "maleta", "equipaje"],
+        ["tramite", "impuesto", "renta", "hacienda", "ibi", "plazo"], ["seguro", "poliza", "aseguradora", "prima"],
     ]
 
     private static func stem(_ s: String) -> String {
