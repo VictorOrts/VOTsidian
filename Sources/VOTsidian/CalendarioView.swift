@@ -11,6 +11,8 @@ struct CalendarioView: View {
     @State private var weekOffset = 0
     /// Mes (rejilla) o semana por horas. Se recuerda.
     @AppStorage("calendarWeek") private var weekMode = false
+    /// Panel del día a la derecha. Plegado, la rejilla gana 400 pt y los títulos se cortan menos. Se recuerda.
+    @AppStorage("calendarPanel") private var showPanel = true
     /// Elemento seleccionado del día elegido (bloque de la semana, ficha de la cabecera o fila del panel): su ficha va arriba del panel.
     @State private var selectedEvent: EventSelection?
     @State private var focusToken = 0
@@ -32,9 +34,12 @@ struct CalendarioView: View {
             Group { if weekMode { week } else { month } }
                 .padding(20)
                 .frame(maxWidth: .infinity)
-            Divider()
-            dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
-                .frame(width: 400)
+            if showPanel {
+                Divider()
+                dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
+                    .frame(width: 400)
+                    .transition(.move(edge: .trailing))
+            }
         }
         .navigationTitle("Calendario")
         .onAppear { loadNote() }
@@ -44,8 +49,14 @@ struct CalendarioView: View {
     }
 
     private var modePicker: some View {
-        Picker("", selection: $weekMode) { Text("Mes").tag(false); Text("Semana").tag(true) }
-            .pickerStyle(.segmented).labelsHidden().fixedSize()
+        HStack(spacing: 8) {
+            Picker("", selection: $weekMode) { Text("Mes").tag(false); Text("Semana").tag(true) }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+            Button { withAnimation(.snappy) { showPanel.toggle() } } label: {
+                Image(systemName: "sidebar.right").accessibilityLabel(showPanel ? "Ocultar el panel del día" : "Mostrar el panel del día")
+            }
+            .help(showPanel ? "Ocultar el panel del día" : "Mostrar el panel del día")
+        }
     }
 
     // MARK: Mes
@@ -140,6 +151,7 @@ struct CalendarioView: View {
                         .background(item.kind.color.opacity(0.16), in: RoundedRectangle(cornerRadius: 4))
                         .overlay { if selectedEvent == EventSelection(id: item.id, title: item.title) && day == selected { RoundedRectangle(cornerRadius: 4).stroke(Brand.accent, lineWidth: 1.5) } }
                         .contentShape(Rectangle())
+                        .help(item.title)
                         .onTapGesture { selectEvent(item, on: day) }
                         .draggable(item.task.map(\.id) ?? "")
                 }
@@ -203,7 +215,7 @@ struct CalendarioView: View {
                     HStack(spacing: 4) {
                         Circle().fill(item.kind.color).frame(width: 6, height: 6)
                         Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(1).foregroundStyle(inMonth ? .primary : .secondary)
-                    }
+                    }.help((item.timeText.map { $0 + " " } ?? "") + item.title)
                 }
                 if shown.count > 2 { Text("+\(shown.count - 2) más").font(.caption2).foregroundStyle(.secondary) }
                 Spacer(minLength: 0)
@@ -331,6 +343,8 @@ struct CalendarioView: View {
     private func selectEvent(_ sel: EventSelection, on day: Date, focus: Bool = false) {
         if day != selected { select(day) }
         selectedEvent = sel
+        // La ficha vive en el panel: si estaba plegado, se abre.
+        if !showPanel { withAnimation(.snappy) { showPanel = true } }
         if focus { focusToken += 1 }
     }
 

@@ -284,12 +284,30 @@ tipo: tramites
 
 """
 
+/// Lienzo con grupo, tarjetas, una nota, un enlace y flechas (una con texto), como lo guarda Obsidian.
+let canvasFixture = """
+{
+	"nodes":[
+		{"id":"g1","type":"group","x":-40,"y":-80,"width":760,"height":360,"label":"Mudanza","color":"4"},
+		{"id":"t1","type":"text","text":"# Antes\\n- Pedir presupuestos\\n- [x] Avisar al casero","x":0,"y":0,"width":260,"height":160},
+		{"id":"t2","type":"text","text":"**Día D**\\nFurgoneta a las 9:00","x":380,"y":20,"width":260,"height":110,"color":"2"},
+		{"id":"f1","type":"file","file":"Notas/A.md","x":380,"y":360,"width":280,"height":110},
+		{"id":"l1","type":"link","url":"https://www.obsidian.md","x":0,"y":360,"width":260,"height":90,"extra":"se conserva"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"t1","fromSide":"right","toNode":"t2","toSide":"left","label":"luego"},
+		{"id":"e2","fromNode":"t2","toNode":"f1"},
+		{"id":"e3","fromNode":"t1","toNode":"nadie"}
+	]
+}
+"""
+
 func syntheticVault() throws -> URL {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
     let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture, VaultPath.suscripciones: suscripcionesFixture,
                  VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture, VaultPath.tramites: tramitesFixture,
                  "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture,
-                 "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n",
+                 "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n", "Lienzos/Mudanza.canvas": canvasFixture,
                  "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),
                  "Finanzas/Gastos/\(Budget.monthKey(DayKey.calendar().date(byAdding: .month, value: -1, to: Date())!)).md":
                     gastosFixture(DayKey.calendar().date(byAdding: .month, value: -1, to: Date())!, full: true)]

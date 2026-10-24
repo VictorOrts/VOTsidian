@@ -63,7 +63,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Mi día** | El día por horas: arrastra las tareas sin hora a una franja, estira un bloque para cambiar lo que dura y mira si te pasas de las horas que quieres trabajar. «Repartir» las coloca solas en los huecos, y «Empezar el día» repasa lo de ayer, lo de hoy y lo que viene. |
 | **Tareas** | Fecha, hora, duración, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30», «reunión mañana de 10 a 11:30». |
 | **Planificar semana** | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
-| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día. Un clic en un evento abre su ficha en el panel para editarlo. |
+| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día. Un clic en un evento abre su ficha en el panel para editarlo; el panel se pliega para ver la rejilla más ancha. |
 | **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual, y «Empezar el día» y «Cerrar el día» para planificar por la mañana y repasar lo pendiente por la noche. |
 | **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
 | **Captura rápida** (⇧⌘N) | Tarea, gasto, peso, toma de medicación o idea, desde cualquier pantalla. |
@@ -80,6 +80,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Gráficas** | Un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta. |
 | **Búsqueda** (⌘K) | Notas, tareas y pantallas, con sinónimos y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»). |
 | **Órdenes rápidas** (⌘K) | `peso 105,5`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10 a las 17:30`, `cintura 98`, `compra leche y pan`, `libro Dune - Frank Herbert`, `terminé Dune`, `cuota Coche`. |
+| **Lienzo** | Pizarra libre con tarjetas de texto, notas, enlaces y grupos colocados a mano y unidos con flechas. Se guarda como `.canvas`, el formato abierto de Obsidian, y abre los lienzos que ya tengas. |
 | **Bases, Grafo y Enlaces rotos** | Las notas de un mismo tipo en tabla editable, calendario (por una propiedad de fecha) o tablero (por estado u otra propiedad), arrastrando para cambiar la fecha o la columna; con filtros y vistas guardadas, mapa de enlaces y sugerencias para arreglar enlaces que no llevan a nada. |
 
 ## Módulos

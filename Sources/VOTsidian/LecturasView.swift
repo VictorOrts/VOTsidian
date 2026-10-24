@@ -24,7 +24,11 @@ struct LecturasView: View {
                     Tile(title: "Pendientes", value: "\(l.pending.count)")
                     Tile(title: "Páginas", value: l.pages(in: year) > 0 ? l.pages(in: year).formatted() : "–", note: l.averageDays.map { "\(plural($0, "día", "días")) por libro" })
                 }
-                if l.goal > 0 { ProgressView(value: Double(min(done.count, l.goal)), total: Double(l.goal)).tint(Brand.accent) }
+                if l.goal > 0 {
+                    ProgressView(value: Double(min(done.count, l.goal)), total: Double(l.goal)) {
+                        Text("Objetivo de \(year): \(done.count) de \(plural(l.goal, "libro", "libros"))").font(.caption).foregroundStyle(.secondary)
+                    }.tint(Brand.accent)
+                }
                 Card(title: "Leyendo", icon: "book") {
                     if l.reading.isEmpty { EmptyNote("Nada en marcha. Empieza uno de los pendientes.", icon: "book") }
                     ForEach(l.reading) { b in

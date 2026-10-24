@@ -17,6 +17,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 - [Tareas](#tareas) · [Mi día](#mi-día) · [Órdenes rápidas](#órdenes-rápidas-k)
 - [Notas que crea la app](#notas-que-crea-la-app)
 - [Gráficas en una nota](#gráficas-en-una-nota)
+- [Lienzos](#lienzos)
 - [Calendar y avisos](#calendar-y-avisos)
 - [Copias y deshacer](#copias-y-deshacer)
 
@@ -30,7 +31,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 
 Si la carpeta ya tiene notas, no se cambia ninguna: solo se crean las que faltan.
 
-Siempre están **Mi día, Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
+Siempre están **Mi día, Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Lienzo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
 
 ## Módulos y sus notas
 
@@ -431,7 +432,7 @@ El día por horas, de 0 a 24 h. No guarda nada aparte: todo va en la línea de c
 - **Jornada.** Arriba, lo planificado frente a las horas que quieres dedicar al día (8 por defecto, se cambia en el menú «de 8 h»). Cuentan las tareas y citas pendientes con hora, y las tareas sin hora que tienen duración; la medicación y lo hecho no. Si te pasas, la barra se pone roja.
 - **Repartir.** Coloca las tareas sin hora en los huecos libres, por orden (primero las vencidas y las de más prioridad), entre las 9:00 y las 20:00, o desde ahora si es hoy. Las que no caben se quedan sin hora. ⌥⌘Z lo deshace de una vez.
 - **Empezar el día.** Desde Inicio, Mi día, la barra de menús o ⌘K. Repasa en tres pasos lo que quedó pendiente (a hoy, a mañana o hecha), lo de hoy (con cuánto dura cada cosa) y lo de los próximos tres días (adelantar a hoy), y termina en Mi día para repartirlo.
-- **Semana por horas.** En Calendario, «Semana» enseña de lunes a domingo con las mismas columnas de horas. Soltar una tarea en una columna le pone ese día y esa hora; en la cabecera de un día, solo el día. «Por horas», en el panel de un día, lo abre en Mi día. Igual que en Mi día, un clic en un bloque, en una ficha de la cabecera o en una fila del panel (también en la vista de mes) abre su ficha arriba del panel derecho.
+- **Semana por horas.** En Calendario, «Semana» enseña de lunes a domingo con las mismas columnas de horas. Soltar una tarea en una columna le pone ese día y esa hora; en la cabecera de un día, solo el día. «Por horas», en el panel de un día, lo abre en Mi día. Igual que en Mi día, un clic en un bloque, en una ficha de la cabecera o en una fila del panel (también en la vista de mes) abre su ficha arriba del panel derecho. El botón junto a «Mes / Semana» pliega ese panel para que la rejilla gane anchura (se recuerda); al abrir la ficha de un evento, vuelve a salir. Pasar el ratón por un título cortado lo enseña entero.
 
 ## Órdenes rápidas (⌘K)
 
@@ -460,6 +461,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | Nota del día | `Diario/AAAA-MM-DD.md` | Las horas de sueño (`sueno_h:`) y lo que escribas. |
 | Gastos del mes | `Finanzas/Gastos/AAAA-MM.md` | El presupuesto y los movimientos del mes. |
 | Plantillas | `Plantillas/` | Las 10 de ejemplo, si las pides en el asistente o en «Nueva nota». |
+| Lienzos | `Lienzos/Nombre.canvas` | Los lienzos nuevos (ver [Lienzos](#lienzos)). Los que ya tengas en otra carpeta también salen. |
 
 Una plantilla puede hacer preguntas al crear la nota (`{{?Pregunta}}` o `{{?Pregunta|valor por defecto}}`) y sugerir carpeta con `plantilla_carpeta:` en el encabezado.
 
@@ -491,6 +493,16 @@ Todas las líneas son opcionales:
 - En barras y tartas por categoría, las filas con la misma categoría se suman (por ejemplo, varios gastos de «Comida»).
 - La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
 - Si falta la tabla o una columna, la nota lo dice en lugar de la gráfica.
+
+## Lienzos
+
+Un lienzo es una pizarra libre: tarjetas de texto, notas, enlaces y grupos donde quieras, unidos con flechas. Se guarda como archivo `.canvas` ([JSON Canvas](https://jsoncanvas.org), el formato abierto de Obsidian): los lienzos que hagas en Obsidian se abren aquí y al revés. La lista de la izquierda enseña todos los `.canvas` de tu carpeta; «+» crea uno nuevo en `Lienzos/`.
+
+- **Añadir.** «Tarjeta» (o doble clic en el fondo) crea una tarjeta de texto; «Nota» pone una de tus notas, con su resumen; «Grupo» dibuja un marco (si hay algo elegido, lo rodea).
+- **Mover y ver.** Arrastra un nodo para moverlo; un grupo se lleva lo que tiene dentro. Arrastra el fondo para desplazarte; pellizca en el trackpad o usa la lupa para el zoom; «Ajustar» enseña todo.
+- **Unir.** Elige un nodo, pulsa «Unir» y luego el de destino (o clic derecho → «Unir desde aquí»).
+- **Editar.** Doble clic en una tarjeta la edita (Markdown sencillo: `# título`, `**negrita**`, `- viñetas`, `- [ ] casillas`); en un grupo, cambia su nombre; en una nota, la abre. «Color» usa los seis colores de Obsidian. «Borrar» (o la tecla ⌫) quita el nodo y sus flechas.
+- Cada cambio se guarda al momento y se deshace con ⌥⌘Z. Los datos que la app no conoce (de Obsidian o de un plugin) se conservan; al guardar, el archivo se reescribe con las claves ordenadas, sin cambiar lo que dice. Si el archivo no es JSON válido, la app lo dice y no lo toca.
 
 ## Calendar y avisos
 
