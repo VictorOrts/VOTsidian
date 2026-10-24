@@ -55,7 +55,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 
 - `MD.section(lines, containing:)` coge el **primer** encabezado que contenga la clave: el título de la nota (`# Suscripciones`) no
   puede contener el nombre de la sección de la tabla (por eso `## Servicios`, `## Lo que debo`, `## Destinos`).
-- Números de notas: `MD.number` (cifras ASCII) y `MD.int` (nunca `Int(Double)`: un número enorme cierra la app). Insertar líneas
+- Números de notas: `MD.number` (cifras ASCII, nunca infinito) y `MD.int` (nunca `Int(Double)`: un número enorme cierra la app).
+  Importes con `Money.parse`, nunca `Double(texto)` a pelo: acepta «nan», «inf» y «1e999». Insertar líneas
   con `insertClamped`. Plegar texto conservando posiciones con `NaturalDate.aligned`. Fechas con `[0-9]`, no `\d`.
 - Las notas con `tipo: compra` o `tipo: viajes` no aportan tareas (`Store.notTaskTypes`).
 - Marcadores de tarea propios, además de los de Obsidian Tasks: `⏰ 17:30` (hora, tras la fecha), `⏱ 1h30m` (duración,
