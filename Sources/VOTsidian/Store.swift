@@ -184,6 +184,8 @@ final class Store {
     @ObservationIgnored var watcher: VaultWatcher?
     /// Día en que se programaron por última vez los avisos del sistema.
     @ObservationIgnored var notificationsDay: String?
+    /// Sincronización en curso con el calendario «VOTsidian» (EventKit).
+    @ObservationIgnored var calendarSyncTask: Task<Void, Never>?
     @ObservationIgnored var generation = 0
     @ObservationIgnored var scanning = false
     @ObservationIgnored var rescanRequested = false
@@ -228,7 +230,7 @@ final class Store {
             startWatching()
             startDailyBackup()
             Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications() }
+                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true) }
             }
         }
         pendingNote = ProcessInfo.processInfo.environment["VOT_NOTE"]
@@ -351,6 +353,7 @@ final class Store {
 
     private func apply(_ scan: Scan) {
         revision += 1
+        refreshCalendarSync()
         agendaCache = [:]
         budgetCache = [:]
         budgetYearCache = [:]

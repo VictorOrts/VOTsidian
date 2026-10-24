@@ -34,6 +34,7 @@ struct VOTsidianApp: App {
                     store.reloadInBackground()
                     store.startDailyBackup()
                     store.refreshSystemNotifications(force: true)
+                    store.refreshCalendarSync()
                 }
         }
         .defaultSize(width: 1280, height: 860)
