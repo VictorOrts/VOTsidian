@@ -156,7 +156,7 @@ Tiene tres secciones:
 - **`## Tratamientos`:** una lista con `- `.
 - **`## Análisis`:** una tabla `Fecha | Prueba | Resultado | Notas`.
 
-Las notas de cada visita se crean desde la pantalla, con «Nueva nota de visita».
+Las notas de cada visita se crean desde la pantalla, con «Nueva nota de visita». Los PDF o imágenes de análisis se copian a la carpeta `Análisis`; si ya hay un archivo con el mismo nombre que es otro distinto, el nuevo se numera («análisis 2.pdf») y nunca se pisa nada.
 
 ### Finanzas y gastos
 

@@ -84,7 +84,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 
 ## Módulos
 
-Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Los ocultos no muestran pantallas, tarjetas ni avisos.
+Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Los ocultos no muestran pantallas, tarjetas, avisos ni eventos en el calendario.
 
 | Módulo | Lo principal |
 |---|---|
