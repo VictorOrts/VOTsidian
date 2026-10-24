@@ -33,8 +33,7 @@ struct VehiculoView: View {
                 Card(title: "Avisos", icon: "bell",
                      info: "Lo que vence en la tabla Fechas avisa 30 días antes. El mantenimiento con «Cada (km)» o «Cada (meses)» avisa cuando faltan menos de 1.000 km o 30 días.") {
                     let alerts = store.vehiculoAlerts(today: today)
-                    AlertList(alerts: alerts, go: { _ in })
-                    if alerts.isEmpty { EmptyNote("Nada vence pronto.", icon: "checkmark.circle") }
+                    AlertList(alerts: alerts, emptyText: "Nada vence pronto.")
                     ForEach(tasks) { TaskRow(task: $0) }
                 }
                 HStack(alignment: .top, spacing: 16) {

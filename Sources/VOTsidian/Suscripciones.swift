@@ -7,6 +7,7 @@ struct SuscripcionesData: Equatable {
 
     /// Cada cuánto se cobra.
     enum Period: Equatable {
+        case days(Int)
         case weeks(Int)
         case months(Int)
 
@@ -16,6 +17,7 @@ struct SuscripcionesData: Equatable {
             if t.isEmpty { return .months(1) }
             let n = MD.number(t).map { max(1, Int($0)) } ?? 1
             if t.contains("quincen") { return .weeks(2) }
+            if t.contains("dia") && !t.contains("mensual") { return .days(n) }
             if t.contains("seman") { return .weeks(n) }
             if t.contains("bimest") { return .months(2) }
             if t.contains("trimest") { return .months(3) }
@@ -26,6 +28,8 @@ struct SuscripcionesData: Equatable {
 
         var label: String {
             switch self {
+            case .days(1): "cada día"
+            case .days(let n): "cada \(n) días"
             case .weeks(1): "cada semana"
             case .weeks(let n): "cada \(n) semanas"
             case .months(1): "cada mes"
@@ -50,6 +54,7 @@ struct SuscripcionesData: Equatable {
 
         var monthlyCost: Double {
             switch period {
+            case .days(let n): amount * 365 / 12 / Double(n)
             case .weeks(let n): amount * 52 / 12 / Double(n)
             case .months(let n): amount / Double(n)
             }
@@ -71,8 +76,8 @@ struct SuscripcionesData: Equatable {
             let cal = DayKey.calendar()
             guard anchor < day else { return anchor }
             switch period {
-            case .weeks(let n):
-                let step = 7 * n
+            case .days(let n), .weeks(let n):
+                let step = period == .days(n) ? n : 7 * n
                 let k = (DayKey.days(from: anchor, to: day) + step - 1) / step
                 return DayKey.adding(days: k * step, to: anchor)
             case .months(let n):

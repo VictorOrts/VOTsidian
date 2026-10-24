@@ -125,6 +125,16 @@ enum Module: String, CaseIterable, Identifiable {
     /// Lo que se marca de entrada en el asistente: lo que sirve a casi cualquiera.
     static let suggested: Set<Module> = [.finanzas, .compra, .salud, .personas, .documentos, .objetivos]
 
+    /// Los módulos que ya existían antes de que la app recordara cuáles conocía.
+    static let original: Set<Module> = [.peso, .nutricion, .medicacion, .salud, .finanzas, .casa, .compra, .moda, .mascota, .personas, .documentos, .objetivos]
+
+    /// Módulos que han llegado a la app desde la última vez y que no tienen nota todavía: en una carpeta ya configurada se
+    /// ocultan hasta que se activen a propósito. `known` son los que la app ya conocía (`nil` antes de que los recordara).
+    static func arrivals(known: [String]?, hasNotes: (Module) -> Bool) -> [Module] {
+        let before = known.map { Set($0.compactMap(Module.init)) } ?? original
+        return allCases.filter { !before.contains($0) && !hasNotes($0) }
+    }
+
     /// Módulo al que pertenece una pantalla; `nil` para las de la base, que no se pueden ocultar.
     static func of(_ screen: Screen) -> Module? { allCases.first { $0.screens.contains(screen) } }
 }
@@ -536,6 +546,19 @@ extension Store {
         modulesConfigured = true
         undoStack.removeAll()   // lo recién creado no es un cambio que deshacer
         lastChange = nil
+    }
+
+    /// Oculta los módulos nuevos de una carpeta que ya estaba configurada (y avisa), para que no salgan solos en la barra lateral.
+    /// Una carpeta nueva pasa por el asistente, que ya deja elegir.
+    func registerNewModules(defaults: UserDefaults = .standard) {
+        defer { defaults.set(Module.allCases.map(\.rawValue), forKey: "knownModules") }
+        guard modulesConfigured || !looksNew else { return }
+        let new = Module.arrivals(known: defaults.stringArray(forKey: "knownModules")) { m in
+            m.files.contains { exists(VaultPath.path($0)) || pendingDownloads.contains(VaultPath.path($0)) }
+        }
+        guard !new.isEmpty else { return }
+        hiddenModules.formUnion(new)
+        message = "Módulos nuevos: \(new.map(\.title).joined(separator: ", ")). Actívalos en Ajustes → Módulos si los quieres."
     }
 
     func isVisible(_ s: Screen) -> Bool { Module.of(s).map { !hiddenModules.contains($0) } ?? true }

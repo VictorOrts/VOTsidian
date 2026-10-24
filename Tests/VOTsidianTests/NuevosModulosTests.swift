@@ -14,6 +14,8 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     #expect(P.parse("") == .months(1) && P.parse("Mensual") == .months(1) && P.parse("trimestral") == .months(3))
     #expect(P.parse("Anual") == .months(12) && P.parse("cada 2 años") == .months(24) && P.parse("semestral") == .months(6))
     #expect(P.parse("semanal") == .weeks(1) && P.parse("cada 2 semanas") == .weeks(2) && P.parse("quincenal") == .weeks(2) && P.parse("3") == .months(3))
+    #expect(P.parse("cada 15 días") == .days(15) && P.parse("diaria") == .days(1) && P.parse("cada día") == .days(1))
+    #expect(P.days(15).label == "cada 15 días" && P.days(1).label == "cada día")
     #expect(P.months(12).label == "cada año" && P.weeks(2).label == "cada 2 semanas" && P.months(24).label == "cada 2 años")
 }
 
@@ -30,6 +32,8 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     // anual, semanal y ancla en el futuro
     #expect(item("2025-12-01", .months(12)).next(from: D("2026-10-23")) == D("2026-12-01"))
     #expect(item("2026-10-01", .weeks(2)).next(from: D("2026-10-23")) == D("2026-10-29"))
+    #expect(item("2026-10-01", .days(15)).next(from: D("2026-10-23")) == D("2026-10-31") && item("2026-10-20", .days(15)).next(from: D("2026-10-20")) == D("2026-10-20"))
+    #expect(abs(item("2026-10-01", .days(15), amount: 10).yearlyCost - 243.333) < 0.01)
     #expect(item("2026-12-24", .months(1)).next(from: D("2026-10-23")) == D("2026-12-24"))
     // la prueba va a su fecha; la cancelada no cobra
     #expect(item("2026-11-01", .months(1), .trial).next(from: D("2026-10-23")) == D("2026-11-01"))
@@ -291,4 +295,132 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     #expect(v.trips.map(\.name) == ["Lisboa"] && v.expenses.count == 1 && v.spent(v.trips[0]) == 120)
     let bag = try #require(Edit.appendToSection(gasto, section: "Equipaje", line: "- [ ] Cargador"))
     #expect(Parse.viajes(bag).packing.map(\.text) == ["Cargador"] && Edit.uncheckSection(bag, section: "Equipaje") != nil)
+}
+
+// MARK: Órdenes rápidas
+
+@Test func quickCommandsForBooksAndLoans() {
+    #expect(QuickCommand.parse("libro Dune - Frank Herbert") == .book("Dune", "Frank Herbert"))
+    #expect(QuickCommand.parse("libro Sapiens") == .book("Sapiens", ""))
+    #expect(QuickCommand.parse("libro Ensayo - Con - guiones") == .book("Ensayo", "Con - guiones"))
+    #expect(QuickCommand.parse("terminé Dune") == .finishBook("Dune") && QuickCommand.parse("acabé Sapiens") == .finishBook("Sapiens"))
+    #expect(QuickCommand.parse("cuota Coche") == .loanPayment("Coche"))
+    #expect(QuickCommand.parse("libro") == nil && QuickCommand.parse("cuota") == nil && QuickCommand.parse("libro  ") == nil)
+    #expect(QuickCommand.book("Dune", "Herbert").summary == "Añadir a Lecturas: «Dune» de Herbert" && QuickCommand.finishBook("Dune").summary == "Terminar «Dune» hoy")
+}
+
+@MainActor @Test func quickCommandsRunAgainstTheModules() throws {
+    let store = Store(root: try syntheticVault())
+    #expect(store.run(.book("Cien años de soledad", "García Márquez")).hasPrefix("Añadir a Lecturas"))
+    #expect(store.lecturas.pending.map(\.title).contains("Cien años de soledad"))
+    // termina por nombre exacto o parcial, entre lo que lees y lo pendiente
+    #expect(store.run(.finishBook("hábitos")) == "Terminado: Hábitos atómicos.")
+    #expect(store.lecturas.books.first { $0.title == "Hábitos atómicos" }?.status == .finished)
+    #expect(store.run(.finishBook("no existe")).hasPrefix("No encuentro"))
+    // cuota: apunta el pago y el gasto
+    let month = Budget.monthKey(DayKey.today())
+    let before = store.budget(month)?.moves.count ?? 0
+    #expect(store.run(.loanPayment("coch")).hasPrefix("Cuota de Coche apuntada"))
+    #expect(store.prestamos.payments.count == 3 && store.budget(month)?.moves.count == before + 1)
+    #expect(store.run(.loanPayment("Ana")).hasPrefix("No encuentro"))   // sin cuota no hay qué apuntar
+    // con el módulo oculto no hace nada
+    store.hiddenModules.formUnion([.lecturas, .prestamos])
+    #expect(store.run(.book("X", "")).hasPrefix("Activa primero") && store.run(.loanPayment("Coche")).hasPrefix("Activa primero"))
+}
+
+// MARK: Módulos nuevos en una carpeta ya configurada
+
+@Test func newModulesAreHiddenOnlyWhenNothingExistsYet() {
+    let everything = Module.allCases.map(\.rawValue)
+    // antes de que la app recordara cuáles conocía, se parte de los de siempre
+    #expect(Module.arrivals(known: nil, hasNotes: { _ in false }) == [.suscripciones, .prestamos, .vehiculo, .viajes, .lecturas])
+    #expect(Module.arrivals(known: nil, hasNotes: { $0 == .vehiculo }) == [.suscripciones, .prestamos, .viajes, .lecturas])   // si ya hay nota, se queda
+    #expect(Module.arrivals(known: everything, hasNotes: { _ in false }).isEmpty)
+    #expect(Module.arrivals(known: ["peso", "casa"], hasNotes: { _ in false }).count == Module.allCases.count - 2)
+    #expect(Module.original.count + 5 == Module.allCases.count)
+}
+
+@MainActor @Test func registeringNewModulesHidesAndAnnouncesThemOnce() throws {
+    let suite = "VOTsidianTests-\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    func vault(_ files: [String: String]) throws -> Store {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
+        for (rel, text) in files {
+            let url = dir.appendingPathComponent(rel)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        }
+        return Store(root: dir)
+    }
+    // carpeta ya configurada: los cinco módulos nuevos se ocultan y se avisa, una sola vez
+    let store = try vault([VaultPath.peso: pesoFixture])
+    store.modulesConfigured = true
+    store.registerNewModules(defaults: defaults)
+    #expect(store.hiddenModules == [.suscripciones, .prestamos, .vehiculo, .viajes, .lecturas])
+    #expect(store.message?.hasPrefix("Módulos nuevos: Suscripciones, Préstamos y deudas, Vehículo, Viajes, Lecturas.") == true)
+    #expect(defaults.stringArray(forKey: "knownModules") == Module.allCases.map(\.rawValue))
+    store.message = nil
+    store.hiddenModules = []                      // el usuario los activa
+    store.registerNewModules(defaults: defaults)
+    #expect(store.hiddenModules.isEmpty && store.message == nil)
+    // carpeta nueva sin configurar: lo decide el asistente, no se toca nada
+    let fresh = try vault(["Notas/A.md": "# A\n"])
+    fresh.registerNewModules(defaults: UserDefaults(suiteName: suite + "-2")!)
+    #expect(fresh.hiddenModules.isEmpty && fresh.message == nil)
+    UserDefaults(suiteName: suite + "-2")?.removePersistentDomain(forName: suite + "-2")
+    // carpeta con notas pero sin pasar por el asistente: también se ocultan los que no tienen nota
+    let used = try vault([VaultPath.peso: pesoFixture, VaultPath.vehiculo: vehiculoFixture])
+    used.registerNewModules(defaults: UserDefaults(suiteName: suite + "-3")!)
+    #expect(used.hiddenModules == [.suscripciones, .prestamos, .viajes, .lecturas])
+    UserDefaults(suiteName: suite + "-3")?.removePersistentDomain(forName: suite + "-3")
+}
+
+// MARK: Exportar a CSV
+
+@MainActor @Test func moduleDataIsExportedToCSV() throws {
+    let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
+    let names = Set(try Store(root: try syntheticVault()).exportData(to: out).map(\.lastPathComponent))
+    #expect(names.isSuperset(of: ["vehiculo_fechas.csv", "vehiculo_mantenimiento.csv", "vehiculo_repostajes.csv", "suscripciones.csv", "prestamos.csv",
+                                  "prestamos_pagos.csv", "lecturas.csv", "viajes.csv", "viajes_gastos.csv"]))
+    func csv(_ name: String) throws -> [String] { try String(contentsOf: out.appendingPathComponent(name), encoding: .utf8).components(separatedBy: "\n").filter { !$0.isEmpty } }
+    let susc = try csv("suscripciones.csv")
+    #expect(susc[0] == "servicio,importe_eur,cada,proximo_cobro,partida,estado,coste_mensual_eur,coste_anual_eur" && susc.count == 6)
+    #expect(susc.contains { $0.hasPrefix("Netflix,12.99,cada mes,") && $0.contains(",Suscripciones (música y nube),activa,") } && susc.contains { $0.hasPrefix("Gimnasio,40,cada mes,,,cancelada,") })
+    #expect(try csv("prestamos.csv").contains("Coche,6000,500,15,,Préstamo personal,1000,5000") && csv("prestamos.csv").contains("Ana,200,0,,,,0,200"))
+    #expect(try csv("prestamos_pagos.csv") == ["fecha,prestamo,importe_eur", "2026-08-15,Coche,500", "2026-09-15,Coche,500"])
+    let books = try csv("lecturas.csv")
+    #expect(books.count == 4 && books.contains { $0.hasPrefix("Dune,Frank Herbert,terminado,") && $0.hasSuffix(",4,600") } && books.contains { $0.hasPrefix("Sapiens,Yuval Harari,pendiente,,,,") })
+    #expect(try csv("viajes.csv").contains { $0.hasPrefix("Lisboa,") && $0.hasSuffix(",800,120,Reservado") } && csv("viajes_gastos.csv").count == 2)
+    #expect(try csv("vehiculo_repostajes.csv") == ["fecha,km,litros,importe_eur", "2026-09-01,113600,40,62", "2026-09-20,114100,30,47.4"])
+    #expect(try csv("vehiculo_mantenimiento.csv")[1] == "2026-01-10,100000,Aceite y filtros,Taller Pepe,180,15000,12")
+    // sin datos de esos módulos no se crea ningún archivo vacío
+    let empty = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
+    let bare = try Store(root: try syntheticVault()).exportData(to: empty).map(\.lastPathComponent)
+    #expect(bare.contains("peso.csv"))
+    let plain = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
+    try FileManager.default.createDirectory(at: plain, withIntermediateDirectories: true)
+    try "# A\n".write(to: plain.appendingPathComponent("A.md"), atomically: true, encoding: .utf8)
+    let none = Set(try Store(root: plain).exportData(to: FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")).map(\.lastPathComponent))
+    #expect(none.isDisjoint(with: ["suscripciones.csv", "prestamos.csv", "lecturas.csv", "viajes.csv", "vehiculo_repostajes.csv"]))
+}
+
+// MARK: Inicio y avisos dentro de las pantallas
+
+@Test func homeCardsFollowTheirModules() {
+    #expect(HomeCard.vehiculo.module == .vehiculo && HomeCard.suscripciones.module == .suscripciones && HomeCard.prestamos.module == .prestamos)
+    #expect(HomeCard.viajes.module == .viajes && HomeCard.lecturas.module == .lecturas)
+    // una carpeta con la disposición guardada de antes recibe las tarjetas nuevas al final y visibles (si su módulo está oculto, no salen)
+    let old = HomeLayout(raw: "atencion:1,hoy:1,peso:0")
+    #expect(old.items.count == HomeCard.allCases.count && old.items.suffix(5).map(\.card) == [.vehiculo, .suscripciones, .prestamos, .viajes, .lecturas] && old.items.suffix(5).allSatisfy(\.visible))
+}
+
+@MainActor @Test func moduleAlertsStayPlainInsideTheirOwnScreen() throws {
+    // sin adónde ir, el aviso no es un botón ni lleva flecha; con ello (Inicio, Avisos), sí
+    let store = Store(root: try syntheticVault())
+    let alerts = store.suscripcionAlerts()
+    #expect(!alerts.isEmpty)
+    let inside = AlertList(alerts: alerts, emptyText: "Nada")
+    let outside = AlertList(alerts: alerts, go: { _ in })
+    #expect(inside.go == nil && outside.go != nil && inside.emptyText == "Nada")
 }

@@ -26,8 +26,7 @@ struct ViajesView: View {
                 }
                 Card(title: "Avisos", icon: "bell", info: "Avisa cuando un viaje está a menos de 30 días, si te pasas del presupuesto y si el pasaporte de Documentos caduca menos de 6 meses después de salir.") {
                     let alerts = store.viajeAlerts(today: today)
-                    AlertList(alerts: alerts, go: { _ in })
-                    if alerts.isEmpty { EmptyNote("Todo en orden.", icon: "checkmark.circle") }
+                    AlertList(alerts: alerts, emptyText: "Todo en orden.")
                 }
                 Card(title: "Viajes", icon: "airplane") {
                     if upcoming.isEmpty { EmptyNote("Añade tu próximo viaje abajo.", icon: "airplane") }

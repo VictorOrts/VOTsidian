@@ -63,7 +63,7 @@ extension Store {
             diaryDays: notes.filter { $0.path.hasPrefix("Diario/") && (DayKey.date($0.name).map(inYear) ?? false) }.count)
     }
 
-    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, ánimo y sueño) y un resumen. Devuelve los archivos creados.
+    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, vehículo, suscripciones, préstamos, viajes, lecturas, ánimo y sueño) y un resumen. Devuelve los archivos creados.
     @discardableResult
     func exportData(to dir: URL) throws -> [URL] {
         let fm = FileManager.default
@@ -103,6 +103,7 @@ extension Store {
             }
             try write("resumen_partidas.csv", CSV.file(["año", "partida", "tipo", "previsto_eur", "gastado_eur"], rows))
         }
+        try exportModules(write)
         var diary: [[String]] = []
         for n in notes where n.path.hasPrefix("Diario/") {
             guard let d = DayKey.date(n.name) else { continue }
@@ -196,5 +197,45 @@ enum PDFExport {
             pdf.endPDFPage()
             pdf.closePDF()
         }
+    }
+}
+
+extension Store {
+    /// Los CSV de los módulos de vehículo, suscripciones, préstamos, viajes y lecturas; solo los que tienen datos.
+    fileprivate func exportModules(_ write: (String, String) throws -> Void) throws {
+        func date(_ d: Date?) -> String { d.map(DayKey.string) ?? "" }
+        let v = vehiculo
+        if !v.dues.isEmpty { try write("vehiculo_fechas.csv", CSV.file(["que", "vence"], v.dues.map { [$0.name, DayKey.string($0.date)] })) }
+        if !v.services.isEmpty {
+            try write("vehiculo_mantenimiento.csv", CSV.file(["fecha", "km", "que", "taller", "coste_eur", "cada_km", "cada_meses"],
+                                                             v.services.map { [DayKey.string($0.date), CSV.num($0.km), $0.what, $0.shop, CSV.num($0.cost), CSV.num($0.everyKm), $0.everyMonths.map(String.init) ?? ""] }))
+        }
+        if !v.refuels.isEmpty {
+            try write("vehiculo_repostajes.csv", CSV.file(["fecha", "km", "litros", "importe_eur"], v.refuels.map { [DayKey.string($0.date), CSV.num($0.km), CSV.num($0.liters), CSV.num($0.amount)] }))
+        }
+        let s = suscripciones
+        if !s.items.isEmpty {
+            let state: [SuscripcionesData.Status: String] = [.active: "activa", .trial: "prueba", .cancelled: "cancelada"]
+            try write("suscripciones.csv", CSV.file(["servicio", "importe_eur", "cada", "proximo_cobro", "partida", "estado", "coste_mensual_eur", "coste_anual_eur"],
+                                                    s.items.map { [$0.name, CSV.num($0.amount), $0.period.label, date($0.next()), $0.category, state[$0.status] ?? "", CSV.num($0.monthlyCost), CSV.num($0.yearlyCost)] }))
+        }
+        let p = prestamos
+        if !p.loans.isEmpty {
+            try write("prestamos.csv", CSV.file(["prestamo", "pendiente_inicial_eur", "cuota_eur", "dia", "hasta", "partida", "pagado_eur", "queda_eur"],
+                                                p.statuses().map { [$0.loan.name, CSV.num($0.loan.initial), CSV.num($0.loan.installment), $0.loan.day.map(String.init) ?? "", date($0.loan.until), $0.loan.category, CSV.num($0.paid), CSV.num($0.remaining)] }))
+        }
+        if !p.payments.isEmpty { try write("prestamos_pagos.csv", CSV.file(["fecha", "prestamo", "importe_eur"], p.payments.map { [DayKey.string($0.date), $0.loan, CSV.num($0.amount)] })) }
+        let l = lecturas
+        if !l.books.isEmpty {
+            let state: [LecturasData.Status: String] = [.pending: "pendiente", .reading: "leyendo", .finished: "terminado", .dropped: "abandonado"]
+            try write("lecturas.csv", CSV.file(["titulo", "autor", "estado", "empezado", "terminado", "nota", "paginas"],
+                                               l.books.map { [$0.title, $0.author, state[$0.status] ?? "", date($0.started), date($0.finished), $0.rating.map(String.init) ?? "", $0.pages.map(String.init) ?? ""] }))
+        }
+        let t = viajes
+        if !t.trips.isEmpty {
+            try write("viajes.csv", CSV.file(["destino", "salida", "vuelta", "presupuesto_eur", "gastado_eur", "estado"],
+                                             t.trips.map { [$0.name, date($0.start), date($0.end), CSV.num($0.budget), CSV.num(t.spent($0)), $0.status] }))
+        }
+        if !t.expenses.isEmpty { try write("viajes_gastos.csv", CSV.file(["fecha", "viaje", "concepto", "importe_eur"], t.expenses.map { [DayKey.string($0.date), $0.trip, $0.concept, CSV.num($0.amount)] })) }
     }
 }

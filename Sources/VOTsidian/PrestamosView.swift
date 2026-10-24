@@ -26,8 +26,7 @@ struct PrestamosView: View {
                 }
                 Card(title: "Avisos", icon: "bell", info: "Avisa 3 días antes de la cuota si aún no la has apuntado este mes.") {
                     let alerts = store.prestamoAlerts(today: today)
-                    AlertList(alerts: alerts, go: { _ in })
-                    if alerts.isEmpty { EmptyNote("No hay cuotas cerca.", icon: "checkmark.circle") }
+                    AlertList(alerts: alerts, emptyText: "No hay cuotas cerca.")
                 }
                 if statuses.isEmpty {
                     Card(title: "Préstamos y deudas", icon: "creditcard.and.123") {

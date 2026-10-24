@@ -134,7 +134,7 @@ extension Store {
         for t in viajes.upcoming(today: today) {
             if let s = t.start {
                 let n = DayKey.days(from: today, to: s)
-                if n > 0, n <= 30 { out.append(Alert(level: n <= 7 ? .soon : .info, icon: "airplane", text: "Viaje a \(t.name) \(relativeDays(n))", screen: .viajes)) }
+                if n >= 0, n <= 30 { out.append(Alert(level: n <= 7 ? .soon : .info, icon: "airplane", text: "Viaje a \(t.name) \(relativeDays(n))", screen: .viajes)) }
                 if n >= 0, n <= 180, let limit = DayKey.calendar().date(byAdding: .month, value: 6, to: s),
                    let p = passports.first(where: { $0.date < limit }) {
                     out.append(Alert(level: .soon, icon: "airplane", text: "El pasaporte caduca el \(DayKey.dmy(p.date)), menos de 6 meses después de salir a \(t.name)", screen: .viajes))

@@ -227,6 +227,7 @@ final class Store {
         reload()
         if root == nil {
             removeStaleStaging()
+            registerNewModules()
             startWatching()
             startDailyBackup()
             Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in

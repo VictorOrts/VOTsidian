@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Orden y visibilidad de las tarjetas de Inicio. Se guarda como «id:1,id:0,…» (1 visible, 0 oculta).
 enum HomeCard: String, CaseIterable, Identifiable {
-    case atencion, hoy, peso, medicacion, tareas, habitos, mascota, nutricion, gastos
+    case atencion, hoy, peso, medicacion, tareas, habitos, mascota, nutricion, gastos, vehiculo, suscripciones, prestamos, viajes, lecturas
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -16,6 +16,11 @@ enum HomeCard: String, CaseIterable, Identifiable {
         case .mascota: "Mascota"
         case .nutricion: "Plan nutricional"
         case .gastos: "Gastos"
+        case .vehiculo: "Vehículo"
+        case .suscripciones: "Suscripciones"
+        case .prestamos: "Préstamos y deudas"
+        case .viajes: "Viajes"
+        case .lecturas: "Lecturas"
         }
     }
     var full: Bool { self == .atencion || self == .hoy }
@@ -27,6 +32,11 @@ enum HomeCard: String, CaseIterable, Identifiable {
         case .mascota: .mascota
         case .nutricion: .nutricion
         case .gastos: .finanzas
+        case .vehiculo: .vehiculo
+        case .suscripciones: .suscripciones
+        case .prestamos: .prestamos
+        case .viajes: .viajes
+        case .lecturas: .lecturas
         default: nil
         }
     }
@@ -219,6 +229,11 @@ struct InicioView: View {
             case .mascota: mascotaCard
             case .nutricion: nutritionCard
             case .gastos: gastosCard
+            case .vehiculo: vehiculoCard
+            case .suscripciones: suscripcionesCard
+            case .prestamos: prestamosCard
+            case .viajes: viajesCard
+            case .lecturas: lecturasCard
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -240,7 +255,7 @@ struct InicioView: View {
             Text("Ocultas:").foregroundStyle(.secondary)
             if hidden.isEmpty { Text("ninguna").foregroundStyle(.secondary) }
             ForEach(hidden) { c in
-                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c == .medicacion ? store.medicacion.name : c == .mascota ? store.mascota.name : c.title, systemImage: "eye") }.controlSize(.small)
+                Button { var l = layout; l.setVisible(c, true); layoutRaw = l.raw } label: { Label(c == .medicacion ? store.medicacion.name : c == .mascota ? store.mascota.name : c == .vehiculo ? store.vehiculo.name : c.title, systemImage: "eye") }.controlSize(.small)
             }
             Spacer()
             Button("Restablecer orden") { layoutRaw = "" }.controlSize(.small)
@@ -393,6 +408,89 @@ struct InicioView: View {
             }
             if n.overdue.isEmpty && n.upcoming.isEmpty { Label("Sin citas ni vacunas programadas", systemImage: "checkmark.seal").foregroundStyle(.secondary) }
             if let last = n.visits.last { Text("Último registro: \(DayKey.dmy(last.date)) · \(last.tipo)").font(.callout).foregroundStyle(.secondary) }
+        }
+    }
+
+    // MARK: Vehículo, dinero, viajes y lecturas
+
+    private var vehiculoCard: some View {
+        let v = store.vehiculo
+        let today = DayKey.today()
+        let alerts = store.vehiculoAlerts(today: today)
+        return Card(title: v.name, icon: "car", actionTitle: "Abrir", action: { go(.vehiculo) }) {
+            if let km = v.currentKm { Label(Vehiculo.kmText(km), systemImage: "gauge.with.dots.needle.50percent") }
+            ForEach(alerts.prefix(3)) { a in
+                Label(a.text.replacingOccurrences(of: "\(v.name): ", with: ""), systemImage: a.level == .urgent ? "exclamationmark.triangle.fill" : "calendar")
+                    .foregroundStyle(a.level == .urgent ? Brand.warn : .primary)
+            }
+            if alerts.isEmpty {
+                if let d = v.dues.first(where: { $0.date >= today }) {
+                    Label("\(d.name): \(DayKey.dmy(d.date)) (\(relativeDays(DayKey.days(from: today, to: d.date))))", systemImage: "calendar").foregroundStyle(.secondary)
+                } else { Label("Sin fechas ni mantenimiento pendientes", systemImage: "checkmark.seal").foregroundStyle(.secondary) }
+            }
+        }
+    }
+
+    private var suscripcionesCard: some View {
+        let s = store.suscripciones
+        let today = DayKey.today()
+        return Card(title: "Suscripciones", icon: "repeat", actionTitle: "Abrir", action: { go(.suscripciones) }) {
+            if s.items.isEmpty { Label("Aún no hay ninguna", systemImage: "tray").foregroundStyle(.secondary) } else {
+                HStack(spacing: 22) {
+                    macro("al mes", Money.format(s.monthlyTotal), Brand.violet)
+                    macro("al año", Money.format(s.yearlyTotal), Brand.info)
+                }
+                ForEach(s.upcoming(today: today).prefix(3), id: \.item.id) { entry in
+                    Label("\(entry.item.name): \(Money.exact(entry.item.amount)) \(relativeDays(DayKey.days(from: today, to: entry.date)))", systemImage: entry.item.status == .trial ? "hourglass" : "calendar")
+                        .foregroundStyle(entry.item.status == .trial ? Brand.warn : .primary)
+                }
+            }
+        }
+    }
+
+    private var prestamosCard: some View {
+        let p = store.prestamos
+        let today = DayKey.today()
+        let open = p.statuses(today: today).filter { !$0.isPaidOff }
+        return Card(title: "Préstamos y deudas", icon: "creditcard.and.123", actionTitle: "Abrir", action: { go(.prestamos) }) {
+            if open.isEmpty { Label(p.loans.isEmpty ? "Aún no hay ninguno" : "Todo pagado", systemImage: p.loans.isEmpty ? "tray" : "checkmark.seal").foregroundStyle(.secondary) } else {
+                HStack(spacing: 22) {
+                    macro("debes", Money.format(p.totalRemaining(today: today)), Brand.bad)
+                    macro("cuotas al mes", Money.format(p.monthlyInstallments(today: today)), Brand.amber)
+                }
+                ForEach(open.prefix(3)) { s in
+                    Label(s.loan.name + (s.nextDue.map { ": cuota \(relativeDays(DayKey.days(from: today, to: $0)))" } ?? ": quedan \(Money.exact(s.remaining))"), systemImage: s.missed ? "exclamationmark.triangle.fill" : "calendar")
+                        .foregroundStyle(s.missed ? Brand.warn : .primary)
+                }
+            }
+        }
+    }
+
+    private var viajesCard: some View {
+        let v = store.viajes
+        let today = DayKey.today()
+        let trips = v.upcoming(today: today)
+        return Card(title: "Viajes", icon: "airplane", actionTitle: "Abrir", action: { go(.viajes) }) {
+            if trips.isEmpty { Label("Ningún viaje por venir", systemImage: "tray").foregroundStyle(.secondary) }
+            ForEach(trips.prefix(3)) { t in
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(t.name + (t.start.map { v.isOngoing(t, today: today) ? " · en curso" : " · \(relativeDays(DayKey.days(from: today, to: $0)))" } ?? ""), systemImage: "airplane.departure")
+                    if t.budget > 0 { Text("\(Money.exact(v.spent(t))) de \(Money.exact(t.budget))").font(.callout).foregroundStyle(v.spent(t) > t.budget ? Brand.bad : .secondary) }
+                }
+            }
+        }
+    }
+
+    private var lecturasCard: some View {
+        let l = store.lecturas
+        let year = DayKey.calendar().component(.year, from: DayKey.today())
+        let done = l.finished(in: year).count
+        return Card(title: "Lecturas", icon: "book", actionTitle: "Abrir", action: { go(.lecturas) }) {
+            if l.books.isEmpty { Label("Aún no hay libros", systemImage: "tray").foregroundStyle(.secondary) } else {
+                Label(l.goal > 0 ? "\(done) de \(l.goal) este año" : "\(plural(done, "libro", "libros")) este año", systemImage: "checkmark.seal")
+                if l.goal > 0 { ProgressView(value: Double(min(done, l.goal)), total: Double(l.goal)).tint(Brand.accent) }
+                ForEach(l.reading.prefix(2)) { b in Label(b.title, systemImage: "book").foregroundStyle(.secondary) }
+            }
         }
     }
 

@@ -13,6 +13,9 @@ enum QuickCommand: Equatable {
     case measure(String, Double, Date)
     case shopping([String])
     case expense(ExpenseParser.Result)
+    case book(String, String)                    // título, autor
+    case finishBook(String)
+    case loanPayment(String)
 
     /// Lo que va a hacer, para enseñarlo antes de ejecutarlo.
     var summary: String {
@@ -29,6 +32,9 @@ enum QuickCommand: Equatable {
         case .appointment(let t, let d): return "Cita «\(t)» el \(day(d))"
         case .measure(let f, let v, let d): return "Medida de \(f.lowercased()): \(MD.formatNumber(v, comma: true)) (\(day(d)))"
         case .shopping(let items): return "Añadir a la compra: \(items.joined(separator: ", "))"
+        case .book(let t, let a): return "Añadir a Lecturas: «\(t)»" + (a.isEmpty ? "" : " de \(a)")
+        case .finishBook(let t): return "Terminar «\(t)» hoy"
+        case .loanPayment(let t): return "Apuntar la cuota de «\(t)»"
         case .expense(let p):
             return (p.amount < 0 ? "Devolución de \(Money.exact(-p.amount))" : "Gasto de \(Money.exact(p.amount))") + (p.category.map { " en \($0)" } ?? "") + (p.note.isEmpty ? "" : " · \(p.note)") + " (\(day(p.date)))"
         }
@@ -93,6 +99,12 @@ enum QuickCommand: Equatable {
             let items = arg.replacingOccurrences(of: " y ", with: ",").split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             return items.isEmpty ? nil : .shopping(items)
+        case "libro":
+            let parts = arg.components(separatedBy: " - ").map { $0.trimmingCharacters(in: .whitespaces) }
+            guard let title = parts.first, !title.isEmpty else { return nil }
+            return .book(title, parts.dropFirst().joined(separator: " - "))
+        case "termine", "terminado", "acabe", "lei": return .finishBook(arg)
+        case "cuota": return .loanPayment(arg)
         default:
             if let field = measureFields[verb], let (v, d) = numberAndDate(), v > 0 { return .measure(field, v, d) }
             return nil

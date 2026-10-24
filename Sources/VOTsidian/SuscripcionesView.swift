@@ -29,8 +29,7 @@ struct SuscripcionesView: View {
                 Card(title: "Avisos", icon: "bell",
                      info: "Avisa 7 días antes de cada renovación (14 si es anual) y cuando una prueba está a punto de acabar.") {
                     let alerts = store.suscripcionAlerts(today: today)
-                    AlertList(alerts: alerts, go: { _ in })
-                    if alerts.isEmpty { EmptyNote("Nada se renueva pronto.", icon: "checkmark.circle") }
+                    AlertList(alerts: alerts, emptyText: "Nada se renueva pronto.")
                 }
                 Card(title: "Próximos cobros", icon: "repeat",
                      info: "«Apuntar en Gastos» añade el cobro de hoy al mes, en la partida de la fila o en la que adivine Gastos.") {
