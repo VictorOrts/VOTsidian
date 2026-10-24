@@ -100,7 +100,7 @@ struct PropertyField: View {
         }
         .autosave(on: text, delay: 2) { if text != current { store.setProperty(file, key: key, value: text, quiet: true) } }
         .onAppear { text = current; seen = current }
-        .onChange(of: store.revision) {
+        .onChange(of: current) {
             // Solo se actualiza si no estás escribiendo algo distinto.
             if text == seen { text = current }
             seen = current

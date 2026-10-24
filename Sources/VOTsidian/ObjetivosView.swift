@@ -58,6 +58,6 @@ struct LineField: View {
         }
         .autosave(on: value, delay: 2) { if value != current { store.edit(file, quiet: true) { Edit.setValue($0, after: marker, value: value) } } }
         .onAppear { value = current; seen = current }
-        .onChange(of: store.revision) { if value == seen { value = current }; seen = current }
+        .onChange(of: current) { if value == seen { value = current }; seen = current }
     }
 }

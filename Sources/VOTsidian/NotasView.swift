@@ -156,10 +156,10 @@ struct NotasView: View {
         }
         .autosave(on: draft) { autosaveNote() }
         .onChange(of: store.pendingNote) { consumePending() }
-        .onChange(of: store.revision) {
+        .onChange(of: selected.map { store.read($0) } ?? "") {
             if let p = selected, !dirty { let disk = store.read(p); draft = disk; baseline = disk }
         }
-        .task(id: "\(selected ?? "")-\(store.revision)") {
+        .task(id: "\(selected ?? "")-\(store.textsVersion)") {
             if let p = selected, mode == .leer { mentions = store.unlinkedMentions(of: p) } else { mentions = [] }
         }
         .sheet(item: $rowSpec) { RowSheet(spec: $0) }
@@ -258,7 +258,7 @@ struct NotasView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
                             tagChips(path)
-                            NoteBody(text: store.read(path), actions: actions(path)).id("\(path)-\(store.revision)")
+                            NoteBody(text: store.read(path), actions: actions(path)).id(path)
                             linksPanel(path)
                         }
                         .padding(24).frame(maxWidth: 820, alignment: .leading).frame(maxWidth: .infinity)
@@ -503,7 +503,7 @@ struct NotasView: View {
                 ForEach(incoming, id: \.self) { p in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small).notePreview(p)
-                        if let c = LinkContext.line(in: store.noteTexts[p] ?? store.read(p), linkingTo: name(path)) {
+                        if let c = LinkContext.line(in: store.read(p), linkingTo: name(path)) {
                             Text(c).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                         }
                     }

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Lista de la compra y órdenes rápidas
 
 extension Store {
-    var shoppingItems: [ShoppingItem] { Shopping.parse(noteTexts[Shopping.file] ?? "") }
+    var shoppingItems: [ShoppingItem] { Shopping.parse(read(Shopping.file)) }
     var shoppingExists: Bool { FileManager.default.fileExists(atPath: url(Shopping.file).path) }
 
     func ensureShoppingList() {

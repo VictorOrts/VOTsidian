@@ -1,6 +1,6 @@
 import Foundation
 
-struct Alert: Identifiable {
+struct Alert: Identifiable, Equatable {
     enum Level: Int { case urgent = 0, soon = 1, info = 2 }
     /// Lo que se puede resolver desde el propio aviso, sin ir a la pantalla.
     enum Action: Equatable {

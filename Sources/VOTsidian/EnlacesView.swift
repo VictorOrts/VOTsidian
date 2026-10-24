@@ -46,7 +46,7 @@ struct EnlacesView: View {
             .readableWidth()
         }
         .navigationTitle("Enlaces rotos")
-        .task(id: store.revision) {
+        .task(id: store.linksVersion &+ store.notes.count &* 31) {
             broken = store.brokenLinks()
             isolated = store.isolatedNotes()
         }

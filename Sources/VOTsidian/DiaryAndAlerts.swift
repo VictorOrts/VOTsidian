@@ -47,7 +47,7 @@ struct DiaryNumberField: View {
                 if text != seen { save(on: old) }
                 text = current; seen = current
             }
-            .onChange(of: store.revision) { if text == seen { text = current }; seen = current }
+            .onChange(of: current) { if text == seen { text = current }; seen = current }
             .onSubmit { save(on: day) }
             .autosave(on: text) { if text != current { save(on: day) } }
     }

@@ -120,7 +120,7 @@ struct MesView: View {
         .navigationTitle("Revisión mensual")
         .onAppear { if offset == 0, store.monthReview(key) == nil { store.createMonthReview(key: key, monthStart: start) }; load() }
         .onChange(of: key) { load() }
-        .onChange(of: store.revision) { if draft == base { load() } }
+        .onChange(of: store.read(store.monthReviewFile(key))) { if draft == base { load() } }
         .onChange(of: draft) { if draft != base { saved = false } }
         .autosave(on: draft) { if draft != base, store.monthReview(key) != nil { saveMonth(quiet: true) } }
     }

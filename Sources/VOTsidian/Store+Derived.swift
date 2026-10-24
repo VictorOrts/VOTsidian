@@ -133,7 +133,7 @@ extension Store {
         // La copia (y el cifrado) corren fuera del hilo principal; la carpeta o el .dmg aparece al terminar.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let ok = Store.makeBackup(from: src, to: dest, password: password)
-            if !ok { DispatchQueue.main.async { self?.message = "No se pudo crear la copia." } }
+            DispatchQueue.main.async { if !ok { self?.message = "No se pudo crear la copia." }; self?.backupsStamp += 1 }
         }
         return dest
     }

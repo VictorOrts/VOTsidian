@@ -267,7 +267,7 @@ struct InicioView: View {
     }
 
     @ViewBuilder private var attention: some View {
-        let list = store.alerts()
+        let list = store.currentAlerts
         Card(title: list.isEmpty ? "Todo al día" : "Atención", icon: list.isEmpty ? "checkmark.seal" : "bell.badge") {
             AlertList(alerts: list, limit: 6, go: go)
         }

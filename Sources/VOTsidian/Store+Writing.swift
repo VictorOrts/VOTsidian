@@ -34,6 +34,7 @@ extension Store {
 
     /// Al terminar una copia automática: si falló se avisa (Avisos e Inicio); si fue bien se quitan las viejas.
     func backupFinished(ok: Bool, day: String) {
+        defer { backupsStamp += 1; refreshPublished() }
         if ok {
             backupFailure = nil
             pruneAutoBackups()
@@ -172,6 +173,7 @@ extension Store {
         let all = autoBackups()
         guard all.count > keep else { return }
         for u in all.prefix(all.count - keep) { try? FileManager.default.removeItem(at: u) }
+        if all.count > keep { backupsStamp += 1 }
     }
 
     /// Mueve a la carpeta de copias las que se hicieron antes sueltas en Documentos.

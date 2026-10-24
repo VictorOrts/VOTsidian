@@ -63,7 +63,7 @@ struct RemindersView: View {
         let events = ICS.events(store.reminderSources(), plan: store.reminderPlan(plan))
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                let now = store.alerts()
+                let now = store.currentAlerts
                 Card(title: now.isEmpty ? "Todo al día" : "Ahora mismo", icon: now.isEmpty ? "checkmark.seal" : "bell.badge",
                      info: "Lo que pide atención hoy, de más a menos urgente. Pulsa un aviso para ir a su pantalla; algunos se resuelven con su botón.") {
                     AlertList(alerts: now, go: { store.screen = $0 })

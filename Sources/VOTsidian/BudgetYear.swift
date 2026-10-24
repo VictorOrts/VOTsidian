@@ -149,6 +149,7 @@ extension Store {
     /// Se calcula una vez por recarga (y por mes de hoy: el mes en curso y los previstos dependen de él).
     func budgetYear(_ year: Int) -> BudgetYear {
         let today = DayKey.today(), key = "\(year)|\(Budget.monthKey(today))"
+        for m in 1...12 { touch(budgetPath(String(format: "%04d-%02d", year, m))) }   // depende de las notas de sus meses
         if let y = budgetYearCache[key] { return y }
         let y = BudgetYear(year: year, budgets: budgetMonths.filter { $0.hasPrefix("\(year)-") }.compactMap { budget($0) }, today: today)
         budgetYearCache[key] = y

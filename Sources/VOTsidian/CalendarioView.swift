@@ -63,7 +63,7 @@ struct CalendarioView: View {
         .onAppear { loadNote() }
         .onDisappear { saveNote() }
         .autosave(on: noteDraft) { saveNote(quiet: true) }
-        .onChange(of: store.revision) { if noteDraft == noteBase { loadNote() } }
+        .onChange(of: store.read(Store.diaryPath(selected))) { if noteDraft == noteBase { loadNote() } }
     }
 
     // MARK: Rejilla

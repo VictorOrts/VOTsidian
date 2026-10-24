@@ -155,7 +155,7 @@ struct BackupsList: View {
             if working { ProgressView("Restaurando…").controlSize(.small) }
             if !result.isEmpty { Text(result).font(.callout).foregroundStyle(.secondary).textSelection(.enabled) }
         }
-        .task(id: store.revision) { entries = store.backupEntries() }
+        .task(id: store.backupsStamp) { entries = store.backupEntries() }
         .confirmationDialog("¿Restaurar la copia «\(restoring?.label ?? "")»?", isPresented: Binding(get: { restoring != nil }, set: { if !$0 { restoring = nil } })) {
             Button("Restaurar", role: .destructive) {
                 guard let b = restoring else { return }

@@ -62,6 +62,10 @@ extension Store {
 
     /// Todo lo que cae en cada día del rango: tareas, citas, pinchazos, pesajes, cumpleaños, caducidades…
     func agenda(from start: Date, to end: Date) -> [String: [AgendaItem]] {
+        // Aunque la caché acierte, quien pinta la agenda depende de todo lo que sale en ella (cada uno solo avisa si cambia).
+        _ = (tasks, weight, medicacion, mascota, people, documents, events, noteMeta, notes, casa, hiddenModules)
+        _ = (vehiculo, suscripciones, prestamos, lecturas, viajes, tramites)
+        touch(VaultPath.moda)
         let cacheKey = "\(Int(start.timeIntervalSince1970))-\(Int(end.timeIntervalSince1970))"
         if let hit = agendaCache[cacheKey] { return hit }
         let result = buildAgenda(from: start, to: end)
