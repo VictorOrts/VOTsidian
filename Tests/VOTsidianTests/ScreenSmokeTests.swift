@@ -69,6 +69,10 @@ import Testing
     }
     try render("Cierre", CierreSheet(), size: CGSize(width: 660, height: 500))
     try render("Empezar", EmpezarSheet(), size: CGSize(width: 660, height: 560))
+    if let t = store.tasks.first(where: { !$0.done }) {
+        try render("Ficha de tarea", EventPanel(event: EventRef(id: "t\(t.id)", title: t.text, kind: .task, date: DayKey.today(), minutes: 600, task: t)) {}, size: CGSize(width: 380, height: 360))
+    }
+    try render("Ficha fija", EventPanel(event: EventRef(id: "b", title: "Cumpleaños de Ana", kind: .birthday, date: DayKey.today(), screen: .personas)) {}, size: CGSize(width: 380, height: 200))
     try render("Captura", QuickAddSheet(), size: CGSize(width: 460, height: 300))
     try render("Palette", CommandPalette(), size: CGSize(width: 680, height: 500))
     try render("MenuBar", MenuBarPanel(), size: CGSize(width: 340, height: 600))

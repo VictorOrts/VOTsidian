@@ -261,6 +261,7 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         ("completar", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.setTask(t, done: true) } }),
         ("poner hora", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.schedule(t, on: day, at: 10 * 60) } }),
         ("duración", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.setDuration(t, 45) } }),
+        ("ficha de tarea", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { var d = TaskDraft(t); d.text = "otra"; d.duration = 30; d.muted = true; s.save(d, for: t) } }),
         ("repartir el día", { s in s.addTask("sin hora", due: day); s.autoSchedule(s.dayPlan(day), from: 0, until: 24 * 60) }),
         ("idea", { $0.addIdea("una idea") }),
         ("diario", { $0.appendToDiary(day, text: "hoy") }),

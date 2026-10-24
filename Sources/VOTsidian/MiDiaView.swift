@@ -20,16 +20,19 @@ struct HourLabels: View {
 }
 
 /// Un día de 0 a 24 h con sus bloques. Soltar una tarea encima le pone esa hora (en franjas de 15 minutos); los bloques de
-/// tareas se arrastran a otra hora y se estiran por el borde de abajo.
+/// tareas se arrastran a otra hora y se estiran por el borde de abajo. Un clic selecciona un bloque (`onSelect`, que abre su
+/// ficha); el doble clic, además, lleva el cursor al texto; un clic en un hueco quita la selección.
 struct TimelineColumn: View {
     @Environment(Store.self) private var store
     let day: Date
     let blocks: [TimeBlock]
     var compact = false
+    var selected: String? = nil
+    /// El bloque pulsado (`nil` en un hueco) y si fue doble clic.
+    var onSelect: (TimeBlock?, Bool) -> Void = { _, _ in }
     @State private var targeted = false
     /// Duración mientras se estira un bloque, antes de soltar.
     @State private var stretching: (id: String, minutes: Int)?
-    @State private var editing: TaskItem?
 
     var body: some View {
         let cols = DayPlan.columns(blocks)
@@ -56,12 +59,12 @@ struct TimelineColumn: View {
         .frame(height: hourHeight * 24)
         .background(targeted ? Brand.accent.opacity(0.08) : .clear)
         .contentShape(Rectangle())
+        .onTapGesture { if selected != nil { onSelect(nil, false) } }
         .dropDestination(for: String.self) { ids, location in
             guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }) else { return false }
             store.schedule(t, on: day, at: DayPlan.snap(Double(location.y) / hourHeight * 60))
             return true
         } isTargeted: { targeted = $0 }
-        .sheet(item: $editing) { TaskSheet(task: $0) }
     }
 
     @ViewBuilder private func block(_ b: TimeBlock, minutes: Int) -> some View {
@@ -98,17 +101,20 @@ struct TimelineColumn: View {
         .background(b.kind.color.opacity(b.done ? 0.08 : 0.18), in: shape)
         .overlay(alignment: .leading) { Rectangle().fill(b.kind.color).frame(width: 3).clipShape(shape) }
         .clipShape(shape)
+        .overlay { if selected == b.id { shape.stroke(Brand.accent, lineWidth: 2) } }
         .help(b.title + (b.detail.isEmpty ? "" : " · \(b.detail)"))
+        // El clic simple selecciona al momento (sin esperar a ver si es doble); el doble, además, lleva al texto.
+        let tappable = content
+            .onTapGesture(count: 2) { onSelect(b, true) }
+            .simultaneousGesture(TapGesture().onEnded { onSelect(b, false) })
         if let t = b.task, b.movable {
-            content
+            tappable
                 .overlay(alignment: .bottom) { stretchHandle(b, task: t) }
                 .draggable(t.id)
-                .contextMenu { taskMenu(t) }
-                .onTapGesture(count: 2) { editing = t }
+                .contextMenu { taskMenu(t, block: b) }
         } else {
-            content
-                .contextMenu { if let t = b.task { taskMenu(t) } }
-                .onTapGesture { open(b) }
+            tappable
+                .contextMenu { if let t = b.task { taskMenu(t, block: b) } }
         }
     }
 
@@ -126,7 +132,7 @@ struct TimelineColumn: View {
             )
     }
 
-    @ViewBuilder private func taskMenu(_ t: TaskItem) -> some View {
+    @ViewBuilder private func taskMenu(_ t: TaskItem, block b: TimeBlock) -> some View {
         Button(t.done ? "Marcar como pendiente" : "Completar") { store.setTask(t, done: !t.done) }
         if !t.done {
             Button("Quitar la hora") { store.schedule(t, on: day, at: nil) }
@@ -137,12 +143,8 @@ struct TimelineColumn: View {
                 if t.duration != nil { Divider(); Button("Sin calcular") { store.setDuration(t, nil) } }
             }
         }
-        Button("Editar…") { editing = t }
+        Button("Editar…") { onSelect(b, true) }
         Button("Abrir la nota \(t.noteName)") { store.pendingNote = t.file }
-    }
-
-    private func open(_ b: TimeBlock) {
-        if let s = b.screen { store.screen = s } else if let p = b.path { store.pendingNote = p }
     }
 }
 
@@ -159,6 +161,9 @@ struct MiDiaView: View {
     @State private var quick = ""
     @State private var feedback = ""
     @State private var targeted = false
+    /// Bloque o elemento de todo el día seleccionado: su ficha sustituye a «Sin hora» mientras está abierta.
+    @State private var selectedEvent: String?
+    @State private var focusToken = 0
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -167,12 +172,12 @@ struct MiDiaView: View {
         let plan = store.dayPlan(day, agenda: agenda)
         let allDay = agenda.filter { $0.minutes == nil && $0.task == nil && $0.kind != .diary && $0.kind != .done }
         HStack(spacing: 0) {
-            side(plan)
-                .frame(width: 320)
+            side(plan, event: selectedEvent.flatMap { EventRef.find($0, day: day, blocks: plan.blocks, agenda: agenda) })
+                .frame(width: 340)
             Divider()
             VStack(alignment: .leading, spacing: 0) {
                 if !allDay.isEmpty {
-                    FlowChips(items: allDay) { store.screen = $0 }
+                    FlowChips(items: allDay, selected: selectedEvent) { select($0.id) }
                         .padding(.horizontal, 16).padding(.vertical, 10)
                     Divider()
                 }
@@ -180,7 +185,7 @@ struct MiDiaView: View {
                     ScrollView {
                         HStack(alignment: .top, spacing: 6) {
                             HourLabels()
-                            TimelineColumn(day: day, blocks: plan.blocks)
+                            TimelineColumn(day: day, blocks: plan.blocks, selected: selectedEvent) { b, focus in select(b?.id, focus: focus) }
                         }
                         .padding(.vertical, 12).padding(.trailing, 16)
                     }
@@ -196,7 +201,7 @@ struct MiDiaView: View {
 
     // MARK: Panel de la izquierda
 
-    private func side(_ plan: DayPlan) -> some View {
+    private func side(_ plan: DayPlan, event: EventRef?) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
@@ -207,7 +212,7 @@ struct MiDiaView: View {
                     }
                     Spacer()
                     Button { move(1) } label: { Image(systemName: "chevron.right").accessibilityLabel("Día siguiente") }
-                    if day != DayKey.today() { Button("Hoy") { day = DayKey.today(); feedback = "" } }
+                    if day != DayKey.today() { Button("Hoy") { day = DayKey.today(); feedback = ""; selectedEvent = nil } }
                 }
                 capacityBar(plan)
                 HStack {
@@ -218,28 +223,36 @@ struct MiDiaView: View {
                 }.controlSize(.small)
                 if !feedback.isEmpty { Label(feedback, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
                 Divider()
-                Text(plan.unscheduled.isEmpty ? "Sin hora" : "Sin hora (\(plan.unscheduled.count))").font(.headline)
-                VStack(alignment: .leading, spacing: 6) {
-                    if plan.unscheduled.isEmpty {
-                        Text("Todo lo de este día tiene hora.").font(.callout).foregroundStyle(.secondary)
-                    }
-                    ForEach(plan.unscheduled) { t in UnscheduledRow(task: t, day: day) }
-                }
-                .padding(8)
-                .frame(maxWidth: .infinity, minHeight: 60, alignment: .topLeading)
-                .background(targeted ? Brand.accent.opacity(0.1) : Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: Brand.radius))
-                .dropDestination(for: String.self) { ids, _ in
-                    guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }), t.time != nil else { return false }
-                    store.schedule(t, on: day, at: nil)
-                    return true
-                } isTargeted: { targeted = $0 }
-                Text("Arrastra una tarea a una hora. Para quitarle la hora, tráela aquí.").font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    TextField("Añadir a este día (ej: llamar a Ana a las 18:00 durante 30 min)", text: $quick).focused($focused).onSubmit(add)
-                    Button("Añadir", action: add).disabled(quick.trimmingCharacters(in: .whitespaces).isEmpty)
+                if let event {
+                    EventPanel(event: event, focusToken: focusToken) { select(nil) }
+                } else {
+                    unscheduledList(plan)
                 }
             }
             .padding(18)
+        }
+    }
+
+    @ViewBuilder private func unscheduledList(_ plan: DayPlan) -> some View {
+        Text(plan.unscheduled.isEmpty ? "Sin hora" : "Sin hora (\(plan.unscheduled.count))").font(.headline)
+        VStack(alignment: .leading, spacing: 6) {
+            if plan.unscheduled.isEmpty {
+                Text("Todo lo de este día tiene hora.").font(.callout).foregroundStyle(.secondary)
+            }
+            ForEach(plan.unscheduled) { t in UnscheduledRow(task: t, day: day) }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: 60, alignment: .topLeading)
+        .background(targeted ? Brand.accent.opacity(0.1) : Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: Brand.radius))
+        .dropDestination(for: String.self) { ids, _ in
+            guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }), t.time != nil else { return false }
+            store.schedule(t, on: day, at: nil)
+            return true
+        } isTargeted: { targeted = $0 }
+        Text("Arrastra una tarea a una hora. Para quitarle la hora, tráela aquí.").font(.caption).foregroundStyle(.secondary)
+        HStack {
+            TextField("Añadir a este día (ej: llamar a Ana a las 18:00 durante 30 min)", text: $quick).focused($focused).onSubmit(add)
+            Button("Añadir", action: add).disabled(quick.trimmingCharacters(in: .whitespaces).isEmpty)
         }
     }
 
@@ -269,10 +282,16 @@ struct MiDiaView: View {
 
     // MARK: Acciones
 
-    private func move(_ days: Int) { day = DayKey.adding(days: days, to: day); feedback = "" }
+    private func move(_ days: Int) { day = DayKey.adding(days: days, to: day); feedback = ""; selectedEvent = nil }
+
+    private func select(_ id: String?, focus: Bool = false) {
+        selectedEvent = id
+        if focus { focusToken += 1 }
+    }
 
     private func takePending() {
         guard let d = store.pendingPlanDay else { return }
+        if d != day { selectedEvent = nil }
         day = d
         store.pendingPlanDay = nil
     }
@@ -332,17 +351,19 @@ private struct UnscheduledRow: View {
 /// Lo de todo el día (cumpleaños, renovaciones, caducidades…), en fichas encima de la agenda.
 private struct FlowChips: View {
     let items: [AgendaItem]
-    let go: (Screen) -> Void
+    var selected: String?
+    let onSelect: (AgendaItem) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 Text("Todo el día").font(.caption).foregroundStyle(.secondary)
                 ForEach(items) { it in
-                    Button { if let s = it.screen { go(s) } } label: {
+                    Button { onSelect(it) } label: {
                         Label(it.title, systemImage: it.kind.icon).font(.caption).lineLimit(1)
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(it.kind.color.opacity(0.15), in: Capsule())
+                            .overlay { if selected == it.id { Capsule().stroke(Brand.accent, lineWidth: 1.5) } }
                     }.buttonStyle(.plain)
                 }
             }
