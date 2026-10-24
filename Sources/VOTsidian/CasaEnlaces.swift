@@ -31,8 +31,28 @@ enum Money {
         if t.isEmpty { return 0 }
         if t.contains(",") { t = t.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: ".") }
         else if t.range(of: #"^[0-9]{1,3}(\.[0-9]{3})+$"#, options: .regularExpression) != nil { t = t.replacingOccurrences(of: ".", with: "") }
-        return Double(t) ?? 0
+        // Solo signo, cifras y un punto: `Double` también acepta «nan», «inf» o «1e999», y un importe que no es finito
+        // cierra la app al pasarlo a `Int` (o a una gráfica).
+        guard isPlainNumber(t), let v = Double(t), abs(v) <= maxAmount else { return 0 }
+        return v
     }
+
+    /// «-12.5», «40»: signo opcional, cifras ASCII y como mucho un punto entre cifras. Por bytes, sin expresión regular.
+    private static func isPlainNumber(_ t: String) -> Bool {
+        let b = Array(t.utf8)
+        var i = b.first == 45 || b.first == 43 ? 1 : 0
+        var digits = 0, dot = false
+        while i < b.count {
+            if b[i] >= 48 && b[i] <= 57 { digits += 1 }
+            else if b[i] == 46, !dot, digits > 0, i + 1 < b.count { dot = true }
+            else { return false }
+            i += 1
+        }
+        return digits > 0
+    }
+
+    /// Mayor importe que se acepta: uno más grande es un error de la nota y, sumado, podría dejar de ser finito.
+    static let maxAmount = 1e12
 
     // Crear un NumberFormatter cuesta ~20 µs y Gastos pinta cientos de importes: se crean una vez (formatear es seguro entre hilos).
     private static func currency(decimals: Int) -> NumberFormatter {

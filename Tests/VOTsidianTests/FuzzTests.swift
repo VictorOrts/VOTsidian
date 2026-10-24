@@ -359,6 +359,35 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
     }
 }
 
+// MARK: Números absurdos en las tablas
+
+@MainActor @Test func absurdNumbersNeverCloseTheApp() throws {
+    // `Double` acepta «nan», «inf» y «1e999»: un importe así cerraba Gastos al pasarlo a `Int`, y uno de cientos de cifras, una gráfica.
+    for s in ["nan", "inf", "-inf", "1e999", "infinity", String(repeating: "9", count: 400)] { #expect(Money.parse(s) == 0) }
+    #expect(MD.number(String(repeating: "9", count: 400)) == nil)
+    #expect(Money.parse("1.234,50 €") == 1234.5 && Money.parse("-12,5") == -12.5 && Money.parse("40") == 40)
+
+    let fixtures: [String: String] = [
+        VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture,
+        VaultPath.suscripciones: suscripcionesFixture, VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture,
+        "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture, "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),
+    ]
+    for value in ["nan", "inf", "-1e999", String(repeating: "9", count: 300), String(repeating: "9", count: 400)] {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("absurdos-\(UUID().uuidString)/V")
+        for (rel, text) in fixtures {
+            // Cada número de una celda (no las fechas) pasa a ser el valor absurdo.
+            let t = text.replacingOccurrences(of: #"\|\s*[0-9]+(?:[.,][0-9]+)?\s*(€|km|kg|g|h)?\s*(?=\|)"#, with: "| \(value) $1 ", options: .regularExpression)
+            let u = dir.appendingPathComponent(rel)
+            try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try t.write(to: u, atomically: true, encoding: .utf8)
+        }
+        let store = Store(root: dir)
+        try renderAllScreens(store)
+        _ = (store.alerts(), store.sidebarCounts(), store.agenda(from: DayKey.today(), to: DayKey.adding(days: 60, to: DayKey.today())))
+        _ = ICS.events(store.reminderSources(), plan: ReminderPlan()).map(CalendarEventSpec.init)
+    }
+}
+
 // MARK: El lector de números rápido da lo mismo que el de antes
 
 /// `MD.number` tal como era, con expresión regular (solo cifras ASCII, como ahora).

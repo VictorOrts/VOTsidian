@@ -295,7 +295,9 @@ enum MD {
         } else {
             t = t.replacingOccurrences(of: ",", with: ".")
         }
-        return Double(t)
+        // Un número de cientos de cifras da infinito, que cierra la app al pasarlo a `Int` o a una gráfica.
+        guard let v = Double(t), v.isFinite else { return nil }
+        return v
     }
 
     /// Líneas tras un encabezado (que contiene `title`) hasta el siguiente encabezado.
