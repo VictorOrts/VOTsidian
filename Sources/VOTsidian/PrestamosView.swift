@@ -12,6 +12,7 @@ struct PrestamosView: View {
     @State private var message = ""
 
     var body: some View {
+        let _ = BodyCounter.hit("PrestamosView")
         let p = store.prestamos
         let today = DayKey.today()
         let statuses = p.statuses(today: today)

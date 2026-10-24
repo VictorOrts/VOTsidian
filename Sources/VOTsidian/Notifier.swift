@@ -57,6 +57,14 @@ enum Notifier {
             for day in occurrences(of: e, from: today, horizon: horizonDays) {
                 out.append(PlannedNotification(id: "\(e.uid)-\(DayKey.string(day))", title: e.title, body: e.notes, fire: at(day, minutes)))
                 for t in e.extraTriggers {
+                    // «-PT1H»: tanto antes de la hora del evento («Dentro de 1 h»).
+                    if offsetDays(t) == nil, e.minutes != nil, let secs = CalendarEventSpec.seconds(t), secs < 0 {
+                        let mins = Int(-secs / 60)
+                        out.append(PlannedNotification(id: "\(e.uid)-\(DayKey.string(day))-\(t)", title: e.title,
+                                                       body: (mins % 60 == 0 ? "Dentro de \(mins / 60) h. " : "Dentro de \(mins) min. ") + e.notes,
+                                                       fire: at(day, minutes).addingTimeInterval(secs)))
+                        continue
+                    }
                     guard let n = offsetDays(t) else { continue }
                     let early = DayKey.adding(days: -n, to: day)
                     guard early >= today else { continue }

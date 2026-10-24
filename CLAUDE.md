@@ -73,6 +73,19 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   `.task(id: store.revision)`, no en cada fila.
 - Listas largas: recortar con `ShowAllButton` (tablas de notas 40 filas, Peso 60…). Gráficas: `thinned(_:to:)` (120–400 puntos).
 - `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
+- **Qué repinta cada cambio** (lo mide `VOT_MATRIX=1 swift test --filter fluidezMatrix`; las comprobaciones de `FluidezTests` corren
+  siempre). Reglas para no romperlo:
+  - Las vistas leen notas con `store.read(rel)` (registra solo esa nota, `NoteSlot`), nunca `noteTexts`. Una caché que se salta la
+    lectura (como `budget`, `budgetYear` o `agenda`) tiene que registrar sus dependencias (`touch(rel)`, leer las propiedades) antes
+    de devolver lo guardado.
+  - `revision` no se observa: ninguna vista debe usarlo para refrescarse. Avisos y barra lateral están en `currentAlerts` y `sidebar`,
+    publicados en `refreshPublished()` (aplazado con `refreshPublishedSoon()`); las copias, en `backupsStamp`; los enlaces, en `linksVersion`.
+  - Las propiedades publicadas deben ser `Equatable` (la observación de Swift 6.3 no avisa si el valor no cambia); lo que cambia en
+    cada edición y no se pinta (`undoStack`, `lastQuietWrite`…) va con `@ObservationIgnored`.
+  - `ContentView` no debe leer nada que cambie en cada edición: el aviso de «guardado» y el banner son vistas aparte.
+  - Lo que se recalcula con cada pulsación (el borrador del editor es estado de `NotasView`) se separa en vistas `Equatable`
+    (`NoteListPanel`) que comparan solo lo que pintan.
+- Mediciones guardadas para comparar: `.claude/mediciones/` (fuera de git).
 
 ## Forma de trabajar
 

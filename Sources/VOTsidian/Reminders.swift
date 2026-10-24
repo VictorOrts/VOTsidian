@@ -139,8 +139,11 @@ enum ICS {
         if plan.tasks {
             for t in tasks where !t.done {
                 guard let due = t.due, due >= today else { continue }
+                // Con hora: evento a esa hora con aviso una hora antes. Las citas médicas avisan además el día anterior.
+                let medical = t.file == VaultPath.medico
                 out.append(ICSEvent(uid: "tarea-" + stableID(t.text + DayKey.string(due)), title: t.text,
-                                    notes: "Tarea en la nota \(t.noteName).", start: due, minutes: nil, rule: nil))
+                                    notes: medical ? "Cita en la nota \(t.noteName)." : "Tarea en la nota \(t.noteName).", start: due, minutes: t.time, rule: nil,
+                                    extraTriggers: (medical ? ["-P1D"] : []) + (t.time != nil ? ["-PT1H"] : [])))
             }
         }
         if plan.mascota {

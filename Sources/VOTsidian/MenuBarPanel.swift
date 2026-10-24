@@ -15,6 +15,7 @@ struct MenuBarPanel: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("MenuBarPanel")
         VStack(alignment: .leading, spacing: 12) {
             header
             Divider()

@@ -31,6 +31,7 @@ struct GastosView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("GastosView")
         let m = month
         let budget = store.budget(m)
         ScrollView {

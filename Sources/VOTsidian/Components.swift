@@ -197,6 +197,7 @@ struct TaskRow: View {
     @State private var hover = false
 
     var body: some View {
+        let _ = BodyCounter.hit("TaskRow")
         HStack(spacing: 8) {
             Button { store.setTask(task, done: !task.done) } label: {
                 Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
@@ -207,7 +208,7 @@ struct TaskRow: View {
             Spacer(minLength: 8)
             if let due = task.due {
                 let n = DayKey.days(from: DayKey.today(), to: due)
-                Text(n < 0 && !task.done ? "vencida \(dayLabel(due))" : dayLabel(due))
+                Text((n < 0 && !task.done ? "vencida \(dayLabel(due))" : dayLabel(due)) + (task.time.map { " · \(TimeOfDay.text($0))" } ?? ""))
                     .font(.caption).foregroundStyle(n < 0 && !task.done ? Brand.bad : .secondary)
             }
             Button(task.noteName) { store.pendingNote = task.file }

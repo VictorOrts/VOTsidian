@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Lista de la compra y órdenes rápidas
 
 extension Store {
-    var shoppingItems: [ShoppingItem] { Shopping.parse(noteTexts[Shopping.file] ?? "") }
+    var shoppingItems: [ShoppingItem] { Shopping.parse(read(Shopping.file)) }
     var shoppingExists: Bool { FileManager.default.fileExists(atPath: url(Shopping.file).path) }
 
     func ensureShoppingList() {
@@ -47,11 +47,10 @@ extension Store {
         case .mood(let n, let d): setDiaryValue(d, "animo", Double(n))
         case .sleep(let h, let d): setDiaryValue(d, "sueno_h", h)
         case .injection(let d): injectToday(date: d)
-        case .task(let t, let d, let r, let p): addTask(t, due: d, recurrence: r, priority: p)
+        case .task(let t, let d, let r, let p, let h): addTask(t, due: d, recurrence: r, priority: p, time: h)
         case .idea(let t): addIdea(t)
         case .diary(let t): appendToDiary(DayKey.today(), text: t)
-        case .appointment(let t, let d):
-            edit(VaultPath.medico) { Edit.appendToSection($0, section: "Próximas citas", line: "- [ ] \(t) 📅 \(DayKey.string(d))") }
+        case .appointment(let t, let d, let h): addAppointment(t, date: d, time: h)
         case .measure(let field, let v, let d):
             let (table, _) = Measures.parse(read(Measures.file))
             guard let t = table, let col = t.col(field) else { return fail("Activa primero las medidas en Peso.") }

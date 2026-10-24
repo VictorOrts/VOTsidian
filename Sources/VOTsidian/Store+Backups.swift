@@ -111,6 +111,7 @@ extension Store {
         }.value
         fileCache.removeAll()
         reload()
+        backupsStamp += 1
         return text
     }
 }

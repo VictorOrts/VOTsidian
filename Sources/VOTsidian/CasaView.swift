@@ -34,6 +34,7 @@ struct CasaView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("CasaView")
         let c = store.casa
         let reformas = items(c.reformas, costCol: "Coste estimado", kind: "Reforma")
         let compras = items(c.compras, costCol: "Precio estimado", kind: "Compra")

@@ -12,6 +12,7 @@ struct PesoView: View {
     @AppStorage("weightSmoothing") private var smooth = true
 
     var body: some View {
+        let _ = BodyCounter.hit("PesoView")
         let w = store.weight
         let rate = w.ratePerMonth(window: 120)
         // Con un estancamiento, el ritmo de 4 meses tarda en notarlo: se enseña también el de los 2 últimos.
@@ -129,7 +130,7 @@ struct PesoView: View {
 
     private func mainChart(_ w: WeightData) -> some View {
         let base = chartMin(w)
-        let points = thinned(w.records, to: 400)
+        let points = thinnedKeepingExtremes(w.records, to: 400)
         return Chart {
             ForEach(points) { r in
                 AreaMark(x: .value("Día", r.date), yStart: .value("Base", base), yEnd: .value("kg", r.kg))

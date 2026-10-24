@@ -23,6 +23,7 @@ struct ProyectosView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("ProyectosView")
         let items = rows
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {

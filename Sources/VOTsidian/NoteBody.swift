@@ -170,7 +170,7 @@ struct EmbedView: View {
                 Label("No encuentro la imagen \(name)", systemImage: "photo").font(.caption).foregroundStyle(.secondary)
             }
         } else if let path = store.fuzzyResolve(name) {
-            let text = Embed.body(of: store.noteTexts[path] ?? store.read(path), heading: heading)
+            let text = Embed.body(of: store.read(path), heading: heading)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.turn.down.right").font(.caption).foregroundStyle(Brand.accent)
@@ -204,6 +204,7 @@ struct NoteBody: View {
     var depth = 0
 
     var body: some View {
+        let _ = BodyCounter.hit("NoteBody")
         let blocks = MDParser.blocks(text)
         VStack(alignment: .leading, spacing: 10) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, b in render(b) }

@@ -9,3 +9,4 @@ DerivedData/
 /build
 /.claude/capturas/
 /.claude/settings.local.json
+/.claude/mediciones/

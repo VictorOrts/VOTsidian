@@ -6,6 +6,7 @@ struct PersonasView: View {
     private let file = VaultPath.personas
 
     var body: some View {
+        let _ = BodyCounter.hit("PersonasView")
         let people = store.people
         let today = DayKey.today()
         let upcoming = people.compactMap { p -> (Person, Date, Int?, Int)? in

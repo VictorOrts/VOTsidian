@@ -135,7 +135,7 @@ struct FotosCard: View {
     private var folder: URL { store.url(VaultPath.beside("peso", "Fotos")) }
 
     private var photos: [(url: URL, date: Date?)] {
-        _ = store.revision
+        _ = store.attachments   // las fotos nuevas aparecen en los adjuntos al recargar
         let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
         return files.filter { ["jpg", "jpeg", "png", "heic"].contains($0.pathExtension.lowercased()) }
             .map { ($0, DayKey.date(String($0.lastPathComponent.prefix(10)))) }

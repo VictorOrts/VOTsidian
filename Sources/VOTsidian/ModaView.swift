@@ -18,6 +18,7 @@ struct ModaView: View {
     private func buyTable(_ tables: [NamedTable]) -> NamedTable? { tables.first { MD.fold($0.title).contains("por comprar") } }
 
     var body: some View {
+        let _ = BodyCounter.hit("ModaView")
         let tables = Parse.tables(store.read(file))
         let buy = buyTable(tables)
         let rows = (buy?.rows ?? []).filter { !($0.cells.first ?? "").isEmpty }

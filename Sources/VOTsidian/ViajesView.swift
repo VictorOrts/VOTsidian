@@ -11,6 +11,7 @@ struct ViajesView: View {
     @State private var item = ""
 
     var body: some View {
+        let _ = BodyCounter.hit("ViajesView")
         let v = store.viajes
         let today = DayKey.today()
         let upcoming = v.upcoming(today: today)

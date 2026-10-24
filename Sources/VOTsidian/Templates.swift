@@ -95,7 +95,7 @@ enum NoteTemplates {
         case "Proyecto":
             return "---\ntipo: proyecto\nestado: activo\narea:\ninicio: \(day)\nfecha_limite:\nprioridad: media\ntags:\n  - proyecto\n---\n\n# \(title)\n\n> [!INFO] Resultado esperado\n> \n\n## Siguientes acciones\n- [ ] \n\n---\n[[Objetivos]]\n"
         case "Cita médica":
-            return "---\ntipo: cita_medica\nfecha: \(day)\nespecialidad:\ntags:\n  - medico\n---\n\n# \(title)\n\n## Motivo\n\n## Resultado\n\n## Próximos pasos\n- [ ] \n\n---\n[[Médico]]\n"
+            return "---\ntipo: cita_medica\nfecha: \(day)\nhora:\nespecialidad:\ntags:\n  - medico\n---\n\n# \(title)\n\n## Motivo\n\n## Resultado\n\n## Próximos pasos\n- [ ] \n\n---\n[[Médico]]\n"
         case "Evento":
             return "---\ntipo: evento\nestado: pendiente\nfecha_evento:\naportacion_eur:\ntags:\n  - evento\n---\n\n# \(title)\n\n## Pendiente\n- [ ] \n\n---\n[[Finanzas]]\n"
         default:

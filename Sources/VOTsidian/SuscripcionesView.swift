@@ -14,6 +14,7 @@ struct SuscripcionesView: View {
     private static let periods = ["Semanal", "Mensual", "Trimestral", "Semestral", "Anual"]
 
     var body: some View {
+        let _ = BodyCounter.hit("SuscripcionesView")
         let s = store.suscripciones
         let today = DayKey.today()
         let upcoming = s.upcoming(today: today)

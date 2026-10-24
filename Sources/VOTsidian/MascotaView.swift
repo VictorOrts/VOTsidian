@@ -11,6 +11,7 @@ struct MascotaView: View {
     @State private var spec: RowSpec?
 
     var body: some View {
+        let _ = BodyCounter.hit("MascotaView")
         let n = store.mascota
         let tasks = store.tasks.filter { $0.file == VaultPath.mascota && !$0.done }
         ScrollView {

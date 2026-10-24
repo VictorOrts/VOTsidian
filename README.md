@@ -61,7 +61,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | Función | Qué hace |
 |---|---|
 | **Inicio** | Lo que pide atención, lo de hoy y una tarjeta por módulo. «Personalizar» reordena y oculta las tarjetas. |
-| **Tareas** | Fecha, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes». |
+| **Tareas** | Fecha, hora, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30». |
 | **Planificar semana** | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
 | **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, con la nota del día, el ánimo y el sueño. |
 | **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual y «Cerrar el día» para repasar lo pendiente y preparar mañana. |
@@ -79,7 +79,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Plantillas** | 10 de ejemplo (Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro). Pueden hacer preguntas al crear la nota y sugerir carpeta. |
 | **Gráficas** | Un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta. |
 | **Búsqueda** (⌘K) | Notas, tareas y pantallas, con sinónimos y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»). |
-| **Órdenes rápidas** (⌘K) | `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10`, `cintura 98`, `compra leche y pan`, `libro Dune - Frank Herbert`, `terminé Dune`, `cuota Coche`. |
+| **Órdenes rápidas** (⌘K) | `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10 a las 17:30`, `cintura 98`, `compra leche y pan`, `libro Dune - Frank Herbert`, `terminé Dune`, `cuota Coche`. |
 | **Bases, Grafo y Enlaces rotos** | Tabla de propiedades por tipo de nota con vistas guardadas, mapa de enlaces y sugerencias para arreglar enlaces que no llevan a nada. |
 
 ## Módulos
@@ -91,7 +91,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 | **Peso y medidas** | Tendencia suavizada, ritmo de 4 y 2 meses, fecha estimada de llegada al objetivo (para bajar o para subir), hitos, medidas corporales, fotos de progreso y correlaciones con hábitos, ánimo y sueño. |
 | **Plan nutricional** | Calorías y macros diarios y reparto por comidas. |
 | **Medicación** | Varios medicamentos a la vez: pastillas diarias con una casilla por toma, inyecciones cada N días con la zona alternada y tomas cuando hace falta. Avisos por medicamento y hora y cumplimiento de 30 días. |
-| **Salud y médicos** | Próximas citas, tratamientos, análisis en PDF, notas de cada visita y un resumen para llevar a la consulta. |
+| **Salud y médicos** | Próximas citas con hora (aviso el día antes y una hora antes), tratamientos, análisis en PDF, notas de cada visita y un resumen para llevar a la consulta. |
 | **Finanzas y gastos** | Presupuesto mensual por partidas. Los gastos se apuntan como frase («22 € cena con Ana») y la app adivina la partida y aprende de tus correcciones. «Puedes gastar hoy», ritmo del mes, pagos fijos con aviso, fondo de emergencia, eventos y aportaciones, y resumen del año comparado con el anterior. |
 | **Suscripciones** | Qué se renueva y cuándo, avisos antes del cobro y de que acabe una prueba gratuita, coste al mes y al año. Cada cobro se puede apuntar en Gastos. |
 | **Préstamos y deudas** | Lo que debes, la cuota de cada mes, cuántas quedan y cuándo acabas. Apuntar una cuota baja lo que debes y, si quieres, la añade a Gastos. |

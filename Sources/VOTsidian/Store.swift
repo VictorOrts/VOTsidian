@@ -89,6 +89,20 @@ struct NoteFile: Identifiable, Hashable {
     }
 }
 
+/// Una nota vista desde la interfaz: quien lee una nota (con `read`) depende solo de su caja, y la recarga solo avisa a las
+/// cajas cuyo texto cambió. Así editar Peso no repinta las tablas de Vehículo.
+@MainActor @Observable
+final class NoteSlot {
+    var version = 0
+}
+
+/// Lo que enseñan los indicadores de la barra lateral. Se publica entero y solo avisa si cambia.
+struct SidebarState: Equatable {
+    var counts: [Screen: Int] = [:]
+    var medicationDays: Int?
+    var tasksOverdue = false
+}
+
 @MainActor @Observable
 final class Store {
     private(set) var root: URL
@@ -110,7 +124,19 @@ final class Store {
     private(set) var casa = CasaData()
     private(set) var outLinks: [String: [String]] = [:]
     private(set) var backLinks: [String: [String]] = [:]
-    private(set) var revision = 0
+    /// Sube con cada recarga. **No se observa**: una vista que lo leyera se repintaría con cualquier cambio en cualquier nota.
+    /// Las vistas dependen de su nota (`read`), de los datos de su módulo o de los valores publicados de abajo.
+    @ObservationIgnored private(set) var revision = 0
+    /// Avisos e indicadores de la barra lateral, recalculados en cada recarga y publicados solo si cambian.
+    private(set) var currentAlerts: [Alert] = []
+    private(set) var sidebar = SidebarState()
+    /// Suben cuando cambian las copias de seguridad, los enlaces entre notas o el texto de alguna nota.
+    var backupsStamp = 0
+    private(set) var linksVersion = 0
+    private(set) var textsVersion = 0
+    @ObservationIgnored var noteSlots: [String: NoteSlot] = [:]
+    @ObservationIgnored var publishScheduled = false
+    @ObservationIgnored var lastLinks: [String: [String]] = [:]
     private(set) var noteMeta: [String: [String: String]] = [:]
     private(set) var attachments: [String: String] = [:]
     private(set) var noteTags: [String: [String]] = [:]
@@ -127,6 +153,7 @@ final class Store {
     var hiddenModules: Set<Module> = Set((UserDefaults.standard.stringArray(forKey: "hiddenModules") ?? []).compactMap(Module.init)) {
         didSet {
             agendaCache = [:]
+            refreshPublished()
             if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") }
         }
     }
@@ -148,7 +175,7 @@ final class Store {
     var pendingGastosYear: Int?
     var message: String?
     /// Día (AAAA-MM-DD) de la última copia automática comprobada; así la copia es de verdad diaria aunque la app siga abierta.
-    var lastBackupDay: String?
+    @ObservationIgnored var lastBackupDay: String?
     @ObservationIgnored var backupJob = DispatchGroup()
     /// Día en que ya se lanzó la copia automática en segundo plano.
     @ObservationIgnored var dailyBackupDay: String?
@@ -162,7 +189,11 @@ final class Store {
         /// Varios pasos que se deshacen juntos (un cambio que toca más de un archivo).
         case batch([UndoStep])
     }
-    var undoStack: [UndoStep] = []
+    /// Pila de deshacer. No se observa (cambia en cada edición); la interfaz solo necesita `canUndo`.
+    @ObservationIgnored var undoStack: [UndoStep] = [] {
+        didSet { if canUndo == undoStack.isEmpty { canUndo = !undoStack.isEmpty } }
+    }
+    private(set) var canUndo = false
     /// Mientras no es `nil`, los pasos de deshacer se juntan aquí para guardarse como uno solo (`grouped`).
     @ObservationIgnored var collectingUndo: [UndoStep]?
     /// Presupuestos ya analizados en esta recarga, por ruta.
@@ -171,7 +202,7 @@ final class Store {
     @ObservationIgnored var budgetYearCache: [String: BudgetYear] = [:]
     /// Por qué falló la última copia de seguridad automática; `nil` si fue bien.
     var backupFailure: String?
-    var lastQuietWrite: (rel: String, at: Date)?
+    @ObservationIgnored var lastQuietWrite: (rel: String, at: Date)?
     private(set) var pendingDownloads: [String] = []
     /// Notas que existen pero no se pudieron leer (no son UTF-8, permisos…): la app no las ve, y se avisa.
     private(set) var unreadableFiles: [String] = []
@@ -195,10 +226,21 @@ final class Store {
     /// Los avisos calculados por última vez y de qué dependían (ver `alerts()`).
     @ObservationIgnored var alertsCache: (key: String, alerts: [Alert])?
     @ObservationIgnored var brokenCountCache: (revision: Int, count: Int)?
+    @ObservationIgnored var notesByNameCache: (revision: Int, list: [NoteFile])?
+
+    /// Las notas por nombre (menús de «insertar enlace»): ordenarlas en cada pulsación del editor se notaba.
+    var notesByName: [NoteFile] {
+        _ = notes   // quien la usa depende de la lista de notas
+        if let c = notesByNameCache, c.revision == revision { return c.list }
+        let list = notes.sorted { MD.fold($0.name) < MD.fold($1.name) }
+        notesByNameCache = (revision, list)
+        return list
+    }
     @ObservationIgnored var generation = 0
     @ObservationIgnored var scanning = false
     @ObservationIgnored var rescanRequested = false
-    private(set) var noteTexts: [String: String] = [:]
+    /// Texto de cada nota. No se observa entero: se lee con `read`, que registra solo la nota pedida.
+    @ObservationIgnored private(set) var noteTexts: [String: String] = [:]
     private(set) var people: [Person] = []
     private(set) var documents: [(name: String, date: Date, section: String)] = []
     private(set) var events: [(name: String, date: Date, path: String)] = []
@@ -240,7 +282,7 @@ final class Store {
             startWatching()
             startDailyBackup()
             Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true) }
+                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true); self?.refreshPublished() }
             }
         }
         pendingNote = ProcessInfo.processInfo.environment["VOT_NOTE"]
@@ -274,7 +316,39 @@ final class Store {
     func readOptional(_ rel: String) -> String? { try? String(contentsOf: url(rel), encoding: .utf8) }
     /// Texto para mostrar; `""` si no se puede leer. Las notas salen de lo ya cargado: las vistas lo piden en cada pintado
     /// y leer del disco (o esperar a iCloud) bloqueaba la ventana. Para comparar antes de escribir usa `readOptional`.
-    func read(_ rel: String) -> String { noteTexts[rel] ?? readOptional(rel) ?? "" }
+    func read(_ rel: String) -> String {
+        touch(rel)
+        return noteTexts[rel] ?? readOptional(rel) ?? ""
+    }
+
+    /// Registra que quien llama depende de la nota `rel` (aunque aún no exista: al crearla, se entera).
+    func touch(_ rel: String) {
+        let slot = noteSlots[rel] ?? { let s = NoteSlot(); noteSlots[rel] = s; return s }()
+        _ = slot.version
+    }
+
+    /// Como `refreshPublished`, en la siguiente vuelta del bucle principal: la edición termina antes y varias recargas seguidas
+    /// (los autoguardados al escribir) se publican una sola vez.
+    func refreshPublishedSoon() {
+        guard !publishScheduled else { return }
+        publishScheduled = true
+        // En la siguiente vuelta del bucle principal (no `DispatchQueue.main.async`: dentro de un bloque de la cola principal, como
+        // en los tests, eso no se ejecuta hasta que el bloque termina).
+        RunLoop.main.perform { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.publishScheduled = false
+                self.refreshPublished()
+            }
+        }
+    }
+
+    /// Avisos e indicadores de la barra lateral: se recalculan aquí y solo avisan a la interfaz si cambiaron.
+    func refreshPublished() {
+        currentAlerts = alerts()
+        sidebar = SidebarState(counts: sidebarCounts(), medicationDays: medicacion.daysUntilNext,
+                               tasksOverdue: tasks.contains { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) })
+    }
 
     // MARK: Carga
 
@@ -379,7 +453,12 @@ final class Store {
         let linkMap = scan.links
         let pending = scan.pending
         fileCache = scan.cache
+        let previousTexts = noteTexts
         noteTexts = texts
+        // Solo se avisa a las notas que alguien está mirando y cuyo texto cambió.
+        for (rel, slot) in noteSlots where previousTexts[rel] != texts[rel] { slot.version += 1 }
+        if scan.changed { textsVersion += 1 }   // la recarga ya sabe si cambió algún archivo: no hace falta comparar todos los textos
+        if linkMap != lastLinks { lastLinks = linkMap; linksVersion += 1 }
         func text(_ rel: String) -> String { texts[rel] ?? read(rel) }
 
         /// Analiza `rel` solo si su texto cambió desde la última vez; si no, deja el valor publicado como está.
@@ -415,10 +494,12 @@ final class Store {
                 return (d, date, t.title)
             }
         } }
-        events = metas.compactMap { path, m in
+        let newEvents: [(name: String, date: Date, path: String)] = metas.compactMap { path, m in
             guard m["tipo"] == "evento", let d = m["fecha_evento"].flatMap(DayKey.date) else { return nil }
             return (((path as NSString).lastPathComponent as NSString).deletingPathExtension, d, path)
-        }
+        }.sorted { $0.path < $1.path }
+        // Una lista de tuplas no se puede comparar sola: sin esto avisaría en cada recarga.
+        if !newEvents.elementsEqual(events, by: { $0.name == $1.name && $0.date == $1.date && $0.path == $1.path }) { events = newEvents }
         buildLinks(links: linkMap)
 
         var found: [String: WeekReview] = [:]
@@ -442,6 +523,8 @@ final class Store {
         } else {
             habitDefs = ["Ejercicio", "Agua", "Sueño", "Leer"].map { HabitDef(name: $0) }
         }
+        // Al abrir, ya: la primera pantalla sale con sus avisos. Después, en la siguiente vuelta.
+        if revision == 1 { refreshPublished() } else { refreshPublishedSoon() }
     }
 
     /// Empieza a vigilar la carpeta: cualquier cambio externo recarga la app casi al instante.

@@ -1,6 +1,6 @@
 import Foundation
 
-struct Alert: Identifiable {
+struct Alert: Identifiable, Equatable {
     enum Level: Int { case urgent = 0, soon = 1, info = 2 }
     /// Lo que se puede resolver desde el propio aviso, sin ir a la pantalla.
     enum Action: Equatable {
@@ -73,7 +73,7 @@ extension Store {
         for t in tasks where !t.done && t.file == VaultPath.medico {
             guard let due = t.due else { continue }
             let n = DayKey.days(from: today, to: due)
-            if n >= 0, n <= 7 { out.append(Alert(level: n <= 1 ? .urgent : .soon, icon: "cross.case", text: "\(t.text) \(relativeDays(n))", screen: .salud)) }
+            if n >= 0, n <= 7 { out.append(Alert(level: n <= 1 ? .urgent : .soon, icon: "cross.case", text: "\(t.text) \(relativeDays(n))" + (t.time.map { " a las \(TimeOfDay.text($0))" } ?? ""), screen: .salud)) }
         }
         for d in documents {
             let n = DayKey.days(from: today, to: d.date)

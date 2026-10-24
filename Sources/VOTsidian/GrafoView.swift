@@ -30,6 +30,7 @@ struct GrafoView: View {
     private let palette = Brand.series
 
     var body: some View {
+        let _ = BodyCounter.hit("GrafoView")
         ZStack(alignment: .topLeading) {
             GeometryReader { geo in
                 Canvas { ctx, sz in draw(&ctx, sz) }

@@ -83,9 +83,14 @@ extension Store {
         writeNote(VaultPath.inbox, text: "# Inbox\n\n## Pendiente de clasificar\n\n## Ideas\n")
     }
 
-    func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0) {
+    func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil) {
         ensureInbox()
-        edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority) }
+        edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority, time: time) }
+    }
+
+    /// Una cita médica en «Próximas citas» de Médico, con hora si se sabe. Desde Salud, el Calendario y ⌘K.
+    func addAppointment(_ text: String, date: Date, time: Int? = nil) {
+        edit(VaultPath.medico) { Edit.appendToSection($0, section: "Próximas citas", line: Edit.taskLine(text, due: date, time: time)) }
     }
 
     /// Registra la toma de hoy del medicamento periódico, con su última dosis y, si es inyección, el lado contrario al anterior.
@@ -133,7 +138,7 @@ extension Store {
         // La copia (y el cifrado) corren fuera del hilo principal; la carpeta o el .dmg aparece al terminar.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let ok = Store.makeBackup(from: src, to: dest, password: password)
-            if !ok { DispatchQueue.main.async { self?.message = "No se pudo crear la copia." } }
+            DispatchQueue.main.async { if !ok { self?.message = "No se pudo crear la copia." }; self?.backupsStamp += 1 }
         }
         return dest
     }

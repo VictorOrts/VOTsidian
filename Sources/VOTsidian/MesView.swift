@@ -14,6 +14,7 @@ struct MesView: View {
     private var key: String { String(DayKey.string(start).prefix(7)) }
 
     var body: some View {
+        let _ = BodyCounter.hit("MesView")
         let inMonth = { (d: Date) in d >= start && d <= end }
         let weights = store.weight.records.filter { inMonth($0.date) }
         let before = store.weight.records.last { $0.date < start }
@@ -119,7 +120,7 @@ struct MesView: View {
         .navigationTitle("Revisión mensual")
         .onAppear { if offset == 0, store.monthReview(key) == nil { store.createMonthReview(key: key, monthStart: start) }; load() }
         .onChange(of: key) { load() }
-        .onChange(of: store.revision) { if draft == base { load() } }
+        .onChange(of: store.read(store.monthReviewFile(key))) { if draft == base { load() } }
         .onChange(of: draft) { if draft != base { saved = false } }
         .autosave(on: draft) { if draft != base, store.monthReview(key) != nil { saveMonth(quiet: true) } }
     }

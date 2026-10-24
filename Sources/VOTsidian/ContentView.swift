@@ -50,11 +50,7 @@ struct ContentView: View {
     @Environment(Store.self) private var store
     /// Secciones plegadas de la barra lateral, separadas por «|». Se recuerdan al reabrir.
     @AppStorage("sidebarCollapsed") private var collapsedRaw = ""
-    @State private var counts: [Screen: Int] = [:]
-    /// Lo que enseñan los indicadores de Medicación y Tareas, calculado con los contadores (una vez por cambio de las notas)
-    /// y no en cada pintado de cada fila.
-    @State private var medicationDays: Int?
-    @State private var tasksOverdue = false
+
 
     private struct SidebarSection { let title: String; let color: Color; let screens: [Screen] }
     private static let sections = [
@@ -68,6 +64,7 @@ struct ContentView: View {
     ]
 
     var body: some View {
+        let _ = BodyCounter.hit("ContentView")
         @Bindable var store = store
         if !store.isValid || (!store.modulesConfigured && store.looksNew) {
             WelcomeView()
@@ -82,21 +79,15 @@ struct ContentView: View {
                     }
                 }
                 .navigationSplitViewColumnWidth(min: 190, ideal: 210)
-                .task(id: store.revision) {
-                    counts = store.sidebarCounts()
-                    medicationDays = store.medicacion.daysUntilNext
-                    tasksOverdue = store.tasks.contains { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }
-                }
                 .safeAreaInset(edge: .bottom) { footer.padding(10) }
             } detail: {
+                // El banner y el aviso de «guardado» son vistas aparte: cambian con cada edición, y si los leyera esta vista
+                // se repintaría entera (barra lateral y pantalla) con cada cambio.
                 VStack(spacing: 0) {
-                    if let m = store.message {
-                        HStack { Text(m).font(.callout); Spacer(); Button("Cerrar") { store.message = nil }.buttonStyle(.accentLink) }
-                            .padding(.horizontal, 14).padding(.vertical, 8).background(Brand.warn.opacity(0.2))
-                    }
+                    MessageBanner()
                     detail
                 }
-                .overlay(alignment: .bottom) { toast }
+                .overlay(alignment: .bottom) { UndoToast() }
             }
             .onChange(of: store.pendingNote) { if store.pendingNote != nil { store.screen = .notas } }
             .environment(\.openURL, OpenURLAction { store.open(link: $0) })
@@ -144,7 +135,68 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder private var toast: some View {
+    private var collapsed: Set<String> { Set(collapsedRaw.split(separator: "|").map(String.init)) }
+
+    private func expanded(_ title: String) -> Binding<Bool> {
+        Binding(get: { !collapsed.contains(title) }, set: { open in
+            var c = collapsed
+            if open { c.remove(title) } else { c.insert(title) }
+            collapsedRaw = c.sorted().joined(separator: "|")
+        })
+    }
+
+    /// Plegada, la sección suma los contadores de sus pantallas para que no se pierda nada pendiente.
+    private func header(_ sec: SidebarSection) -> some View {
+        let total = sec.screens.reduce(0) { $0 + (store.sidebar.counts[$1] ?? 0) }
+        return HStack {
+            Text(sec.title)
+            Spacer()
+            if collapsed.contains(sec.title), total > 0 { Text("\(total)").monospacedDigit().foregroundStyle(.secondary) }
+        }
+    }
+
+    private func row(_ s: Screen, color: Color) -> some View {
+        Label { Text(store.title(s)) } icon: { Image(systemName: s.icon).foregroundStyle(color) }
+            .badge(badge(s))
+            .tag(s)
+    }
+
+    /// Tareas en rojo si hay vencidas; Medicación dice «hoy» o «tarde» en vez de un número.
+    private func badge(_ s: Screen) -> Text? {
+        let state = store.sidebar   // publicado: solo avisa si cambia algún indicador
+        if s == .medicacion, let d = state.medicationDays, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
+        guard let n = state.counts[s] else { return nil }
+        return Text("\(n)").foregroundStyle(s == .tareas && state.tasksOverdue ? Brand.bad : .secondary)
+    }
+
+    private var footer: some View {
+        HStack {
+            Button { store.showQuickAdd = true } label: { Label("Añadir", systemImage: "plus") }.help("Captura rápida (⇧⌘N)")
+            Button { store.showPalette = true } label: { Image(systemName: "magnifyingglass").accessibilityLabel("Buscar") }.help("Buscar (⌘K)")
+            Spacer()
+            Label(store.vaultName, systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary).lineLimit(1).help(store.root.path)
+        }
+        .controlSize(.small).buttonStyle(.glass)
+    }
+}
+
+/// Mensaje de arriba (errores, avisos de una acción). Lee `store.message` solo esta vista.
+private struct MessageBanner: View {
+    @Environment(Store.self) private var store
+
+    var body: some View {
+        if let m = store.message {
+            HStack { Text(m).font(.callout); Spacer(); Button("Cerrar") { store.message = nil }.buttonStyle(.accentLink) }
+                .padding(.horizontal, 14).padding(.vertical, 8).background(Brand.warn.opacity(0.2))
+        }
+    }
+}
+
+/// «Guardado en …» con el botón de deshacer, abajo. Lee `store.lastChange` solo esta vista.
+private struct UndoToast: View {
+    @Environment(Store.self) private var store
+
+    var body: some View {
         if let c = store.lastChange {
             HStack(spacing: 12) {
                 Image(systemName: c.undoable ? "checkmark.circle.fill" : "arrow.uturn.backward.circle.fill").foregroundStyle(Brand.accent)
@@ -161,48 +213,5 @@ struct ContentView: View {
                 withAnimation { store.dismissChange(c.id) }
             }
         }
-    }
-
-    private var collapsed: Set<String> { Set(collapsedRaw.split(separator: "|").map(String.init)) }
-
-    private func expanded(_ title: String) -> Binding<Bool> {
-        Binding(get: { !collapsed.contains(title) }, set: { open in
-            var c = collapsed
-            if open { c.remove(title) } else { c.insert(title) }
-            collapsedRaw = c.sorted().joined(separator: "|")
-        })
-    }
-
-    /// Plegada, la sección suma los contadores de sus pantallas para que no se pierda nada pendiente.
-    private func header(_ sec: SidebarSection) -> some View {
-        let total = sec.screens.reduce(0) { $0 + (counts[$1] ?? 0) }
-        return HStack {
-            Text(sec.title)
-            Spacer()
-            if collapsed.contains(sec.title), total > 0 { Text("\(total)").monospacedDigit().foregroundStyle(.secondary) }
-        }
-    }
-
-    private func row(_ s: Screen, color: Color) -> some View {
-        Label { Text(store.title(s)) } icon: { Image(systemName: s.icon).foregroundStyle(color) }
-            .badge(badge(s))
-            .tag(s)
-    }
-
-    /// Tareas en rojo si hay vencidas; Medicación dice «hoy» o «tarde» en vez de un número.
-    private func badge(_ s: Screen) -> Text? {
-        if s == .medicacion, let d = medicationDays, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
-        guard let n = counts[s] else { return nil }
-        return Text("\(n)").foregroundStyle(s == .tareas && tasksOverdue ? Brand.bad : .secondary)
-    }
-
-    private var footer: some View {
-        HStack {
-            Button { store.showQuickAdd = true } label: { Label("Añadir", systemImage: "plus") }.help("Captura rápida (⇧⌘N)")
-            Button { store.showPalette = true } label: { Image(systemName: "magnifyingglass").accessibilityLabel("Buscar") }.help("Buscar (⌘K)")
-            Spacer()
-            Label(store.vaultName, systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary).lineLimit(1).help(store.root.path)
-        }
-        .controlSize(.small).buttonStyle(.glass)
     }
 }

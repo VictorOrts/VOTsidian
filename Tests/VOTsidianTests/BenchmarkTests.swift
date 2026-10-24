@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 import Testing
@@ -73,6 +74,7 @@ import Testing
     t("· medicación") { _ = (store.medicacion.active(on: today), store.medicacion.pending(today: today)) }
     t("· módulos") { _ = (store.vehiculoAlerts(), store.suscripcionAlerts(), store.prestamoAlerts(), store.viajeAlerts(), store.tramiteAlerts()) }
     t("· revisión mensual") { _ = store.monthReview(Budget.monthKey(today)) }
+    t("refreshPublished") { store.refreshPublished() }
     t("alerts() x10") { for _ in 0..<10 { _ = store.alerts() } }
     t("sidebarCounts()") { _ = store.sidebarCounts() }
     t("agenda mes frío") { _ = store.agenda(from: today, to: DayKey.adding(days: 42, to: today)) }
@@ -84,6 +86,31 @@ import Testing
     t("exportar CSV") { _ = try? store.exportData(to: tmp.appendingPathComponent("E")) }
     func paint<V: View>(_ name: String, _ view: V) {
         t("pintar \(name)") { let r = ImageRenderer(content: view.environment(store).frame(width: 1100, height: 900)); r.scale = 1; _ = r.cgImage }
+    }
+    // `VOT_BENCH_TYPING=1`: escribe 200 letras en una nota abierta en el editor y mide cuánto tarda cada una en llegar a la pantalla.
+    if ProcessInfo.processInfo.environment["VOT_BENCH_TYPING"] != nil {
+        setenv("VOT_EDIT", "1", 1)
+        _ = NSApplication.shared
+        store.pendingNote = "Carpeta 3/Nota 3-7.md"
+        store.screen = .notas
+        let view = NSHostingView(rootView: ContentView().environment(store).frame(width: 1280, height: 860))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = view
+        window.orderFrontRegardless()
+        RunLoop.main.run(until: Date().addingTimeInterval(1.5))
+        func textViews(_ v: NSView) -> [NSTextView] { (v as? NSTextView).map { [$0] } ?? v.subviews.flatMap(textViews) }
+        guard let editor = textViews(view).max(by: { $0.string.count < $1.string.count }) else { print("BENCH sin editor"); return }
+        window.makeFirstResponder(editor)
+        BodyCounter.reset()
+        let start = ContinuousClock.now
+        for _ in 0..<200 {
+            editor.insertText("a", replacementRange: editor.selectedRange())
+            RunLoop.main.run(until: Date().addingTimeInterval(0.001))
+        }
+        let elapsed = ContinuousClock.now - start
+        print("BENCH escribir 200 letras: \(elapsed) (\(elapsed / 200) por letra); cuerpos: \(BodyCounter.counts.sorted { $0.key < $1.key })")
+        unsetenv("VOT_EDIT")
+        return
     }
     // `VOT_BENCH_SCREEN=viajes`: pinta esa pantalla una y otra vez durante 20 s, para perfilarla con `sample`.
     if let only = ProcessInfo.processInfo.environment["VOT_BENCH_SCREEN"], let screen = Screen.allCases.first(where: { String(describing: $0) == only }) {

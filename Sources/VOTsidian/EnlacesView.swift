@@ -12,6 +12,7 @@ struct EnlacesView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("EnlacesView")
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Card(title: "Enlaces rotos", icon: "link", info: "Los enlaces a pantallas de la app (Tareas, Calendario, Hábitos…) funcionan y no cuentan como rotos.") {
@@ -45,7 +46,8 @@ struct EnlacesView: View {
             .readableWidth()
         }
         .navigationTitle("Enlaces rotos")
-        .task(id: store.revision) {
+        // Cambian los enlaces o la lista de notas (también un renombrado hecho fuera de la app, que no cambia cuántas hay).
+        .task(id: [store.linksVersion, store.notes.map(\.path).hashValue]) {
             broken = store.brokenLinks()
             isolated = store.isolatedNotes()
         }

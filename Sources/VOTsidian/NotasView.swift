@@ -14,7 +14,6 @@ struct NotasView: View {
     @State private var selected: String?
     @State private var back: [String] = []
     @State private var forward: [String] = []
-    @State private var search = ""
     @State private var tag: String?
     @State private var mode: Mode = ProcessInfo.processInfo.environment["VOT_EDIT"] != nil ? .editar : .leer
     @State private var draft = ""
@@ -35,25 +34,9 @@ struct NotasView: View {
     @AppStorage("recentNotes") private var recentRaw = ""
     @AppStorage("openTabs") private var tabsRaw = ""
     @AppStorage("activeTab") private var activeRaw = ""
-    @AppStorage("noteSort") private var sortRaw = Sort.carpeta.rawValue
 
-    private var sort: Sort { Sort(rawValue: sortRaw) ?? .carpeta }
     private var dirty: Bool { selected != nil && draft != baseline }
     private func name(_ path: String) -> String { ((path as NSString).lastPathComponent as NSString).deletingPathExtension }
-
-    private var filtered: [NoteFile] {
-        var list = store.notes
-        if let tag { let set = store.notes(withTag: tag); list = list.filter { set.contains($0.path) } }
-        if !search.isEmpty {
-            let q = MD.fold(search)
-            list = list.filter { MD.fold($0.path).contains(q) || MD.fold(store.snippets[$0.path] ?? "").contains(q) }
-        }
-        switch sort {
-        case .reciente: return list.sorted { (store.modified[$0.path] ?? .distantPast) > (store.modified[$1.path] ?? .distantPast) }
-        case .nombre: return list.sorted { MD.fold($0.name) < MD.fold($1.name) }
-        case .carpeta: return list
-        }
-    }
 
     // MARK: Navegación y guardado
 
@@ -137,9 +120,13 @@ struct NotasView: View {
     // MARK: Cuerpo
 
     var body: some View {
+        let _ = BodyCounter.hit("NotasView")
         HStack(spacing: 0) {
             if !focusMode {
-                listPanel.frame(width: 290)
+                // Vista aparte y comparable: al escribir en el editor (que cambia el borrador en cada pulsación) SwiftUI no la
+                // vuelve a calcular; sí lo hace si cambian las notas, la selección o el filtro de etiqueta.
+                NoteListPanel(selected: selected, tag: $tag, onSelect: { go($0, newTab: $1) }, onNew: { showNew = true })
+                    .equatable().frame(width: 290)
                 Divider()
             }
             content.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -155,10 +142,10 @@ struct NotasView: View {
         }
         .autosave(on: draft) { autosaveNote() }
         .onChange(of: store.pendingNote) { consumePending() }
-        .onChange(of: store.revision) {
+        .onChange(of: selected.map { store.read($0) } ?? "") {
             if let p = selected, !dirty { let disk = store.read(p); draft = disk; baseline = disk }
         }
-        .task(id: "\(selected ?? "")-\(store.revision)") {
+        .task(id: "\(selected ?? "")-\(store.textsVersion)") {
             if let p = selected, mode == .leer { mentions = store.unlinkedMentions(of: p) } else { mentions = [] }
         }
         .sheet(item: $rowSpec) { RowSheet(spec: $0) }
@@ -180,59 +167,6 @@ struct NotasView: View {
     }
 
     // MARK: Lista de notas (estilo Bear)
-
-    private var listPanel: some View {
-        VStack(spacing: 8) {
-            HStack {
-                TextField("Buscar nota", text: $search)
-                Button { showNew = true } label: { Image(systemName: "square.and.pencil").accessibilityLabel("Nueva nota") }.help("Nueva nota")
-            }.padding([.horizontal, .top], 10)
-            HStack(spacing: 6) {
-                Menu {
-                    ForEach(Sort.allCases) { s in Button(s.rawValue) { sortRaw = s.rawValue } }
-                } label: { Label(sort.rawValue, systemImage: "arrow.up.arrow.down") }.menuStyle(.borderlessButton).fixedSize()
-                Menu {
-                    Button("Todas las etiquetas") { tag = nil }
-                    Divider()
-                    ForEach(store.allTags, id: \.tag) { t in Button("#\(t.tag) (\(t.count))") { tag = t.tag } }
-                } label: { Label(tag.map { "#\($0)" } ?? "Etiquetas", systemImage: "number") }.menuStyle(.borderlessButton).fixedSize()
-                Spacer()
-                if tag != nil { Button { tag = nil } label: { Image(systemName: "xmark.circle.fill").accessibilityLabel("Quitar filtro") }.buttonStyle(.borderless).foregroundStyle(.secondary) }
-            }.font(.caption).padding(.horizontal, 10)
-            List(selection: Binding(get: { selected }, set: { if let p = $0 { go(p) } })) {
-                if search.isEmpty, tag == nil {
-                    let pins = store.pinned.filter { p in store.notes.contains { $0.path == p } }
-                    if !pins.isEmpty { Section("Fijadas") { ForEach(pins, id: \.self) { row($0) } } }
-                    if !recent.isEmpty, sort == .carpeta { Section("Recientes") { ForEach(recent, id: \.self) { row($0) } } }
-                }
-                if sort == .carpeta {
-                    ForEach(Dictionary(grouping: filtered, by: \.folder).keys.sorted(), id: \.self) { folder in
-                        Section(folder) { ForEach(filtered.filter { $0.folder == folder }) { row($0.path) } }
-                    }
-                } else {
-                    ForEach(filtered) { row($0.path) }
-                }
-            }
-        }
-    }
-
-    private func row(_ path: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(name(path)).fontWeight(.medium).lineLimit(1)
-                if store.pinned.contains(path) { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(Brand.accent) }
-                Spacer()
-                if let d = store.modified[path] { Text(dayLabel(d)).font(.caption2).foregroundStyle(.tertiary) }
-            }
-            if let s = store.snippets[path], !s.isEmpty { Text(s).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
-        }
-        .tag(path)
-        .contextMenu {
-            Button("Abrir en pestaña nueva") { go(path, newTab: true) }
-            Button(store.pinned.contains(path) ? "Desfijar" : "Fijar arriba") { store.togglePin(path) }
-            Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([store.url(path)]) }
-        }
-    }
 
     // MARK: Contenido
 
@@ -257,7 +191,7 @@ struct NotasView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
                             tagChips(path)
-                            NoteBody(text: store.read(path), actions: actions(path)).id("\(path)-\(store.revision)")
+                            NoteBody(text: store.read(path), actions: actions(path)).id(path)
                             linksPanel(path)
                         }
                         .padding(24).frame(maxWidth: 820, alignment: .leading).frame(maxWidth: .infinity)
@@ -453,10 +387,10 @@ struct NotasView: View {
             fmtButton("text.quote", "Cita") { linePrefix("> ") }
             Divider().frame(height: 16)
             Menu {
-                ForEach(store.notes.sorted { MD.fold($0.name) < MD.fold($1.name) }) { n in Button(n.name) { insertText("[[\(n.name)]]") } }
+                ForEach(store.notesByName) { n in Button(n.name) { insertText("[[\(n.name)]]") } }
             } label: { Image(systemName: "link").accessibilityLabel("Insertar enlace a una nota") }.menuStyle(.borderlessButton).fixedSize().help("Insertar enlace a una nota")
             Menu {
-                ForEach(store.notes.sorted { MD.fold($0.name) < MD.fold($1.name) }) { n in Button(n.name) { insertText("\n![[\(n.name)]]\n") } }
+                ForEach(store.notesByName) { n in Button(n.name) { insertText("\n![[\(n.name)]]\n") } }
             } label: { Image(systemName: "rectangle.on.rectangle").accessibilityLabel("Incrustar otra nota") }.menuStyle(.borderlessButton).fixedSize().help("Mostrar aquí el contenido de otra nota (![[nota]])")
             fmtButton("calendar", "Insertar fecha de hoy") { insertText(DayKey.string(DayKey.today())) }
             Spacer()
@@ -502,7 +436,7 @@ struct NotasView: View {
                 ForEach(incoming, id: \.self) { p in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Button(name(p)) { go(p) }.buttonStyle(.bordered).controlSize(.small).notePreview(p)
-                        if let c = LinkContext.line(in: store.noteTexts[p] ?? store.read(p), linkingTo: name(path)) {
+                        if let c = LinkContext.line(in: store.read(p), linkingTo: name(path)) {
                             Text(c).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                         }
                     }
@@ -551,5 +485,100 @@ struct NotasView: View {
             pdf.closePDF()
         }
         NSWorkspace.shared.open(url)
+    }
+}
+
+/// Lista de notas de la izquierda, con su búsqueda, su orden y el filtro de etiqueta.
+private struct NoteListPanel: View, Equatable {
+    @Environment(Store.self) private var store
+    let selected: String?
+    @Binding var tag: String?
+    let onSelect: (String, Bool) -> Void
+    let onNew: () -> Void
+    @State private var search = ""
+    @AppStorage("recentNotes") private var recentRaw = ""
+    @AppStorage("noteSort") private var sortRaw = NotasView.Sort.carpeta.rawValue
+
+    /// Solo cuenta lo que cambia lo que se ve: los cierres son siempre «distintos» y harían que se recalculara en cada pulsación.
+    static func == (a: Self, b: Self) -> Bool { a.selected == b.selected && a.tag == b.tag }
+
+    private var sort: NotasView.Sort { NotasView.Sort(rawValue: sortRaw) ?? .carpeta }
+    private func name(_ path: String) -> String { ((path as NSString).lastPathComponent as NSString).deletingPathExtension }
+
+    private var filtered: [NoteFile] {
+        var list = store.notes
+        if let tag { let set = store.notes(withTag: tag); list = list.filter { set.contains($0.path) } }
+        if !search.isEmpty {
+            let q = MD.fold(search)
+            list = list.filter { MD.fold($0.path).contains(q) || MD.fold(store.snippets[$0.path] ?? "").contains(q) }
+        }
+        switch sort {
+        case .reciente: return list.sorted { (store.modified[$0.path] ?? .distantPast) > (store.modified[$1.path] ?? .distantPast) }
+        case .nombre: return list.sorted { MD.fold($0.name) < MD.fold($1.name) }
+        case .carpeta: return list
+        }
+    }
+
+    private var recent: [String] {
+        let existing = Set(store.notes.map(\.path))
+        return recentRaw.split(separator: "\n").map(String.init).filter(existing.contains)
+    }
+
+    var body: some View {
+        let _ = BodyCounter.hit("NoteListPanel")
+        let list = filtered
+        VStack(spacing: 8) {
+            HStack {
+                TextField("Buscar nota", text: $search)
+                Button { onNew() } label: { Image(systemName: "square.and.pencil").accessibilityLabel("Nueva nota") }.help("Nueva nota")
+            }.padding([.horizontal, .top], 10)
+            HStack(spacing: 6) {
+                Menu {
+                    ForEach(NotasView.Sort.allCases) { s in Button(s.rawValue) { sortRaw = s.rawValue } }
+                } label: { Label(sort.rawValue, systemImage: "arrow.up.arrow.down") }.menuStyle(.borderlessButton).fixedSize()
+                Menu {
+                    Button("Todas las etiquetas") { tag = nil }
+                    Divider()
+                    ForEach(store.allTags, id: \.tag) { t in Button("#\(t.tag) (\(t.count))") { tag = t.tag } }
+                } label: { Label(tag.map { "#\($0)" } ?? "Etiquetas", systemImage: "number") }.menuStyle(.borderlessButton).fixedSize()
+                Spacer()
+                if tag != nil { Button { tag = nil } label: { Image(systemName: "xmark.circle.fill").accessibilityLabel("Quitar filtro") }.buttonStyle(.borderless).foregroundStyle(.secondary) }
+            }.font(.caption).padding(.horizontal, 10)
+            List(selection: Binding(get: { selected }, set: { if let p = $0 { onSelect(p, false) } })) {
+                if search.isEmpty, tag == nil {
+                    let existing = Set(store.notes.map(\.path))
+                    let pins = store.pinned.filter(existing.contains)
+                    if !pins.isEmpty { Section("Fijadas") { ForEach(pins, id: \.self) { row($0) } } }
+                    if !recent.isEmpty, sort == .carpeta { Section("Recientes") { ForEach(recent, id: \.self) { row($0) } } }
+                }
+                if sort == .carpeta {
+                    // Agrupado una sola vez (antes se filtraba la lista entera por cada carpeta).
+                    let groups = Dictionary(grouping: list, by: \.folder)
+                    ForEach(groups.keys.sorted(), id: \.self) { folder in
+                        Section(folder) { ForEach(groups[folder] ?? []) { row($0.path) } }
+                    }
+                } else {
+                    ForEach(list) { row($0.path) }
+                }
+            }
+        }
+    }
+
+    private func row(_ path: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(name(path)).fontWeight(.medium).lineLimit(1)
+                if store.pinned.contains(path) { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(Brand.accent) }
+                Spacer()
+                if let d = store.modified[path] { Text(dayLabel(d)).font(.caption2).foregroundStyle(.tertiary) }
+            }
+            if let s = store.snippets[path], !s.isEmpty { Text(s).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+        }
+        .tag(path)
+        .contextMenu {
+            Button("Abrir en pestaña nueva") { onSelect(path, true) }
+            Button(store.pinned.contains(path) ? "Desfijar" : "Fijar arriba") { store.togglePin(path) }
+            Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([store.url(path)]) }
+        }
     }
 }

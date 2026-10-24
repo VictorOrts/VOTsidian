@@ -31,7 +31,6 @@ extension Store {
         if steps.count == 1 { push(steps[0]) } else if !steps.isEmpty { push(.batch(steps)) }
     }
 
-    var canUndo: Bool { !undoStack.isEmpty }
 
     /// Deshace el último cambio hecho desde la app (restaura el archivo tal como estaba).
     func undo() {

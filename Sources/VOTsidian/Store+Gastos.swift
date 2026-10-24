@@ -18,6 +18,7 @@ extension Store {
     /// Se analiza una vez por recarga: la pantalla de Gastos y los avisos lo piden muchas veces en cada pintado.
     func budget(_ month: String) -> Budget? {
         let p = budgetPath(month)
+        touch(p)   // aunque la caché acierte: quien pinta este mes depende de su nota
         if let b = budgetCache[p] { return b }
         guard let t = noteTexts[p] else { return nil }
         let b = Parse.budget(t, month: month, path: p)

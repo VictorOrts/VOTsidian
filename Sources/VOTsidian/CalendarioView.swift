@@ -21,6 +21,7 @@ struct CalendarioView: View {
     private var monthStart: Date { cal.date(byAdding: .month, value: monthOffset, to: cal.dateInterval(of: .month, for: DayKey.today())!.start)! }
 
     var body: some View {
+        let _ = BodyCounter.hit("CalendarioView")
         let first = monthStart
         let lead = (cal.component(.weekday, from: first) + 5) % 7
         let days = cal.range(of: .day, in: .month, for: first)!.count
@@ -62,7 +63,7 @@ struct CalendarioView: View {
         .onAppear { loadNote() }
         .onDisappear { saveNote() }
         .autosave(on: noteDraft) { saveNote(quiet: true) }
-        .onChange(of: store.revision) { if noteDraft == noteBase { loadNote() } }
+        .onChange(of: store.read(Store.diaryPath(selected))) { if noteDraft == noteBase { loadNote() } }
     }
 
     // MARK: Rejilla
@@ -109,7 +110,7 @@ struct CalendarioView: View {
                 ForEach(shown.prefix(2)) { item in
                     HStack(spacing: 4) {
                         Circle().fill(item.kind.color).frame(width: 6, height: 6)
-                        Text(item.title).font(.caption2).lineLimit(1).foregroundStyle(inMonth ? .primary : .secondary)
+                        Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(1).foregroundStyle(inMonth ? .primary : .secondary)
                     }
                 }
                 if shown.count > 2 { Text("+\(shown.count - 2) más").font(.caption2).foregroundStyle(.secondary) }
@@ -185,6 +186,7 @@ struct CalendarioView: View {
             } else {
                 Image(systemName: item.kind.icon).foregroundStyle(item.kind.color).frame(width: 16)
             }
+            if let h = item.timeText { Text(h).monospacedDigit().foregroundStyle(.secondary) }
             VStack(alignment: .leading, spacing: 1) {
                 Text(MDParser.inline(item.title)).strikethrough(item.kind == .done).foregroundStyle(item.kind == .done ? .secondary : .primary)
                 if !item.detail.isEmpty { Text(item.detail).font(.caption).foregroundStyle(.secondary) }
@@ -216,7 +218,7 @@ struct CalendarioView: View {
     private var hint: String {
         switch kind {
         case .tarea: "Va al Inbox con la fecha de este día (📅). Si escribes otra fecha, como “el viernes”, usa esa."
-        case .cita: "Va a Médico, en Próximas citas, con la fecha de este día."
+        case .cita: "Va a Médico, en Próximas citas, con la fecha de este día. Con «a las 17:30», también la hora."
         case .nota: "Se añade con la hora a la nota del día."
         case .peso: "Se añade a la tabla de Peso en esta fecha."
         case .pinchazo: "Registra el pinchazo en este día con la dosis y la zona sugeridas."
@@ -263,13 +265,13 @@ struct CalendarioView: View {
         case .tarea:
             let p = NaturalDate.extractTask(raw)
             let day = p.date ?? selected
-            store.addTask(p.text, due: day, recurrence: p.recurrence, priority: p.priority)
-            feedback = "Tarea añadida para \(shortDate(day))" + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "")
+            store.addTask(p.text, due: day, recurrence: p.recurrence, priority: p.priority, time: p.time)
+            feedback = "Tarea añadida para \(shortDate(day))" + (p.time.map { " a las \(TimeOfDay.text($0))" } ?? "") + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "")
         case .cita:
-            let p = NaturalDate.extract(raw)
+            let p = NaturalDate.extractDateTime(raw)
             let day = p.date ?? selected
-            store.edit(VaultPath.medico) { Edit.appendToSection($0, section: "Próximas citas", line: "- [ ] \(p.text) 📅 \(DayKey.string(day))") }
-            feedback = "Cita añadida para \(shortDate(day))"
+            store.addAppointment(p.text, date: day, time: p.time)
+            feedback = "Cita añadida para \(shortDate(day))" + (p.time.map { " a las \(TimeOfDay.text($0))" } ?? "")
         case .nota:
             store.appendToDiary(selected, text: raw)
             loadNote()

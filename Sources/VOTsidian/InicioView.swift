@@ -134,6 +134,7 @@ struct InicioView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("InicioView")
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
@@ -199,6 +200,7 @@ struct InicioView: View {
                 else {
                     HStack(spacing: 9) {
                         Image(systemName: it.kind.icon).foregroundStyle(it.kind.color).frame(width: 18)
+                        if let h = it.timeText { Text(h).monospacedDigit().foregroundStyle(.secondary) }
                         Text(MDParser.inline(it.title))
                         if !it.detail.isEmpty { Text(it.detail).font(.caption).foregroundStyle(.secondary) }
                         Spacer()
@@ -266,7 +268,7 @@ struct InicioView: View {
     }
 
     @ViewBuilder private var attention: some View {
-        let list = store.alerts()
+        let list = store.currentAlerts
         Card(title: list.isEmpty ? "Todo al día" : "Atención", icon: list.isEmpty ? "checkmark.seal" : "bell.badge") {
             AlertList(alerts: list, limit: 6, go: go)
         }
@@ -295,7 +297,7 @@ struct InicioView: View {
                         }.font(.callout)
                     }
                 }
-                Sparkline(records: thinned(w.records, to: 120), goal: w.hasGoal ? w.goalKg : nil).frame(height: 70)
+                Sparkline(records: thinnedKeepingExtremes(w.records, to: 120), goal: w.hasGoal ? w.goalKg : nil).frame(height: 70)
                 let days = DayKey.days(from: l.date, to: DayKey.today())
                 if days > 31 {
                     Label("Hace \(days) días que no registras el peso.", systemImage: "exclamationmark.triangle.fill")
@@ -570,6 +572,7 @@ struct Sparkline: View {
     let goal: Double?
 
     var body: some View {
+        let _ = BodyCounter.hit("Sparkline")
         let kgs = records.map(\.kg)
         let lo = (kgs + (goal.map { [$0] } ?? [])).min().map { $0 - 1 } ?? 0
         Chart {

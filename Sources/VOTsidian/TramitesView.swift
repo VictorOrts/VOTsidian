@@ -7,6 +7,7 @@ struct TramitesView: View {
     @State private var message = ""
 
     var body: some View {
+        let _ = BodyCounter.hit("TramitesView")
         let d = store.tramites
         let today = DayKey.today()
         let pending = d.pendingProcedures

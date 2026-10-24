@@ -8,6 +8,7 @@ struct LecturasView: View {
     @State private var pages = ""
 
     var body: some View {
+        let _ = BodyCounter.hit("LecturasView")
         let l = store.lecturas
         let today = DayKey.today()
         let year = DayKey.calendar().component(.year, from: today)
