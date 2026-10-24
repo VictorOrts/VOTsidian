@@ -296,7 +296,7 @@ struct InicioView: View {
                         }.font(.callout)
                     }
                 }
-                Sparkline(records: thinned(w.records, to: 120), goal: w.hasGoal ? w.goalKg : nil).frame(height: 70)
+                Sparkline(records: thinnedKeepingExtremes(w.records, to: 120), goal: w.hasGoal ? w.goalKg : nil).frame(height: 70)
                 let days = DayKey.days(from: l.date, to: DayKey.today())
                 if days > 31 {
                     Label("Hace \(days) días que no registras el peso.", systemImage: "exclamationmark.triangle.fill")

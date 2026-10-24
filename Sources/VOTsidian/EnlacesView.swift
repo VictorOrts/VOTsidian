@@ -46,7 +46,8 @@ struct EnlacesView: View {
             .readableWidth()
         }
         .navigationTitle("Enlaces rotos")
-        .task(id: store.linksVersion &+ store.notes.count &* 31) {
+        // Cambian los enlaces o la lista de notas (también un renombrado hecho fuera de la app, que no cambia cuántas hay).
+        .task(id: [store.linksVersion, store.notes.map(\.path).hashValue]) {
             broken = store.brokenLinks()
             isolated = store.isolatedNotes()
         }

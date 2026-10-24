@@ -10,6 +10,26 @@ func thinned<T>(_ items: [T], to limit: Int) -> [T] {
     return (0..<limit).map { items[Int((Double($0) * step).rounded())] }
 }
 
+/// Como `thinned`, pero en cada tramo se queda con el pesaje más bajo y el más alto: un pico de un solo día no desaparece
+/// de la gráfica al dibujar menos puntos.
+func thinnedKeepingExtremes(_ records: [WeightRecord], to limit: Int) -> [WeightRecord] {
+    guard records.count > limit, limit >= 4 else { return records }
+    let buckets = (limit - 2) / 2
+    let inner = records.dropFirst().dropLast()
+    let size = Double(inner.count) / Double(buckets)
+    var out = [records[0]]
+    for b in 0..<buckets {
+        let lo = inner.startIndex + Int((Double(b) * size).rounded(.down))
+        let hi = min(inner.endIndex, inner.startIndex + Int((Double(b + 1) * size).rounded(.down)))
+        guard lo < hi else { continue }
+        let slice = records[lo..<hi]
+        let low = slice.min { $0.kg < $1.kg }!, high = slice.max { $0.kg < $1.kg }!
+        out += low.date <= high.date ? (low.id == high.id ? [low] : [low, high]) : [high, low]
+    }
+    out.append(records[records.count - 1])
+    return out
+}
+
 struct WeightRecord: Identifiable, Equatable {
     var date: Date
     var kg: Double

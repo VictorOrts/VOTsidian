@@ -138,3 +138,15 @@ private let edits: [(String, @MainActor (Store) -> Void)] = [
     store.hiddenModules.insert(.finanzas)   // ocultar un módulo publica al momento
     #expect(!store.currentAlerts.contains { $0.screen == .gastos || $0.screen == .finanzas })
 }
+
+@Test func thinnedWeightChartsKeepSpikes() throws {
+    let start = try #require(DayKey.date("2024-01-01"))
+    var records = (0..<1100).map { WeightRecord(date: DayKey.adding(days: $0, to: start), kg: 90 - Double($0) / 100, note: "", line: $0) }
+    records[537].kg = 120   // un día raro
+    records[811].kg = 60
+    let thin = thinnedKeepingExtremes(records, to: 120)
+    #expect(thin.count <= 120 && thin.first == records.first && thin.last == records.last)
+    #expect(thin.contains { $0.kg == 120 } && thin.contains { $0.kg == 60 }, "se perdió un pico al recortar la gráfica")
+    #expect(zip(thin, thin.dropFirst()).allSatisfy { $0.date < $1.date })   // en orden y sin repetir
+    #expect(thinnedKeepingExtremes(Array(records.prefix(50)), to: 120).count == 50)
+}

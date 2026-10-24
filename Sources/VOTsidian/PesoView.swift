@@ -130,7 +130,7 @@ struct PesoView: View {
 
     private func mainChart(_ w: WeightData) -> some View {
         let base = chartMin(w)
-        let points = thinned(w.records, to: 400)
+        let points = thinnedKeepingExtremes(w.records, to: 400)
         return Chart {
             ForEach(points) { r in
                 AreaMark(x: .value("Día", r.date), yStart: .value("Base", base), yEnd: .value("kg", r.kg))
