@@ -200,7 +200,11 @@ struct QuickAddSheet: View {
             case .tarea:
                 TextField("Qué hay que hacer (ej: llamar al dentista el viernes)", text: $text).focused($focused).onSubmit(save)
                 HStack { Toggle("Fecha", isOn: $hasDue).toggleStyle(.checkbox); DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue) }
-                if !hasDue, let d = NaturalDate.extract(text).date { Label("Se guardará para \(longDate(d))", systemImage: "calendar").font(.caption).foregroundStyle(Brand.accent) }
+                if !hasDue, let preview = Optional(NaturalDate.extractTask(text)), preview.date != nil || preview.time != nil {
+                    let d = preview.date ?? DayKey.today()
+                    Label("Se guardará para \(longDate(d))" + (preview.time.map { " a las \(TimeOfDay.text($0))" } ?? "") + (preview.muted ? " · sin aviso" : ""), systemImage: "calendar")
+                        .font(.caption).foregroundStyle(Brand.accent)
+                }
                 else { Text("Va al Inbox. Puedes escribir la fecha en la frase: “mañana”, “el viernes”, “25/11”, “en 3 días”.").font(.caption).foregroundStyle(.secondary) }
             case .gasto:
                 TextField("22 € cena con Ana, gasolina 48, ayer 12,50 Mercadona", text: $text).focused($focused).onSubmit(save)
