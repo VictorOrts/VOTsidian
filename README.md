@@ -1,6 +1,6 @@
 # VOTsidian
 
-**Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa y vehículo en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
+**Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa, vehículo, viajes y lecturas en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
 
 [![tests](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml/badge.svg)](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml)
 ![macOS 26+](https://img.shields.io/badge/macOS-26%2B-black)
@@ -91,11 +91,15 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 | **Medicación** | Varios medicamentos a la vez: pastillas diarias con una casilla por toma, inyecciones cada N días con la zona alternada y tomas cuando hace falta. Avisos por medicamento y hora y cumplimiento de 30 días. |
 | **Salud y médicos** | Próximas citas, tratamientos, análisis en PDF, notas de cada visita y un resumen para llevar a la consulta. |
 | **Finanzas y gastos** | Presupuesto mensual por partidas. Los gastos se apuntan como frase («22 € cena con Ana») y la app adivina la partida y aprende de tus correcciones. «Puedes gastar hoy», ritmo del mes, pagos fijos con aviso, fondo de emergencia, eventos y aportaciones, y resumen del año comparado con el anterior. |
+| **Suscripciones** | Qué se renueva y cuándo, avisos antes del cobro y de que acabe una prueba gratuita, coste al mes y al año. Cada cobro se puede apuntar en Gastos. |
+| **Préstamos y deudas** | Lo que debes, la cuota de cada mes, cuántas quedan y cuándo acabas. Apuntar una cuota baja lo que debes y, si quieres, la añade a Gastos. |
 | **Casa** | Reformas y compras en lista o tablero, electrodomésticos con garantía y mantenimiento sugerido según tus aparatos. |
 | **Lista de la compra** | Lista por secciones con casillas, también desde ⌘K. |
 | **Ropa** | Lo que quieres comprar, con precio, prioridad y estado. |
 | **Mascota** | Ficha, visitas y vacunas con aviso de la próxima. |
 | **Vehículo** | ITV, seguro e impuesto con aviso 30 días antes, mantenimiento cada tantos km o meses, repostajes, consumo medio y gasto del año. El gasto se puede apuntar también en Gastos. |
+| **Viajes** | Fechas, presupuesto y gastos de cada viaje (también en Gastos si quieres), lista de equipaje que se reutiliza y aviso si el pasaporte de Documentos caduca poco después de salir. |
+| **Lecturas** | Libros pendientes, leyendo y terminados con nota de 1 a 5, objetivo anual y ritmo de lectura. |
 | **Personas** | Cumpleaños y última vez que hablasteis. |
 | **Documentos** | Caducidades de DNI, pasaporte, seguros… con aviso 30 días antes. Solo la referencia, nunca el documento. |
 | **Objetivos** | Objetivos por área y revisión trimestral. |

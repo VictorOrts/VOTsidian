@@ -11,7 +11,8 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 - [Convenciones](#convenciones)
 - [Formato de cada nota](#formato-de-cada-nota)
   - [Peso](#peso) · [Medidas](#medidas) · [Plan nutricional](#plan-nutricional) · [Medicación](#medicación) · [Salud y médicos](#salud-y-médicos)
-  - [Finanzas y gastos](#finanzas-y-gastos) · [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo)
+  - [Finanzas y gastos](#finanzas-y-gastos) · [Suscripciones](#suscripciones) · [Préstamos y deudas](#préstamos-y-deudas)
+  - [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo) · [Viajes](#viajes) · [Lecturas](#lecturas)
   - [Personas](#personas) · [Documentos](#documentos) · [Objetivos](#objetivos)
 - [Tareas](#tareas)
 - [Notas que crea la app](#notas-que-crea-la-app)
@@ -41,11 +42,15 @@ Si falta la nota de una pantalla, arriba sale un aviso con «Crear la nota». No
 | Medicación | Medicación | `Salud/Medicación.md` |
 | Salud y médicos | Salud y médicos | `Salud/Médico.md` (las notas de visita y los PDF de análisis, en `Salud/`) |
 | Finanzas y gastos | Finanzas, Gastos | `Finanzas/Finanzas.md` y una nota por mes en `Finanzas/Gastos/` |
+| Suscripciones | Suscripciones | `Finanzas/Suscripciones.md` |
+| Préstamos y deudas | Préstamos | `Finanzas/Préstamos.md` |
 | Casa | Casa | `Casa/Casa.md` |
 | Lista de la compra | Compra | `Casa/Lista de la compra.md` |
 | Ropa | Moda | `Moda/Armario.md` |
 | Mascota | (nombre de la mascota) | `Mascota/Mascota.md` |
 | Vehículo | (nombre del vehículo) | `Vehículo/Vehículo.md` |
+| Viajes | Viajes | `Viajes/Viajes.md` |
+| Lecturas | Lecturas | `Lecturas/Lecturas.md` |
 | Personas | Personas | `Organización/Personas.md` |
 | Documentos | Documentos | `Organización/Documentos.md` |
 | Objetivos | Objetivos | `Organización/Objetivos.md` |
@@ -66,7 +71,7 @@ Lo más cómodo es apuntar desde la app. Si escribes a mano, ten en cuenta esto:
 | Peso, Medidas | `DD/MM/AAAA` |
 | Mascota (`nacimiento`) | `DD/MM/AAAA` |
 | Mascota (tabla), Medicación, Personas, Salud, Gastos, Tareas | `AAAA-MM-DD` |
-| Documentos, Vehículo (Fechas) | cualquiera |
+| Documentos, Vehículo, Suscripciones, Préstamos, Viajes, Lecturas | cualquiera |
 
 ## Formato de cada nota
 
@@ -166,6 +171,53 @@ El mes nuevo copia las partidas del anterior.
 
 `Finanzas/Finanzas.md` guarda los objetivos de ahorro y los pagos sueltos, como tareas en `## Objetivos de ahorro y pagos`.
 
+### Suscripciones
+
+```markdown
+## Servicios
+
+| Servicio | Importe | Cada | Próximo cobro | Partida | Estado | Notas |
+| :------- | ------: | :--- | :------------ | :------ | :----- | :---- |
+| Netflix | 12,99 € | Mensual | 2026-10-15 | Suscripciones | Activa | |
+| Cloud | 99 € | Anual | 2026-12-01 | | Activa | |
+| Curso | 29 € | Mensual | 2026-11-01 | | Prueba | |
+```
+
+| Columna | Qué poner |
+|---|---|
+| Cada | `Semanal`, `Quincenal`, `Mensual`, `Bimestral`, `Trimestral`, `Semestral`, `Anual`, «cada 2 semanas», «cada 2 años» o un número de meses. Vacío es mensual. |
+| Próximo cobro | Un cobro cualquiera de la serie, el último o el próximo: la app calcula los siguientes aunque la fecha sea antigua. En una prueba, el día que acaba y empieza a cobrar. |
+| Estado | `Activa`, `Prueba` o `Cancelada`. La cancelada no cuenta ni avisa, y la pantalla dice cuánto ahorras al año. |
+| Partida | La partida de Gastos a la que va el cobro. Opcional: sin ella, la app adivina la partida por el nombre. |
+
+- Avisa 7 días antes de cada renovación (14 si es anual) y cuando una prueba está a punto de acabar. En Calendar sale el día antes.
+- «Apuntar en Gastos» añade el cobro de hoy al mes, en la partida de la fila, y se deshace con ⌥⌘Z.
+- Los totales al mes y al año cuentan solo las activas.
+
+### Préstamos y deudas
+
+```markdown
+## Lo que debo
+
+| Préstamo | Pendiente | Cuota | Día | Hasta | Partida | Notas |
+| :------- | --------: | ----: | :-: | :---- | :------ | :---- |
+| Coche | 6.000 € | 500 € | 15 | | Préstamo personal | |
+| Ana | 200 € | | | | | |
+
+## Pagos
+
+| Fecha | Préstamo | Importe | Notas |
+| :---- | :------- | ------: | :---- |
+| 2026-09-15 | Coche | 500 | |
+```
+
+- **Pendiente** es lo que debías al empezar a apuntar aquí. Lo que queda es Pendiente menos los pagos que tengan el mismo nombre en `Préstamo`.
+- **Cuota** y **Día** (del mes) son opcionales. Sin ellos es una deuda que pagas cuando puedes, sin calendario ni avisos.
+- **Hasta** corta la serie de cuotas en esa fecha.
+- La app cuenta las cuotas que quedan y la fecha en que acabas. No calcula intereses: para ajustarlo a lo que dice el banco, cambia «Pendiente».
+- Avisa 3 días antes de la cuota si no se apuntó este mes, y avisa sin urgencia si el día ya pasó sin apuntar. En Calendar salen las cuotas de los próximos 12 meses, con aviso el día antes.
+- «Apuntar cuota» añade una fila a Pagos y, si quieres, el importe a Gastos (partida de la fila); se deshacen juntos.
+
 ### Casa
 
 Cuatro secciones, cada una con su tabla:
@@ -251,6 +303,51 @@ km: 114100
 - Los km actuales son los más altos entre la ficha, el taller y los repostajes.
 - Al apuntar desde la pantalla, «Apuntar también en Gastos» añade el importe al mes, en la partida de transporte si la hay.
 
+### Viajes
+
+```markdown
+## Destinos
+
+| Destino | Salida | Vuelta | Presupuesto | Estado | Notas |
+| :------ | :----- | :----- | ----------: | :----- | :---- |
+| Lisboa | 2026-11-13 | 2026-11-18 | 800 € | Reservado | |
+
+## Gastos del viaje
+
+| Fecha | Viaje | Concepto | Importe |
+| :---- | :---- | :------- | ------: |
+| 2026-10-24 | Lisboa | Vuelo | 120 € |
+
+## Equipaje
+
+- [ ] Cargador
+- [x] DNI
+```
+
+- **Estado:** `Idea`, `Planeando`, `Reservado`, `Hecho` o `Cancelado`. Los dos últimos dejan de contar como viaje por venir.
+- **Gastos del viaje:** en `Viaje`, el nombre exacto del destino. Suman contra el presupuesto, y la pantalla puede apuntarlos también en Gastos.
+- **Equipaje:** una lista de siempre, que se reutiliza: marca al hacer la maleta y «Desmarcar todo» la deja lista para el próximo viaje. Estas casillas no cuentan como tareas.
+- Avisa cuando el viaje está a menos de 30 días, si te pasas del presupuesto y si el pasaporte de Documentos caduca menos de 6 meses después de salir (solo en viajes de los próximos 6 meses). En Calendar sale 7 días antes.
+
+### Lecturas
+
+```markdown
+---
+objetivo_anual: 12
+---
+
+## Libros
+
+| Título | Autor | Estado | Empezado | Terminado | Nota | Páginas |
+| :----- | :---- | :----- | :------- | :-------- | :--- | ------: |
+| Dune | Frank Herbert | Terminado | 2026-01-01 | 2026-01-20 | ⭐⭐⭐⭐ | 600 |
+```
+
+- **Estado:** `Pendiente`, `Leyendo`, `Terminado` o `Abandonado`. Si lo dejas vacío, manda la fecha: con `Terminado` es terminado, con solo `Empezado`, en marcha.
+- **Nota:** de 1 a 5, o con ⭐.
+- **objetivo_anual:** los libros que quieres terminar este año. Pasados 30 días del año, la pantalla dice cuántos saldrían a fin de año al ritmo de ahora.
+- En la pantalla, «Empezar», «Terminar» (con nota) y «Abandonar» cambian el estado y ponen la fecha de hoy. Los terminados salen en el Calendario.
+
 ### Personas
 
 Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`. `Cumpleaños` admite `MM-DD` si no sabes el año.
@@ -274,7 +371,7 @@ Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última 
 
 ## Tareas
 
-Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas desde la app van a `Organización/Inbox.md`. Se escriben igual que en el plugin Tasks de Obsidian:
+Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas desde la app van a `Organización/Inbox.md`. Las casillas de la lista de la compra y del equipaje de Viajes no cuentan como tareas. Se escriben igual que en el plugin Tasks de Obsidian:
 
 | Escribe | Significa |
 |---|---|
