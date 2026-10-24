@@ -13,6 +13,7 @@ swift test                                     # ~220 tests, ~35 s (incluye fuzz
 VOT_SHOTS=.claude/capturas VOT_SHOT_SCREEN=vehiculo VOT_SHOT_HEIGHT=1500 swift test --filter screenshots   # captura de una pantalla
 VOT_FUZZ=10 VOT_FUZZ_SEED=3 swift test --filter FuzzTests                                               # fuzz a fondo
 VOT_BENCH=1 swift test -c release --filter heavyUserBenchmark                                            # tiempos con 3 años de datos
+VOT_BENCH=1 VOT_BENCH_SCREEN=calendario swift test -c release --filter heavyUserBenchmark                # pinta esa pantalla 20 s (para `sample <pid>`)
 SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test --filter X                # traza si un test cierra el proceso
 ```
 
@@ -61,6 +62,17 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
   probar contra Calendar real.
+
+## Rendimiento (la ventaja frente a Obsidian: tiene que ir fluida)
+
+- Medir siempre con el benchmark en release antes y después. Un pintado suelto con `ImageRenderer` es ruidoso: para comparar
+  pantallas, el modo `VOT_BENCH_SCREEN` (pintados en 20 s) y `sample <pid> 9` para ver qué funciones pesan.
+- Nada de expresiones regulares línea a línea sin un filtro previo por bytes (ver `Parse.tasks`, `NoteInfo.tags`, `Links.extract`).
+- Lo que se pide en cada pintado y solo cambia con las notas se guarda: `alerts()` (`alertsCache`), `brokenLinkCount`,
+  índices al leer la nota (`intakeIndex`, `paymentIndex`, `spentIndex`, `trendCache`). La barra lateral calcula sus indicadores en
+  `.task(id: store.revision)`, no en cada fila.
+- Listas largas: recortar con `ShowAllButton` (tablas de notas 40 filas, Peso 60…). Gráficas: `thinned(_:to:)` (120–400 puntos).
+- `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
 
 ## Forma de trabajar
 
