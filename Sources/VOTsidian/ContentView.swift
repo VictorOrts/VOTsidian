@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum Screen: String, CaseIterable, Identifiable {
-    case inicio = "Inicio", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
+    case inicio = "Inicio", dia = "Mi día", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
     case peso = "Peso", nutricion = "Plan nutricional", medicacion = "Medicación", salud = "Salud y médicos", correlaciones = "Correlaciones"
     case casa = "Casa", compra = "Compra", moda = "Moda", mascota = "Mascota", vehiculo = "Vehículo", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas", gastos = "Gastos"
     case suscripciones = "Suscripciones", prestamos = "Préstamos", lecturas = "Lecturas", viajes = "Viajes", tramites = "Trámites y seguros"
@@ -10,6 +10,7 @@ enum Screen: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .inicio: "house"
+        case .dia: "sun.max"
         case .tareas: "checklist"
         case .calendario: "calendar"
         case .planificar: "rectangle.grid.3x2"
@@ -54,7 +55,7 @@ struct ContentView: View {
 
     private struct SidebarSection { let title: String; let color: Color; let screens: [Screen] }
     private static let sections = [
-        SidebarSection(title: "Día a día", color: Brand.accent, screens: [.tareas, .calendario, .planificar, .semana, .mes, .proyectos, .objetivos]),
+        SidebarSection(title: "Día a día", color: Brand.accent, screens: [.dia, .tareas, .calendario, .planificar, .semana, .mes, .proyectos, .objetivos]),
         SidebarSection(title: "Cuerpo", color: Brand.violet, screens: [.peso, .nutricion, .medicacion, .salud, .correlaciones]),
         SidebarSection(title: "Dinero", color: Brand.sky, screens: [.finanzas, .gastos, .suscripciones, .prestamos]),
         SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .mascota, .vehiculo, .personas, .documentos, .tramites]),
@@ -94,12 +95,14 @@ struct ContentView: View {
             .sheet(isPresented: $store.showPalette) { CommandPalette() }
             .sheet(isPresented: $store.showQuickAdd) { QuickAddSheet() }
             .sheet(isPresented: $store.showCierre) { CierreSheet() }
+            .sheet(isPresented: $store.showEmpezar) { EmpezarSheet() }
         }
     }
 
     @ViewBuilder private var detail: some View {
         switch store.screen.flatMap({ store.isVisible($0) ? $0 : nil }) ?? .inicio {
         case .inicio: InicioView(go: { store.screen = $0 })
+        case .dia: MiDiaView()
         case .tareas: TareasView()
         case .calendario: CalendarioView()
         case .planificar: PlanificarView()

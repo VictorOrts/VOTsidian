@@ -59,7 +59,7 @@ struct CalendarEventSpec: Equatable {
         allDay = e.minutes == nil
         if let m = e.minutes {
             start = DayKey.calendar().date(bySettingHour: m / 60, minute: m % 60, second: 0, of: e.start) ?? e.start
-            end = start.addingTimeInterval(15 * 60)   // como el DURATION del .ics
+            end = start.addingTimeInterval(Double(e.duration ?? 15) * 60)   // como el DURATION del .ics
         } else {
             start = e.start
             end = e.start
@@ -298,8 +298,13 @@ extension Store {
             guard let self else { return }
             let events = ICS.events(reminderSources(), plan: reminderPlan())
             let status: String
-            do { status = try await CalendarSync.sync(events, userInitiated: false).text }
-            catch { status = error.localizedDescription }
+            do {
+                status = try await CalendarSync.sync(events, userInitiated: false).text
+                Log.calendar.info("Calendario VOTsidian al día: \(status, privacy: .public)")
+            } catch {
+                status = error.localizedDescription
+                Log.calendar.error("No se pudo sincronizar con Calendar: \(status, privacy: .public)")
+            }
             UserDefaults.standard.set("\(Store.stamp("d/M HH:mm")): \(status)", forKey: "calendarSyncStatus")
         }
     }

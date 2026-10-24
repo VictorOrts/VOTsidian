@@ -31,7 +31,7 @@ private let fragments: [String] = [
     "| :--- | :---: | ---: |", "|---|", "| --- |", "| 2026-10-01 | 80 | x |", "| 01/10/2026 | 80,5 |", "| 2026-10-01 | Coche | 500 | |", "|", "||", "| a | b", "a | b |", "| \\| | x |", "| | | |",
     "| 31/02/2026 | 1e999 | |", "| Netflix | 12,99 € | Mensual | 2026-01-15 | | Activa | |", "| Dune | Herbert | Terminado | 2026-01-01 | 2026-01-20 | ⭐⭐⭐ | 600 |", "| Lisboa | 2026-12-01 | 2026-12-05 | 800 € | Reservado | |",
     "| 2026-10-01 | 114.100 | 30 | 47,40 € |", "| 2026-01-10 | 100.000 | Aceite | Taller | 180 € | 15.000 | 12 |", "| Coche | 6.000 € | 500 € | 15 | | Préstamo | |",
-    "- [ ] tarea 📅 2026-10-01", "- [x] hecha ✅ 2026-10-01 [completion:: 2026-10-02]", "- [ ] 🔁 every 0 days", "- [ ] ⏫ 📅 9999-99-99", "* [ ] x", "1. [ ] y", "- [ ]", "- [x]x", "- [ ] 📅 2026-02-30", "- [ ] 🔁 every month when done 📅 2026-01-31", "- [ ] cita 📅 2026-11-02 ⏰ 17:30", "- [ ] mal ⏰ 99:99 📅 2026-11-02", "- [ ] ⏰ 9:05",
+    "- [ ] tarea 📅 2026-10-01", "- [x] hecha ✅ 2026-10-01 [completion:: 2026-10-02]", "- [ ] 🔁 every 0 days", "- [ ] ⏫ 📅 9999-99-99", "* [ ] x", "1. [ ] y", "- [ ]", "- [x]x", "- [ ] 📅 2026-02-30", "- [ ] 🔁 every month when done 📅 2026-01-31", "- [ ] cita 📅 2026-11-02 ⏰ 17:30", "- [ ] mal ⏰ 99:99 📅 2026-11-02", "- [ ] ⏰ 9:05", "- [ ] largo ⏱ 99h99m", "- [ ] ⏱️ 30m", "- [ ] x ⏱ 0m ⏱ 1h", "- [ ] ⏱",
     "```", "```grafica\ntabla: X\ny: A,B\ntipo: tarta\n```", "```dataviewjs\nconst x = '| 1 | 2 |';\n```", "~~~", "> cita", "> [!note] aviso",
     "[[A]]", "![[B#C]]", "![[x.png]]", "[[", "]]", "[[a|b]]", "[[#]]", "[[A]] [[A]] [[A]]", "![[]]", "#etiqueta #otra/sub #123",
     "ñandú ✅ 🎉", "\u{200B}\u{202E}rtl", "e\u{0301}e\u{0301}", String(repeating: "a", count: 5000), String(repeating: "| x ", count: 400) + "|", "     ", "\t\t|\t|", "",
@@ -86,7 +86,10 @@ private func readEverything(_ t: String) {
     _ = (NoteInfo.tags(t), NoteInfo.snippet(t), NoteInfo.wordCount(t), NoteInfo.aliases(t), Edit.tidyFooter(t), Edit.removeDataview(t))
     let spec = NoteChart.spec(t)
     _ = (NoteChart.data(spec, tables: Parse.tables(t)), NoteChart.kind(t))
-    for s in t.components(separatedBy: "\n").prefix(40) { _ = (MDParser.inline(s), DayKey.date(s), DayKey.dmyDate(s), MD.number(s), Money.parse(s), Medication.every(s), Medication.times(s)) }
+    let tasks = Parse.tasks(t, file: "x.md")
+    let plan = DayPlan.build(day: DayKey.today(), tasks: tasks, agenda: [])
+    _ = (DayPlan.columns(plan.blocks), DayPlan.autoSchedule(plan.unscheduled, around: plan.blocks, from: 0, until: 1440), plan.plannedMinutes)
+    for s in t.components(separatedBy: "\n").prefix(40) { _ = (TaskDuration.parse(s), TaskDuration.find(in: s), NaturalDate.extractDuration(s), MDParser.inline(s), DayKey.date(s), DayKey.dmyDate(s), MD.number(s), Money.parse(s), Medication.every(s), Medication.times(s)) }
 }
 
 /// Pasa el texto por todos los editores, con líneas y nombres que a veces no existen.
@@ -112,6 +115,7 @@ private func editEverything(_ t: String, _ r: inout Rng) {
     _ = (Edit.addMedication(t, Medication(name: "X", dose: "1 mg", form: "Pastilla", every: 1), current: nil), Edit.upgradeMedicationNote(t, current: Medication(name: "X", dose: "", form: "", every: 7)))
     if let task {
         _ = (Edit.setTask(t, task: task, done: true), Edit.completeRecurring(t, task: task), Edit.updateTask(t, task: task, newText: "z", due: day, priority: 1))
+        _ = Edit.updateTask(t, task: task, newText: task.text, due: day, time: .some(Int.random(in: 0..<1440, using: &r)), duration: .some(Int.random(in: 5...1440, using: &r)))
     }
 }
 
@@ -141,7 +145,7 @@ private func editEverything(_ t: String, _ r: inout Rng) {
 @Test func randomLinesNeverCrashTheLineParsers() {
     var r = Rng(state: 99 &+ seed)
     let words = ["peso", "animo", "dormi", "gasto", "cuota", "libro", "tarea", "cita", "compra", "pinchazo", "cintura", "devolucion", "termine", "hoy", "mañana", "ayer", "el viernes", "el 29/10", "cada mes",
-                 "cada 2 semanas", "25/11", "2026-02-30", "99999999999999999999", "el ٢٩", "en ٣ días", "٢٢ € cena", "２９/１０", "1,5", "-3", "€", "22 € cena con Ana", "0,0", "NaN", "inf", "⏫", "🔁", "📅", "#etiqueta", "carpeta:casa", "tipo:evento", "[[", "]]", "\u{202E}", "a las 17:30", "a las 5 de la tarde", "a las 9 y media", "sobre las 25:61", "a mediodía", "⏰ 17:30", "17:30", "a la 1", "menos cuarto"]
+                 "cada 2 semanas", "25/11", "2026-02-30", "99999999999999999999", "el ٢٩", "en ٣ días", "٢٢ € cena", "２９/１０", "1,5", "-3", "€", "22 € cena con Ana", "0,0", "NaN", "inf", "⏫", "🔁", "📅", "#etiqueta", "carpeta:casa", "tipo:evento", "[[", "]]", "\u{202E}", "a las 17:30", "a las 5 de la tarde", "a las 9 y media", "sobre las 25:61", "a mediodía", "⏰ 17:30", "17:30", "a la 1", "menos cuarto", "de 10 a 11:30", "de 23 a 99", "durante 9999 min", "durante hora y media", "⏱ 1h30m", "de 0 a 0"]
     for _ in 0..<(4000 * scale) {
         let s = (0..<Int.random(in: 1...7, using: &r)).map { _ in words.randomElement(using: &r)! }.joined(separator: Bool.random(using: &r) ? " " : "")
         _ = (QuickCommand.parse(s), NaturalDate.extract(s), NaturalDate.extractTask(s), NaturalDate.extractTime(s), NaturalDate.extractDateTime(s), ExpenseParser.parse(s, categories: ["Alimentación", "Transporte"], people: ["Ana"], learned: ["cena": "Alimentación"]))
@@ -255,6 +259,9 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         ("mascota", { $0.addMascotaVisit(date: day, tipo: "Vacuna", detalle: "", proxima: nil, coste: "") }),
         ("tarea", { $0.addTask("nueva", due: day, recurrence: "every week", priority: 2) }),
         ("completar", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.setTask(t, done: true) } }),
+        ("poner hora", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.schedule(t, on: day, at: 10 * 60) } }),
+        ("duración", { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.setDuration(t, 45) } }),
+        ("repartir el día", { s in s.addTask("sin hora", due: day); s.autoSchedule(s.dayPlan(day), from: 0, until: 24 * 60) }),
         ("idea", { $0.addIdea("una idea") }),
         ("diario", { $0.appendToDiary(day, text: "hoy") }),
         ("ánimo", { $0.setDiaryValue(day, "animo", 4) }),

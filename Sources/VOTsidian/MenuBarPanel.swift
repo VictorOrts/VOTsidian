@@ -28,6 +28,7 @@ struct MenuBarPanel: View {
             HStack {
                 Button { show() } label: { Label("Abrir", systemImage: "macwindow") }
                 Button { show(); store.openToday() } label: { Label("Nota de hoy", systemImage: "note.text") }
+                Button { show(); store.showEmpezar = true } label: { Label("Empezar", systemImage: "sunrise") }
                 Button { show(); store.showCierre = true } label: { Label("Cerrar el día", systemImage: "moon.stars") }
                 Spacer()
             }.controlSize(.small)
@@ -143,9 +144,7 @@ struct MenuBarPanel: View {
     private func add() {
         let raw = quick.trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }
-        let p = NaturalDate.extractTask(raw)
-        store.addTask(p.text, due: p.date, recurrence: p.recurrence, priority: p.priority)
-        message = p.date.map { "Añadida para \(shortDate($0))" } ?? "Añadida al Inbox"
+        message = store.addTask(NaturalDate.extractTask(raw))
         quick = ""
     }
 

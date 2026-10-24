@@ -168,6 +168,9 @@ final class Store {
     var showPalette = false
     var showQuickAdd = false
     var showCierre = false
+    var showEmpezar = false
+    /// Día que «Mi día» debe enseñar al abrirse (desde la semana del Calendario o «Empezar el día»).
+    var pendingPlanDay: Date?
     var pendingNote: String?
     /// Mes (AAAA-MM) que Gastos debe enseñar al abrirse: lo ponen Inicio y Finanzas para ir a un mes que no es el actual.
     var pendingGastosMonth: String?
@@ -290,6 +293,7 @@ final class Store {
         showPalette = overlay == "palette"
         showQuickAdd = overlay == "quickadd"
         showCierre = overlay == "cierre"
+        showEmpezar = overlay == "empezar"
     }
 
     static func defaultRoot() -> URL {
@@ -322,6 +326,13 @@ final class Store {
     }
 
     /// Registra que quien llama depende de la nota `rel` (aunque aún no exista: al crearla, se entera).
+    /// Tareas de una nota, registrando solo esa nota y no la lista entera: la pantalla de un módulo no se repinta cuando se marca
+    /// una tarea de otra nota. Las tareas salen del texto de la nota, así que cambian justo cuando cambia su `NoteSlot`.
+    func tasks(in file: String) -> [TaskItem] {
+        touch(file)
+        return _tasks.filter { $0.file == file }
+    }
+
     func touch(_ rel: String) {
         let slot = noteSlots[rel] ?? { let s = NoteSlot(); noteSlots[rel] = s; return s }()
         _ = slot.version
@@ -355,7 +366,10 @@ final class Store {
     /// Recarga completa y síncrona. Los archivos sin cambios salen de la caché (solo se consulta su fecha y tamaño).
     func reload() {
         generation += 1
-        apply(Store.scan(root: root, cache: fileCache))
+        let started = Date()
+        let scan = Store.scan(root: root, cache: fileCache)
+        Log.notes.info("Carpeta leída: \(scan.files.count, privacy: .public) notas en \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms")
+        apply(scan)
     }
 
     /// Recarga tras escribir archivos que ya existían: solo se vuelven a leer esos, sin recorrer la carpeta.
@@ -429,6 +443,9 @@ final class Store {
         // Si mientras tanto hubo otra recarga o se cambió de carpeta, este resultado ya es viejo: se repite.
         if gen != generation || scanned != root { rescanRequested = true }
         else if scan.changed || scan.attachments != attachments || scan.pending != pendingDownloads || scan.unreadable.sorted() != unreadableFiles {
+            Log.notes.debug("Cambios desde fuera de la app: se vuelve a leer la carpeta")
+            if scan.pending.count != pendingDownloads.count { Log.icloud.notice("Archivos sin bajar de iCloud: \(scan.pending.count, privacy: .public)") }
+            if scan.unreadable.count != unreadableFiles.count { Log.notes.error("Archivos que no se pueden leer: \(scan.unreadable.count, privacy: .public)") }
             generation += 1
             apply(scan)
         }
@@ -545,7 +562,10 @@ final class Store {
         guard force || notificationsDay != day else { return }
         notificationsDay = day
         let events = ICS.events(reminderSources(), plan: reminderPlan())
-        Task { _ = await Notifier.schedule(events) }
+        Task {
+            if let n = await Notifier.schedule(events) { Log.notifications.info("Notificaciones programadas: \(n, privacy: .public)") }
+            else { Log.notifications.notice("Sin permiso para notificaciones (o fuera de la app)") }
+        }
     }
 
     /// Pide a iCloud que descargue los archivos pendientes.

@@ -96,19 +96,21 @@ enum Edit {
         return lines.joined(separator: "\n")
     }
 
-    /// Una tarea como se escribe en la nota: `- [ ] Dentista ⏫ 📅 2026-11-02 ⏰ 17:30 🔁 every week`. La hora solo va con fecha.
-    static func taskLine(_ task: String, due: Date?, time: Int? = nil, recurrence: String? = nil, priority: Int = 0, muted: Bool = false) -> String {
-        "- [ ] \(task)" + priorityMark(priority) + dueMark(due, time) + (muted ? " 🔕" : "") + (recurrence.map { " 🔁 every \($0)" } ?? "")
+    /// Una tarea como se escribe en la nota: `- [ ] Dentista ⏫ 📅 2026-11-02 ⏰ 17:30 ⏱ 1h 🔁 every week`. La hora solo va con fecha.
+    static func taskLine(_ task: String, due: Date?, time: Int? = nil, recurrence: String? = nil, priority: Int = 0, muted: Bool = false, duration: Int? = nil) -> String {
+        "- [ ] \(task)" + priorityMark(priority) + dueMark(due, time) + durationMark(duration) + (muted ? " 🔕" : "") + (recurrence.map { " 🔁 every \($0)" } ?? "")
     }
+
+    static func durationMark(_ minutes: Int?) -> String { minutes.map { " ⏱ \(TaskDuration.text($0))" } ?? "" }
 
     static func dueMark(_ due: Date?, _ time: Int?) -> String {
         guard let due else { return "" }
         return " 📅 \(DayKey.string(due))" + (time.map { " ⏰ \(TimeOfDay.text($0))" } ?? "")
     }
 
-    static func addInboxTask(_ text: String, task: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil, muted: Bool = false) -> String? {
+    static func addInboxTask(_ text: String, task: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil, muted: Bool = false, duration: Int? = nil) -> String? {
         var lines = MD.lines(text)
-        let line = taskLine(task, due: due, time: time, recurrence: recurrence, priority: priority, muted: muted)
+        let line = taskLine(task, due: due, time: time, recurrence: recurrence, priority: priority, muted: muted, duration: duration)
         guard let r = MD.section(lines, containing: "Pendiente de clasificar") else {
             lines.append(line)
             return lines.joined(separator: "\n")
@@ -153,7 +155,7 @@ extension Edit {
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
         let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
-        lines.insertClamped(prefix + task.text + priorityMark(task.priority) + dueMark(next, task.time) + (task.muted ? " 🔕" : "") + " 🔁 every \(rule)", at: i + 1)
+        lines.insertClamped(prefix + task.text + priorityMark(task.priority) + dueMark(next, task.time) + durationMark(task.duration) + (task.muted ? " 🔕" : "") + " 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
     }
 }
@@ -207,8 +209,8 @@ extension Edit {
 
     static func priorityMark(_ p: Int) -> String { p == 3 ? " ⏫" : p == 2 ? " 🔼" : p == 1 ? " 🔽" : "" }
 
-    /// `priority`: -1 la deja como está, 0 la quita, 1 a 3 la cambia. `time`: `nil` la deja como está; `.some(nil)` la quita.
-    static func updateTask(_ text: String, task: TaskItem, newText: String, due: Date?, priority: Int = -1, time: Int?? = nil, muted: Bool? = nil) -> String? {
+    /// `priority`: -1 la deja como está, 0 la quita, 1 a 3 la cambia. `time` y `duration`: `nil` las deja como están; `.some(nil)` las quita.
+    static func updateTask(_ text: String, task: TaskItem, newText: String, due: Date?, priority: Int = -1, time: Int?? = nil, muted: Bool? = nil, duration: Int?? = nil) -> String? {
         var lines = MD.lines(text)
         guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
         let body = String(m.2)
@@ -219,7 +221,7 @@ extension Edit {
         }
         if let r = body.range(of: Recurrence.pattern, options: .regularExpression) { tail = " " + body[r].trimmingCharacters(in: .whitespaces) + tail }
         let prio = priority < 0 ? task.priority : priority
-        lines[i] = String(m.1) + newText.trimmingCharacters(in: .whitespaces) + priorityMark(prio) + dueMark(due, time ?? task.time) + ((muted ?? task.muted) ? " 🔕" : "") + tail
+        lines[i] = String(m.1) + newText.trimmingCharacters(in: .whitespaces) + priorityMark(prio) + dueMark(due, time ?? task.time) + durationMark(duration ?? task.duration) + ((muted ?? task.muted) ? " 🔕" : "") + tail
         return lines.joined(separator: "\n")
     }
 

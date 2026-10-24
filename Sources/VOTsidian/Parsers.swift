@@ -57,7 +57,8 @@ enum Parse {
             }
             var time: Int?
             if let tm = body.firstMatch(of: /⏰\s*([0-9]{1,2}):([0-9]{2})/), let h = Int(tm.1), let mi = Int(tm.2), h < 24, mi < 60 { time = h * 60 + mi }
-            for pattern in [#"[📅⏳🛫➕✅]\s*\d{4}-\d{2}-\d{2}"#, #"⏰\s*[0-9]{1,2}:[0-9]{2}"#, #"\[completion::[^\]]*\]"#, Recurrence.pattern, "⏫", "🔼", "🔽", "🔕"] {
+            let duration = body.unicodeScalars.contains("\u{23F1}") ? TaskDuration.find(in: body) : nil   // solo si hay «⏱»
+            for pattern in [#"[📅⏳🛫➕✅]\s*\d{4}-\d{2}-\d{2}"#, #"⏰\s*[0-9]{1,2}:[0-9]{2}"#, TaskDuration.pattern, #"\[completion::[^\]]*\]"#, Recurrence.pattern, "⏫", "🔼", "🔽", "🔕"] {
                 clean = clean.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
             }
             clean = clean.trimmingCharacters(in: .whitespaces)
@@ -69,7 +70,7 @@ enum Parse {
                 completed = DayKey.date(String(body[r].suffix(10)))
             }
             out.append(TaskItem(file: file, line: i, raw: line, text: clean, due: date("📅"), scheduled: date("⏳"),
-                                done: m.1 != " ", completed: completed, recurrence: recurrence, priority: priority, time: time, muted: body.contains("🔕")))
+                                done: m.1 != " ", completed: completed, recurrence: recurrence, priority: priority, time: time, muted: body.contains("🔕"), duration: duration))
         }
         return out
     }

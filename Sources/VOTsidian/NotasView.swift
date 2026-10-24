@@ -3,6 +3,21 @@ import UniformTypeIdentifiers
 
 // MARK: - Pantalla
 
+/// Recalcula las menciones sin enlazar de la nota abierta cuando cambia el texto de alguna nota (`textsVersion`). Es invisible:
+/// lo que se repinta con cada cambio es solo ella, no `NotasView`.
+private struct MentionsWatcher: View {
+    @Environment(Store.self) private var store
+    let selected: String?
+    let reading: Bool
+    @Binding var mentions: [NoteFile]
+
+    var body: some View {
+        Color.clear.task(id: "\(selected ?? "")-\(reading)-\(store.textsVersion)") {
+            if let p = selected, reading { mentions = store.unlinkedMentions(of: p) } else { mentions = [] }
+        }
+    }
+}
+
 struct NotasView: View {
     enum Mode: String { case leer = "Leer", editar = "Editar" }
     enum Sort: String, CaseIterable, Identifiable {
@@ -145,9 +160,9 @@ struct NotasView: View {
         .onChange(of: selected.map { store.read($0) } ?? "") {
             if let p = selected, !dirty { let disk = store.read(p); draft = disk; baseline = disk }
         }
-        .task(id: "\(selected ?? "")-\(store.textsVersion)") {
-            if let p = selected, mode == .leer { mentions = store.unlinkedMentions(of: p) } else { mentions = [] }
-        }
+        // Las menciones sin enlazar dependen de todas las notas: las vigila una vista aparte, para que escribir en cualquier
+        // nota no recalcule esta pantalla entera.
+        .background { MentionsWatcher(selected: selected, reading: mode == .leer, mentions: $mentions) }
         .sheet(item: $rowSpec) { RowSheet(spec: $0) }
         .sheet(isPresented: $showNew) {
             NewNoteSheet(folders: Array(Set(store.notes.map(\.folder).filter { $0 != "Raíz" })).sorted()) { path in

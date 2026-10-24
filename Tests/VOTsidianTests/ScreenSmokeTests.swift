@@ -15,6 +15,7 @@ import Testing
     for screen in Screen.allCases {
         switch screen {
         case .inicio: try render("Inicio", InicioView(go: { _ in }))
+        case .dia: try render("Mi día", MiDiaView())
         case .tareas: try render("Tareas", TareasView())
         case .calendario: try render("Calendario", CalendarioView())
         case .planificar: try render("Planificar", PlanificarView())
@@ -67,6 +68,7 @@ import Testing
         #expect(r.cgImage != nil, "\(name) no se pudo pintar")
     }
     try render("Cierre", CierreSheet(), size: CGSize(width: 660, height: 500))
+    try render("Empezar", EmpezarSheet(), size: CGSize(width: 660, height: 560))
     try render("Captura", QuickAddSheet(), size: CGSize(width: 460, height: 300))
     try render("Palette", CommandPalette(), size: CGSize(width: 680, height: 500))
     try render("MenuBar", MenuBarPanel(), size: CGSize(width: 340, height: 600))

@@ -21,7 +21,7 @@ struct VehiculoView: View {
         let year = DayKey.calendar().component(.year, from: today)
         let spent = v.spent(year: year)
         let next = v.nextServices(today: today)
-        let tasks = store.tasks.filter { $0.file == file && !$0.done }
+        let tasks = store.tasks(in: file).filter { !$0.done }
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .vehiculo)

@@ -71,6 +71,8 @@ struct ICSEvent: Equatable, Identifiable {
     var minutes: Int?   // nil = evento de día completo
     var rule: String?
     var extraTriggers: [String] = []
+    /// Lo que dura el evento con hora, en minutos (`⏱` de la tarea); sin ella, 15 minutos.
+    var duration: Int? = nil
     var id: String { uid }
 }
 
@@ -143,7 +145,7 @@ enum ICS {
                 let medical = t.file == VaultPath.medico
                 out.append(ICSEvent(uid: "tarea-" + stableID(t.text + DayKey.string(due)), title: t.text,
                                     notes: medical ? "Cita en la nota \(t.noteName)." : "Tarea en la nota \(t.noteName).", start: due, minutes: t.time, rule: nil,
-                                    extraTriggers: (medical ? ["-P1D"] : []) + (t.time != nil ? ["-PT1H"] : [])))
+                                    extraTriggers: (medical ? ["-P1D"] : []) + (t.time != nil ? ["-PT1H"] : []), duration: t.duration))
             }
         }
         if plan.mascota {
@@ -238,7 +240,7 @@ enum ICS {
         let stamp = fmtDateTime(Date(), minutes: 0)
         for e in events {
             out += ["BEGIN:VEVENT", "UID:\(e.uid)@votsidian", "DTSTAMP:\(stamp)"]
-            if let m = e.minutes { out += ["DTSTART:\(fmtDateTime(e.start, minutes: m))", "DURATION:PT15M"] }
+            if let m = e.minutes { out += ["DTSTART:\(fmtDateTime(e.start, minutes: m))", "DURATION:PT\(e.duration ?? 15)M"] }
             else { out.append("DTSTART;VALUE=DATE:\(fmtDate(e.start))") }
             if let r = e.rule { out.append("RRULE:\(r)") }
             out += ["SUMMARY:\(escape(e.title))", "DESCRIPTION:\(escape(e.notes))",

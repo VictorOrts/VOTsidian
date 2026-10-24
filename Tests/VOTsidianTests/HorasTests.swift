@@ -111,3 +111,22 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     let ev = ICS.events(store.reminderSources(), plan: ReminderPlan(), today: DayKey.today())
     #expect(ev.contains { $0.title == "Con aviso" } && !ev.contains { $0.title == "Callada" })
 }
+
+// MARK: Ninguna entrada rápida se deja la hora
+
+@MainActor @Test func everyQuickEntryKeepsTimeAndMute() throws {
+    let store = Store(root: try syntheticVault())
+    let msg = store.addTask(NaturalDate.extractTask("reunión mañana a las 9 sin aviso"))
+    let t = try #require(store.tasks.first { $0.text == "reunión" })
+    #expect(t.time == 9 * 60 && t.muted && t.due == DayKey.adding(days: 1, to: DayKey.today()))
+    #expect(msg.contains("a las 09:00") && msg.contains("sin aviso"))
+    // con un día por defecto (Planificar semana, Cerrar el día, Calendario) y sin fecha escrita
+    let day = DayKey.adding(days: 3, to: DayKey.today())
+    store.addTask(NaturalDate.extractTask("dentista a las 17:30"), defaultDue: day)
+    #expect(store.tasks.first { $0.text == "dentista" }.map { $0.due == day && $0.time == 17 * 60 + 30 } == true)
+    // solo con hora, es para hoy; sin fecha ni hora, al Inbox sin fecha
+    store.addTask(NaturalDate.extractTask("llamar a Ana a las 18:00"))
+    #expect(store.tasks.first { $0.text == "llamar a Ana" }.map { $0.due == DayKey.today() && $0.time == 18 * 60 } == true)
+    store.addTask(NaturalDate.extractTask("comprar sellos"))
+    #expect(store.tasks.first { $0.text == "comprar sellos" }.map { $0.due == nil && $0.time == nil } == true)
+}

@@ -109,6 +109,7 @@ extension Store {
             if !r.failed.isEmpty { msg += " No se pudieron restaurar: \(r.failed.prefix(3).joined(separator: ", "))." }
             return msg + " El estado anterior quedó en «\(safety.lastPathComponent)»."
         }.value
+        Log.backups.notice("Restaurar \(b.name, privacy: .private): \(text, privacy: .private)")
         fileCache.removeAll()
         reload()
         backupsStamp += 1

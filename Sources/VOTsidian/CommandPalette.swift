@@ -47,6 +47,7 @@ struct CommandPalette: View {
         var actions: [PaletteItem] = [
             PaletteItem(icon: "plus.circle", title: "Captura rápida", subtitle: "Tarea, gasto, peso, toma o idea", tag: "Acción") { dismiss(); store.showQuickAdd = true },
             PaletteItem(icon: "note.text", title: "Nota de hoy", subtitle: "Abre o crea Diario/hoy.md", tag: "Acción") { store.openToday(); dismiss() },
+            PaletteItem(icon: "sunrise", title: "Empezar el día", subtitle: "Lo de ayer, lo de hoy y repartirlo en las horas", tag: "Acción") { dismiss(); store.showEmpezar = true },
             PaletteItem(icon: "moon.stars", title: "Cerrar el día", subtitle: "Revisa lo pendiente y prepara mañana", tag: "Acción") { dismiss(); store.showCierre = true },
             PaletteItem(icon: "square.and.pencil", title: "Nueva nota", subtitle: "Ir a Notas", tag: "Acción", run: go(.notas)),
             PaletteItem(icon: "arrow.uturn.backward", title: "Deshacer último cambio", tag: "Acción") { store.undo(); dismiss() },
@@ -200,7 +201,11 @@ struct QuickAddSheet: View {
             case .tarea:
                 TextField("Qué hay que hacer (ej: llamar al dentista el viernes)", text: $text).focused($focused).onSubmit(save)
                 HStack { Toggle("Fecha", isOn: $hasDue).toggleStyle(.checkbox); DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue) }
-                if !hasDue, let d = NaturalDate.extract(text).date { Label("Se guardará para \(longDate(d))", systemImage: "calendar").font(.caption).foregroundStyle(Brand.accent) }
+                if !hasDue, let preview = Optional(NaturalDate.extractTask(text)), preview.date != nil || preview.time != nil {
+                    let d = preview.date ?? DayKey.today()
+                    Label("Se guardará para \(longDate(d))" + (preview.time.map { " a las \(TimeOfDay.text($0))" } ?? "") + (preview.duration.map { " · \(TaskDuration.human($0))" } ?? "") + (preview.muted ? " · sin aviso" : ""), systemImage: "calendar")
+                        .font(.caption).foregroundStyle(Brand.accent)
+                }
                 else { Text("Va al Inbox. Puedes escribir la fecha en la frase: “mañana”, “el viernes”, “25/11”, “en 3 días”.").font(.caption).foregroundStyle(.secondary) }
             case .gasto:
                 TextField("22 € cena con Ana, gasolina 48, ayer 12,50 Mercadona", text: $text).focused($focused).onSubmit(save)
@@ -263,8 +268,7 @@ struct QuickAddSheet: View {
         let day = DayKey.calendar().startOfDay(for: date)
         switch kind {
         case .tarea:
-            let p = NaturalDate.extractTask(t)
-            store.addTask(hasDue ? t : p.text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : p.date, recurrence: hasDue ? nil : p.recurrence, priority: hasDue ? 0 : p.priority)
+            if hasDue { store.addTask(t, due: DayKey.calendar().startOfDay(for: due)) } else { store.addTask(NaturalDate.extractTask(t)) }
         case .idea: store.addIdea(t)
         case .gasto: if let p = store.parseExpense(t) { store.addExpense(p) }
         case .peso: if let v = MD.number(kg) { store.addWeight(date: day, kg: v, note: t) }

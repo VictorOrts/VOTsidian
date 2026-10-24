@@ -61,10 +61,11 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | Función | Qué hace |
 |---|---|
 | **Inicio** | Lo que pide atención, lo de hoy y una tarjeta por módulo. «Personalizar» reordena y oculta las tarjetas. |
-| **Tareas** | Fecha, hora, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30». |
+| **Mi día** | El día por horas: arrastra las tareas sin hora a una franja, estira un bloque para cambiar lo que dura y mira si te pasas de las horas que quieres trabajar. «Repartir» las coloca solas en los huecos, y «Empezar el día» repasa lo de ayer, lo de hoy y lo que viene. |
+| **Tareas** | Fecha, hora, duración, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30», «reunión mañana de 10 a 11:30». |
 | **Planificar semana** | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
-| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, con la nota del día, el ánimo y el sueño. |
-| **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual y «Cerrar el día» para repasar lo pendiente y preparar mañana. |
+| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día, el ánimo y el sueño. |
+| **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual, y «Empezar el día» y «Cerrar el día» para planificar por la mañana y repasar lo pendiente por la noche. |
 | **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
 | **Captura rápida** (⇧⌘N) | Tarea, gasto, peso, toma de medicación o idea, desde cualquier pantalla. |
 | **Barra de menús** | Tareas, hábitos y tomas de hoy, ánimo y añadir tareas sin abrir la ventana. |
@@ -124,6 +125,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 - **Deshacer.** Cualquier cambio hecho desde la app se deshace con ⌥⌘Z, también los que tocan varias notas a la vez.
 - **Recuperar.** El historial de una nota restaura versiones anteriores. También se puede restaurar una copia entera; antes, la app guarda el estado actual.
 - **iCloud.** Avisa de notas duplicadas por conflicto y de archivos que aún no se han descargado.
+- **Diagnóstico.** Los errores al guardar, las copias, iCloud y la sincronización con Calendar quedan en el registro del sistema (Consola.app, subsistema `com.votsidian.app`), sin el contenido de las notas.
 - **Exportar.** Resumen del año en PDF, datos en CSV (un archivo por módulo, incluidos vehículo, suscripciones, préstamos, viajes, lecturas, trámites y seguros) y todas las notas en `.zip`.
 
 ## Desarrollo
