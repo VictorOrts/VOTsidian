@@ -5,7 +5,7 @@ enum Screen: String, CaseIterable, Identifiable {
     case peso = "Peso", nutricion = "Plan nutricional", medicacion = "Medicación", salud = "Salud y médicos", correlaciones = "Correlaciones"
     case casa = "Casa", compra = "Compra", moda = "Moda", mascota = "Mascota", vehiculo = "Vehículo", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas", gastos = "Gastos"
     case suscripciones = "Suscripciones", prestamos = "Préstamos", lecturas = "Lecturas", viajes = "Viajes", tramites = "Trámites y seguros"
-    case notas = "Notas", bases = "Bases", grafo = "Grafo", enlaces = "Enlaces rotos", avisos = "Avisos", ajustes = "Ajustes"
+    case notas = "Notas", bases = "Bases", grafo = "Grafo", lienzo = "Lienzo", enlaces = "Enlaces rotos", avisos = "Avisos", ajustes = "Ajustes"
     var id: String { rawValue }
     var icon: String {
         switch self {
@@ -41,6 +41,7 @@ enum Screen: String, CaseIterable, Identifiable {
         case .notas: "doc.text"
         case .bases: "square.grid.3x3"
         case .grafo: "point.3.connected.trianglepath.dotted"
+        case .lienzo: "rectangle.on.rectangle.angled"
         case .avisos: "bell"
         case .ajustes: "gearshape"
         }
@@ -60,7 +61,7 @@ struct ContentView: View {
         SidebarSection(title: "Dinero", color: Brand.sky, screens: [.finanzas, .gastos, .suscripciones, .prestamos]),
         SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .mascota, .vehiculo, .personas, .documentos, .tramites]),
         SidebarSection(title: "Ocio", color: Brand.rose, screens: [.viajes, .lecturas]),
-        SidebarSection(title: "Conocimiento", color: Brand.info, screens: [.notas, .bases, .grafo, .enlaces]),
+        SidebarSection(title: "Conocimiento", color: Brand.info, screens: [.notas, .bases, .grafo, .lienzo, .enlaces]),
         SidebarSection(title: "Sistema", color: Brand.slate, screens: [.avisos, .ajustes]),
     ]
 
@@ -133,6 +134,7 @@ struct ContentView: View {
         case .notas: NotasView()
         case .bases: BasesView()
         case .grafo: GrafoView()
+        case .lienzo: LienzoView()
         case .avisos: RemindersView()
         case .ajustes: AjustesView()
         }

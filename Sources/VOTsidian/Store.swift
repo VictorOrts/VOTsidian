@@ -134,6 +134,8 @@ final class Store {
     var backupsStamp = 0
     private(set) var linksVersion = 0
     private(set) var textsVersion = 0
+    /// Sube cuando un lienzo (`.canvas`) cambia desde la app, se deshace o se relee la carpeta. Solo lo observa el Lienzo.
+    private(set) var canvasStamp = 0
     @ObservationIgnored var noteSlots: [String: NoteSlot] = [:]
     @ObservationIgnored var publishScheduled = false
     @ObservationIgnored var lastLinks: [String: [String]] = [:]
@@ -366,6 +368,7 @@ final class Store {
     /// Recarga completa y síncrona. Los archivos sin cambios salen de la caché (solo se consulta su fecha y tamaño).
     func reload() {
         generation += 1
+        canvasStamp += 1
         let started = Date()
         let scan = Store.scan(root: root, cache: fileCache)
         Log.notes.info("Carpeta leída: \(scan.files.count, privacy: .public) notas en \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms")
@@ -375,6 +378,11 @@ final class Store {
     /// Recarga tras escribir archivos que ya existían: solo se vuelven a leer esos, sin recorrer la carpeta.
     /// Si algo no cuadra (archivo nuevo, ilegible, fuera de las notas) cae en la recarga completa.
     func reload(changed rels: [String]) {
+        // Los lienzos no son notas: no aportan tareas ni enlaces que releer. Basta con avisar al Lienzo.
+        let notesChanged = rels.filter { !$0.hasSuffix(".canvas") }
+        if notesChanged.count != rels.count { canvasStamp += 1 }
+        if notesChanged.isEmpty, !rels.isEmpty { return }
+        let rels = notesChanged
         let skip = ["Plantillas", ".obsidian"]
         guard !rels.isEmpty, rels.allSatisfy({ rel in
             fileCache[rel] != nil && rel.hasSuffix(".md") && !rel.hasSuffix(".excalidraw.md")

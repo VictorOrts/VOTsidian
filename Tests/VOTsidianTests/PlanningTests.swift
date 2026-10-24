@@ -59,6 +59,16 @@ import Testing
     #expect(plan == plan.sorted { $0.fire < $1.fire })
 }
 
+@Test func dosePeriodsJoinSameDose() {
+    let d = { (s: String, dose: String) in Dose(date: DayKey.date(s)!, dose: dose, site: "", note: "") }
+    let p = Correlations.dosePeriods([d("2026-10-09", "7,5 mg"), d("2026-09-30", "7,5 mg"), d("2026-09-01", "5 mg"), d("2026-10-18", "10 mg")],
+                                     until: DayKey.date("2026-10-24")!)
+    #expect(p.map(\.dose) == ["5 mg", "7,5 mg", "10 mg"])
+    #expect(p.map { DayKey.string($0.start) } == ["2026-09-01", "2026-09-30", "2026-10-18"])
+    #expect(p.map { DayKey.string($0.end) } == ["2026-09-30", "2026-10-18", "2026-10-24"])
+    #expect(Correlations.dosePeriods([], until: Date()).isEmpty)
+}
+
 @Test func pearsonAndWeekPoints() {
     #expect(Correlations.pearson([1, 2, 3, 4, 5, 6], [2, 4, 6, 8, 10, 12]).map { abs($0 - 1) < 1e-9 } == true)
     #expect(Correlations.pearson([1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]).map { abs($0 + 1) < 1e-9 } == true)

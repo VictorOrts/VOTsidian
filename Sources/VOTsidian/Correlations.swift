@@ -60,6 +60,18 @@ enum Correlations {
         return sxy / (sxx * syy).squareRoot()
     }
 
+    /// Tramos de dosis para las bandas de la gráfica: los pinchazos seguidos con la misma dosis son un solo tramo, que acaba
+    /// donde empieza el siguiente (el último, en `until`). Con una banda por pinchazo, las etiquetas se pisaban.
+    static func dosePeriods(_ doses: [Dose], until: Date) -> [(dose: String, start: Date, end: Date)] {
+        var out: [(dose: String, start: Date, end: Date)] = []
+        for d in doses.sorted(by: { $0.date < $1.date }) {
+            if let last = out.last, last.dose == d.dose { continue }
+            if !out.isEmpty { out[out.count - 1].end = d.date }
+            out.append((d.dose, d.date, max(d.date, until)))
+        }
+        return out
+    }
+
     /// Semanas desde el primer pesaje hasta hoy. `sleep` devuelve la media entre dos fechas (ambas incluidas).
     static func weeks(weights: [WeightRecord], doses: [Dose], today: Date, sleep: (Date, Date) -> Double?) -> [WeekPoint] {
         let ws = weights.sorted { $0.date < $1.date }
@@ -112,7 +124,7 @@ struct CorrelacionesView: View {
         let _ = BodyCounter.hit("CorrelacionesView")
         let points = store.weekPoints()
         let pairs = Correlations.pairs(points)
-        let doses = store.medicacion.doses.sorted { $0.date < $1.date }
+        let periods = Correlations.dosePeriods(store.medicacion.doses, until: DayKey.today())
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Aquí se cruzan peso, dosis y sueño por semanas. Una relación no prueba que una cosa cause la otra: sirve para sospechar y comentarlo con tu médico.")
@@ -126,11 +138,10 @@ struct CorrelacionesView: View {
                     if store.weight.records.count < 2 { EmptyNote("Faltan registros de peso.", icon: "scalemass") }
                     else {
                         Chart {
-                            ForEach(Array(doses.enumerated()), id: \.offset) { i, d in
-                                let end = i + 1 < doses.count ? doses[i + 1].date : DayKey.today()
-                                RectangleMark(xStart: .value("Desde", d.date), xEnd: .value("Hasta", end))
+                            ForEach(Array(periods.enumerated()), id: \.offset) { i, d in
+                                RectangleMark(xStart: .value("Desde", d.start), xEnd: .value("Hasta", d.end))
                                     .foregroundStyle((i % 2 == 0 ? Brand.accent : Brand.amber).opacity(0.10))
-                                    .annotation(position: .top, alignment: .leading) { Text(d.dose).font(.caption2).foregroundStyle(.secondary) }
+                                    .annotation(position: .top, alignment: .leading) { Text(d.dose).font(.caption2).foregroundStyle(.secondary).fixedSize() }
                             }
                             ForEach(store.weight.records) { r in
                                 LineMark(x: .value("Fecha", r.date), y: .value("kg", r.kg))

@@ -64,6 +64,7 @@ private func mutate(_ text: String, _ r: inout Rng) -> String {
 
 /// Pasa el texto por todos los lectores y por lo que se calcula con lo leído.
 private func readEverything(_ t: String) {
+    if let c = JSONCanvas.parse(t) { _ = (c.bounds, c.nodes.map { c.moving($0.id) }, JSONCanvas.moveNodes(t, to: ["x": CGPoint(x: 1e300, y: -.infinity)])) }
     _ = (Parse.weight(t), Parse.mascota(t), Parse.tasks(t, file: "x.md"), Parse.week(t, key: "2026-W01"), Parse.plan(t), Parse.milestones(t))
     _ = (Parse.tables(t), Parse.people(t), Parse.listItems(t, section: "Fechas"), Parse.listItems(t, section: ""), Parse.medicationTables(t), Parse.casa(t), Measures.parse(t))
     let med = Parse.medicacion(t)

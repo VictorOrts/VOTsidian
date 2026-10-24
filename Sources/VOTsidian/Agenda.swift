@@ -216,7 +216,7 @@ extension Store {
 
     static let screenAliases: [String: Screen] = [
         "tareas": .tareas, "proyectos": .proyectos, "habitos": .semana, "revision semanal": .semana, "revision mensual": .mes, "revisiones": .semana,
-        "calendario": .calendario, "mi dia": .dia, "agenda": .dia, "grafo": .grafo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
+        "calendario": .calendario, "mi dia": .dia, "agenda": .dia, "grafo": .grafo, "lienzo": .lienzo, "canvas": .lienzo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
         "medicos": .salud, "analiticas": .salud, "analisis": .salud, "medico": .salud, "doctor": .salud, "inicio": .inicio,
         "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos, "coche": .vehiculo, "vehiculo": .vehiculo, "suscripciones": .suscripciones, "prestamos": .prestamos, "deudas": .prestamos,
         "lecturas": .lecturas, "libros": .lecturas, "viajes": .viajes, "tramites": .tramites, "seguros": .tramites, "impuestos": .tramites,

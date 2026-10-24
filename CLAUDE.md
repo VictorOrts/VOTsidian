@@ -33,6 +33,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Avisos: `alerts()` (`Alerts.swift`), filtrados por módulo visible. Calendario: `buildAgenda` (`Agenda.swift`), también filtrado.
   Calendar/notificaciones: `ICS.events` (`Reminders.swift`) → `.ics`, `Notifier` o EventKit (`CalendarSync.swift`, opcional).
 - Gastos desde otros módulos: `addLinkedExpense(_:note:date:category:fallback:)` (`Store+Gastos.swift`).
+- Lienzo (`.canvas` de Obsidian): `JSONCanvas` (puro, con `JSONSerialization` para conservar campos desconocidos) y `LienzoView`.
+  Los `.canvas` no son notas: no entran en el escaneo, `reload(changed:)` solo sube `canvasStamp` y la lista sale de `canvasFiles()`.
 - Módulos ocultos: `hiddenModules`; los nuevos se ocultan solos en carpetas ya configuradas (`registerNewModules`, `knownModules`).
 
 ## Añadir un módulo (todos los puntos)

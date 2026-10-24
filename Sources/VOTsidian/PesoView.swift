@@ -200,10 +200,19 @@ struct PesoView: View {
                 RuleMark(y: .value("Cero", 0)).foregroundStyle(.secondary.opacity(0.4))
             }
             .chartYAxis(.hidden)
+            // Con pocos pesajes el rango es de horas y el eje decía «0 6 12 18»: al menos 4 días a cada lado, y siempre fechas.
+            .chartXScale(domain: changeDomain(deltas.map(\.0)))
+            .chartXAxis { AxisMarks(values: .automatic(desiredCount: 6)) { _ in AxisGridLine(); AxisValueLabel(format: .dateTime.day().month(.abbreviated)) } }
             .frame(height: 150)
             .accessibilityLabel("Cambio entre pesajes")
             .accessibilityValue(deltas.suffix(5).map { "\(DayKey.dmy($0.0)) \(fmtDelta($0.1))" }.joined(separator: ", "))
         }
+    }
+
+    private func changeDomain(_ dates: [Date]) -> ClosedRange<Date> {
+        guard let a = dates.min(), let b = dates.max() else { let t = DayKey.today(); return t...DayKey.adding(days: 1, to: t) }
+        let pad = max(4, DayKey.days(from: a, to: b) / 20)
+        return DayKey.adding(days: -pad, to: a)...DayKey.adding(days: pad, to: b)
     }
 
     private func milestonesCard(_ w: WeightData, rate: Double?) -> some View {

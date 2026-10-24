@@ -20,7 +20,10 @@ struct BasesView: View {
     private static let templateForType = ["proyecto": "Proyecto", "cita_medica": "Cita médica", "evento": "Evento", "casa_item": "Reforma o compra"]
     /// Nombres con tilde que `pretty` no puede adivinar.
     private static let names = ["revision_semanal": "Revisión semanal", "revision_mensual": "Revisión mensual", "cita_medica": "Cita médica",
-                                "control_peso": "Control de peso", "casa_item": "Reforma o compra", "reunion": "Reunión", "fecha_limite": "Fecha límite"]
+                                "control_peso": "Control de peso", "casa_item": "Reforma o compra", "reunion": "Reunión", "fecha_limite": "Fecha límite",
+                                "medicacion": "Medicación", "prestamos": "Préstamos", "tramites": "Trámites", "vehiculo": "Vehículo",
+                                "plan_nutricional": "Plan nutricional", "area": "Área", "categoria": "Categoría", "titulo": "Título",
+                                "ultima_revision": "Última revisión", "proxima": "Próxima", "duracion": "Duración"]
 
     /// Nombre legible de un tipo o propiedad: `control_peso` → «Control de peso». En el archivo sigue igual.
     static func pretty(_ key: String) -> String { names[key] ?? capitalizedFirst(key.replacingOccurrences(of: "_", with: " ")) }

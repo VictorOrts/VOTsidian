@@ -58,15 +58,19 @@ struct MascotaView: View {
                         ficha("Chip", "chip")
                     }
                 }
-                Text("Salud").font(.headline)
-                Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
-                    GridRow { Text("Fecha"); Text("Tipo"); Text("Detalle"); Text("Próxima"); Text("Coste"); Text("") }.font(.caption).foregroundStyle(.secondary)
-                    Divider()
-                    ForEach(n.visits.reversed()) { v in
-                        GridRow {
-                            Text(DayKey.string(v.date)).monospacedDigit(); Text(v.tipo); Text(v.detalle).foregroundStyle(.secondary)
-                            Text(v.proxima.map(DayKey.string) ?? ""); Text(v.coste)
-                            EditButton { spec = RowSpec(file: VaultPath.mascota, mode: .edit(line: v.line), title: "visita") }
+                Card(title: "Salud", icon: "cross.case") {
+                    if n.visits.isEmpty { EmptyNote("Sin visitas ni vacunas. Se apuntan arriba, en «Registrar visita o vacuna».") }
+                    else {
+                        Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
+                            GridRow { Text("Fecha"); Text("Tipo"); Text("Detalle"); Text("Próxima"); Text("Coste"); Text("") }.font(.caption).foregroundStyle(.secondary)
+                            Divider()
+                            ForEach(n.visits.reversed()) { v in
+                                GridRow {
+                                    Text(DayKey.string(v.date)).monospacedDigit(); Text(v.tipo); Text(v.detalle).foregroundStyle(.secondary)
+                                    Text(v.proxima.map(DayKey.string) ?? ""); Text(v.coste)
+                                    EditButton { spec = RowSpec(file: VaultPath.mascota, mode: .edit(line: v.line), title: "visita") }
+                                }
+                            }
                         }
                     }
                 }
@@ -80,6 +84,6 @@ struct MascotaView: View {
     }
 
     private func ficha(_ label: String, _ key: String) -> some View {
-        GridRow { Text(label).foregroundStyle(.secondary).gridColumnAlignment(.trailing); PropertyField(file: VaultPath.mascota, key: key, width: 320) }
+        GridRow { Text(label).foregroundStyle(.secondary).gridColumnAlignment(.trailing); PropertyField(file: VaultPath.mascota, key: key).frame(maxWidth: 520) }
     }
 }

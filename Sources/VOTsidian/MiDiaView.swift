@@ -47,7 +47,7 @@ struct TimelineColumn: View {
                     // Lo que pasa de medianoche se corta al final del día; un bloque a las 23:55 se sube lo justo para verse entero.
                     let minutes = min(stretching?.id == b.id ? stretching!.minutes : b.duration, 24 * 60 - b.start)
                     let height = max(compact ? 16 : 20, yOffset(minutes) - 2)
-                    block(b, minutes: minutes)
+                    block(b, minutes: minutes, narrow: compact && w < 70)
                         .frame(width: max(10, w - 2), height: height)
                         .offset(x: 2 + CGFloat(c.column) * w, y: min(yOffset(b.start) + 1, hourHeight * 24 - height))
                 }
@@ -71,7 +71,8 @@ struct TimelineColumn: View {
         } isTargeted: { targeted = $0 }
     }
 
-    @ViewBuilder private func block(_ b: TimeBlock, minutes: Int) -> some View {
+    /// `narrow`: en la semana, un bloque que comparte hora con otro. El título va en una línea: en dos, SwiftUI parte las palabras («infor-me»).
+    @ViewBuilder private func block(_ b: TimeBlock, minutes: Int, narrow: Bool = false) -> some View {
         let tall = yOffset(minutes) >= 34
         let shape = RoundedRectangle(cornerRadius: 5)
         let content = VStack(alignment: .leading, spacing: 1) {
@@ -85,8 +86,8 @@ struct TimelineColumn: View {
                 if compact {
                     // En la semana las columnas son estrechas: la hora encima del título si cabe; si no, solo el título.
                     VStack(alignment: .leading, spacing: 0) {
-                        if tall { Text(TimeOfDay.text(b.start)).foregroundStyle(.secondary) }
-                        Text(b.title).lineLimit(tall ? 2 : 1).strikethrough(b.done).foregroundStyle(b.done ? .secondary : .primary)
+                        if tall { Text(TimeOfDay.text(b.start)).foregroundStyle(.secondary).lineLimit(1) }
+                        Text(b.title).lineLimit(tall && !narrow ? 2 : 1).strikethrough(b.done).foregroundStyle(b.done ? .secondary : .primary)
                     }.font(.caption2)
                 } else {
                     Text((tall ? "" : TimeOfDay.text(b.start) + " ") + b.title)
