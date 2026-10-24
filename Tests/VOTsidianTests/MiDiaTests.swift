@@ -123,3 +123,64 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     store.undo()
     #expect(store.read(VaultPath.inbox) == before)
 }
+
+// MARK: Ficha del elemento seleccionado (Calendario y Mi día)
+
+@Test func taskDraftWritesWhatTheFormSays() throws {
+    let line = "- [ ] Informe 🔼 📅 2026-10-26 ⏰ 10:00 ⏱ 1h30m 🔁 every week ⏳ 2026-10-25"
+    let t = try #require(Parse.tasks(line, file: "x").first)
+    var d = TaskDraft(t)
+    #expect(d.text == "Informe" && d.hasDue && d.hasTime && d.time == 600 && d.duration == 90 && d.priority == 2 && !d.muted)
+    // sin tocar nada, la línea no cambia de significado (repetición y fecha planeada incluidas)
+    let sameText = try #require(d.apply(line, task: t))
+    let same = try #require(Parse.tasks(sameText, file: "x").first)
+    #expect(same.text == t.text && same.due == t.due && same.time == t.time && same.duration == t.duration && same.recurrence == "week" && same.scheduled == t.scheduled)
+    d.text = "Informe Q3"; d.time = 16 * 60 + 30; d.duration = 0; d.priority = 3; d.muted = true; d.due = D("2026-10-27")
+    let changedText = try #require(d.apply(line, task: t))
+    let changed = try #require(Parse.tasks(changedText, file: "x").first)
+    #expect(changed.text == "Informe Q3" && changed.time == 16 * 60 + 30 && changed.duration == nil && changed.priority == 3 && changed.muted && changed.due == D("2026-10-27"))
+    // sin día no hay hora
+    d.hasDue = false
+    let undatedText = try #require(d.apply(line, task: t))
+    let undated = try #require(Parse.tasks(undatedText, file: "x").first)
+    #expect(undated.due == nil && undated.time == nil)
+    d.text = "  "
+    #expect(!d.isValid)
+}
+
+@Test func selectedEventIsFoundInBlocksOrAllDay() {
+    let day = D("2026-10-24")
+    let t = TaskItem(file: "Inbox.md", line: 3, raw: "", text: "Informe", due: day, scheduled: nil, done: false, time: 600, duration: 90)
+    let blocks = DayPlan.build(day: day, today: day, tasks: [t], agenda: [], meds: [(id: "2", title: "Tomar X", minutes: 540)]).blocks
+    let agenda = [AgendaItem(id: "bAna2026", kind: .birthday, title: "Cumpleaños de Ana", date: day, screen: .personas)]
+    let e = EventRef.find("tInbox.md:3", day: day, blocks: blocks, agenda: agenda)
+    #expect(e?.task == t && e?.minutes == 600 && e?.duration == 90)
+    #expect(EventRef.find("med2|540", day: day, blocks: blocks, agenda: agenda).map { $0.task == nil && $0.screen == .medicacion } == true)
+    #expect(EventRef.find("bAna2026", day: day, blocks: blocks, agenda: agenda).map { $0.minutes == nil && $0.screen == .personas } == true)
+    #expect(EventRef.find("tInbox.md:99", day: day, blocks: blocks, agenda: agenda) == nil)   // borrada: la ficha se cierra
+}
+
+@MainActor @Test func editingFromTheCardSavesAndUndoes() throws {
+    let store = Store(root: try syntheticVault())
+    let tomorrow = DayKey.adding(days: 1, to: DayKey.today())
+    store.addTask(NaturalDate.extractTask("informe de 10 a 12"), defaultDue: tomorrow)
+    let t = try #require(store.tasks.first { $0.text == "informe" })
+    let before = store.read(t.file)
+    var d = TaskDraft(t)
+    d.time = 15 * 60; d.duration = 45
+    store.save(d, for: t)
+    let saved = try #require(store.tasks.first { $0.text == "informe" })
+    #expect(saved.id == t.id && saved.time == 15 * 60 && saved.duration == 45)   // misma línea: la selección sigue
+    store.undo()
+    #expect(store.read(t.file) == before)
+    // cita en una nota de visita: fecha y hora en el encabezado, en un solo deshacer
+    store.writeNote("Salud/Visita.md", text: "---\ntipo: cita_medica\nfecha: \(DayKey.string(tomorrow))\n---\n# Visita\n")
+    let visit = store.read("Salud/Visita.md")
+    let later = DayKey.adding(days: 3, to: DayKey.today())
+    store.saveVisit("Salud/Visita.md", date: later, time: 12 * 60 + 15)
+    #expect(store.agenda(from: later, to: later)[DayKey.string(later)]?.first { $0.title == "Visita" }?.minutes == 12 * 60 + 15)
+    store.saveVisit("Salud/Visita.md", date: later, time: nil)
+    #expect(store.noteMeta["Salud/Visita.md"]?["hora"].map(\.isEmpty) ?? true)
+    store.undo(); store.undo()
+    #expect(store.read("Salud/Visita.md") == visit)
+}

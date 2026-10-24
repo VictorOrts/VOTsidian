@@ -64,7 +64,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Mi día** | El día por horas: arrastra las tareas sin hora a una franja, estira un bloque para cambiar lo que dura y mira si te pasas de las horas que quieres trabajar. «Repartir» las coloca solas en los huecos, y «Empezar el día» repasa lo de ayer, lo de hoy y lo que viene. |
 | **Tareas** | Fecha, hora, duración, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30», «reunión mañana de 10 a 11:30». |
 | **Planificar semana** | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
-| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día, el ánimo y el sueño. |
+| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día, el ánimo y el sueño. Un clic en un evento abre su ficha en el panel para editarlo. |
 | **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual, y «Empezar el día» y «Cerrar el día» para planificar por la mañana y repasar lo pendiente por la noche. |
 | **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
 | **Captura rápida** (⇧⌘N) | Tarea, gasto, peso, toma de medicación o idea, desde cualquier pantalla. |

@@ -84,56 +84,15 @@ struct RowSheet: View {
 }
 
 struct TaskSheet: View {
-    @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let task: TaskItem
-    @State private var text = ""
-    @State private var hasDue = false
-    @State private var due = Date()
-    @State private var priority = 0
-    @State private var hasTime = false
-    @State private var time = TimeOfDay.date(10 * 60)
-    @State private var muted = false
-    @State private var duration = 0
-    @State private var confirmDelete = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Editar tarea").font(.title3.weight(.semibold))
-            TextField("Texto", text: $text).frame(minWidth: 420)
-            Picker("Prioridad", selection: $priority) { Text("Ninguna").tag(0); Text("Baja").tag(1); Text("Media").tag(2); Text("Alta").tag(3) }.pickerStyle(.segmented).frame(width: 360)
-            HStack {
-                Toggle("Fecha límite", isOn: $hasDue).toggleStyle(.checkbox)
-                DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue)
-                Toggle("A las", isOn: $hasTime).toggleStyle(.checkbox).disabled(!hasDue)
-                DatePicker("Hora", selection: $time, displayedComponents: .hourAndMinute).labelsHidden().disabled(!hasDue || !hasTime).fixedSize()
-            }
-            Picker("Dura", selection: $duration) {
-                Text("Sin calcular").tag(0)
-                ForEach(TaskDuration.presets(including: duration), id: \.self) { Text(TaskDuration.human($0)).tag($0) }
-            }.frame(width: 220).help("Altura del bloque en Mi día y duración del evento en Calendar (⏱ en la nota).")
-            Toggle("Sin aviso en Calendar ni notificaciones", isOn: $muted).toggleStyle(.checkbox)
-                .help("Sigue en Tareas y en el Calendario de la app; solo deja de ir a Calendar de macOS y a las notificaciones (🔕 en la nota).")
-            Text("Está en la nota \(task.noteName).").font(.caption).foregroundStyle(.secondary)
-            HStack {
-                if confirmDelete { Button("Confirmar eliminar", role: .destructive) { store.deleteTask(task); dismiss() } }
-                else { Button("Eliminar", role: .destructive) { confirmDelete = true } }
-                Spacer()
-                Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Guardar") {
-                    store.updateTask(task, text: text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : nil, priority: priority,
-                                     time: .some(hasDue && hasTime ? TimeOfDay.minutes(of: time) : nil), muted: muted, duration: .some(duration > 0 ? duration : nil))
-                    dismiss()
-                }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
+            TaskEditor(task: task) { dismiss() }
         }
-        .padding(22)
-        .onAppear {
-            text = task.text; hasDue = task.due != nil; due = task.due ?? Date(); priority = task.priority
-            hasTime = task.time != nil; if let t = task.time { time = TimeOfDay.date(t) }
-            muted = task.muted
-            duration = task.duration ?? 0
-        }
+        .padding(22).frame(minWidth: 480)
     }
 }
 
