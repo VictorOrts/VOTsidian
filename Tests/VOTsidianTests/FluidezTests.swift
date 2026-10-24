@@ -14,6 +14,8 @@ import Testing
 /// Ventana con la app en `screen`. Se devuelve para que siga viva mientras se mide.
 @MainActor private func host(_ store: Store, _ screen: Screen) -> NSWindow {
     _ = NSApplication.shared
+    // Las pestañas de Notas se recuerdan entre ejecuciones: sin limpiarlas, cada caso dependería del anterior.
+    for key in ["openTabs", "activeTab", "recentNotes"] { UserDefaults.standard.removeObject(forKey: key) }
     store.screen = screen
     let view = NSHostingView(rootView: ContentView().environment(store).frame(width: 1280, height: 860))
     let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860), styleMask: [.titled], backing: .buffered, defer: false)
@@ -96,4 +98,43 @@ private let edits: [(String, @MainActor (Store) -> Void)] = [
     #expect(own.visible && own.counts["VehiculoView"] != nil)
     let other = try repaints(.vehiculo) { $0.edit("Notas/B.md") { $0 + "\nmás" } }
     #expect(!other.visible && other.counts.isEmpty, "Vehículo se repintó con una nota ajena: \(other.counts)")
+}
+
+@MainActor @Test func typingInTheEditorDoesNotRecomputeTheNoteList() throws {
+    let store = try makeStore()
+    setenv("VOT_EDIT", "1", 1)
+    defer { unsetenv("VOT_EDIT") }
+    store.pendingNote = "Notas/B.md"
+    let window = host(store, .notas)
+    defer { window.orderOut(nil) }
+    func textViews(_ v: NSView) -> [NSTextView] { (v as? NSTextView).map { [$0] } ?? v.subviews.flatMap(textViews) }
+    let content = try #require(window.contentView)
+    let editor = try #require(textViews(content).max { $0.string.count < $1.string.count })
+    window.makeFirstResponder(editor)
+    BodyCounter.reset()
+    for _ in 0..<20 { editor.insertText("a", replacementRange: editor.selectedRange()); settle(0.01) }
+    settle()
+    #expect(BodyCounter.counts["NotasView"] ?? 0 > 0)
+    #expect(BodyCounter.counts["NoteListPanel"] == nil, "la lista de notas se recalculó al escribir: \(BodyCounter.counts)")
+    #expect(BodyCounter.counts["ContentView"] == nil, "la ventana entera se recalculó al escribir: \(BodyCounter.counts)")
+}
+
+@MainActor @Test func theNoteListFollowsNewNotes() throws {
+    let created = try repaints(.notas) { _ = $0.createNote(folder: "Casa", name: "Recién creada", template: "En blanco") }
+    #expect(created.visible && created.counts["NoteListPanel"] != nil, "la lista no enseñó la nota nueva: \(created.counts)")
+}
+
+@MainActor @Test func publishedAlertsAndSidebarFollowChanges() throws {
+    let store = try makeStore()
+    let before = store.currentAlerts
+    store.addExpense(9, category: "Alimentación", note: "pan", date: DayKey.today())
+    settle(0.05)   // se publican en la siguiente vuelta del bucle principal
+    #expect(store.currentAlerts != before && store.currentAlerts == store.alerts(), "los avisos publicados no se pusieron al día")
+    let tasks = store.sidebar.counts[.tareas]
+    store.addTask("nueva para hoy", due: DayKey.today())
+    settle(0.05)
+    #expect(store.sidebar.counts[.tareas] != tasks && store.sidebar == SidebarState(counts: store.sidebarCounts(), medicationDays: store.medicacion.daysUntilNext,
+                                                                                  tasksOverdue: store.sidebar.tasksOverdue))
+    store.hiddenModules.insert(.finanzas)   // ocultar un módulo publica al momento
+    #expect(!store.currentAlerts.contains { $0.screen == .gastos || $0.screen == .finanzas })
 }

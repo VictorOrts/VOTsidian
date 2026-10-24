@@ -135,6 +135,7 @@ final class Store {
     private(set) var linksVersion = 0
     private(set) var textsVersion = 0
     @ObservationIgnored var noteSlots: [String: NoteSlot] = [:]
+    @ObservationIgnored var publishScheduled = false
     @ObservationIgnored var lastLinks: [String: [String]] = [:]
     private(set) var noteMeta: [String: [String: String]] = [:]
     private(set) var attachments: [String: String] = [:]
@@ -225,6 +226,16 @@ final class Store {
     /// Los avisos calculados por última vez y de qué dependían (ver `alerts()`).
     @ObservationIgnored var alertsCache: (key: String, alerts: [Alert])?
     @ObservationIgnored var brokenCountCache: (revision: Int, count: Int)?
+    @ObservationIgnored var notesByNameCache: (revision: Int, list: [NoteFile])?
+
+    /// Las notas por nombre (menús de «insertar enlace»): ordenarlas en cada pulsación del editor se notaba.
+    var notesByName: [NoteFile] {
+        _ = notes   // quien la usa depende de la lista de notas
+        if let c = notesByNameCache, c.revision == revision { return c.list }
+        let list = notes.sorted { MD.fold($0.name) < MD.fold($1.name) }
+        notesByNameCache = (revision, list)
+        return list
+    }
     @ObservationIgnored var generation = 0
     @ObservationIgnored var scanning = false
     @ObservationIgnored var rescanRequested = false
@@ -314,6 +325,22 @@ final class Store {
     func touch(_ rel: String) {
         let slot = noteSlots[rel] ?? { let s = NoteSlot(); noteSlots[rel] = s; return s }()
         _ = slot.version
+    }
+
+    /// Como `refreshPublished`, en la siguiente vuelta del bucle principal: la edición termina antes y varias recargas seguidas
+    /// (los autoguardados al escribir) se publican una sola vez.
+    func refreshPublishedSoon() {
+        guard !publishScheduled else { return }
+        publishScheduled = true
+        // En la siguiente vuelta del bucle principal (no `DispatchQueue.main.async`: dentro de un bloque de la cola principal, como
+        // en los tests, eso no se ejecuta hasta que el bloque termina).
+        RunLoop.main.perform { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.publishScheduled = false
+                self.refreshPublished()
+            }
+        }
     }
 
     /// Avisos e indicadores de la barra lateral: se recalculan aquí y solo avisan a la interfaz si cambiaron.
@@ -430,7 +457,7 @@ final class Store {
         noteTexts = texts
         // Solo se avisa a las notas que alguien está mirando y cuyo texto cambió.
         for (rel, slot) in noteSlots where previousTexts[rel] != texts[rel] { slot.version += 1 }
-        if previousTexts != texts { textsVersion += 1 }
+        if scan.changed { textsVersion += 1 }   // la recarga ya sabe si cambió algún archivo: no hace falta comparar todos los textos
         if linkMap != lastLinks { lastLinks = linkMap; linksVersion += 1 }
         func text(_ rel: String) -> String { texts[rel] ?? read(rel) }
 
@@ -496,7 +523,8 @@ final class Store {
         } else {
             habitDefs = ["Ejercicio", "Agua", "Sueño", "Leer"].map { HabitDef(name: $0) }
         }
-        refreshPublished()
+        // Al abrir, ya: la primera pantalla sale con sus avisos. Después, en la siguiente vuelta.
+        if revision == 1 { refreshPublished() } else { refreshPublishedSoon() }
     }
 
     /// Empieza a vigilar la carpeta: cualquier cambio externo recarga la app casi al instante.
