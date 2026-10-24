@@ -139,9 +139,10 @@ scripts/              build-app.sh (empaqueta y firma) y make-icon.swift (genera
 swift test                                                            # todos los tests
 VAULT_COPY=/ruta/a/tus/notas swift test                               # además, sobre una copia de tus notas
 VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas de cada pantalla, en claro y oscuro
+VOT_FUZZ=20 VOT_FUZZ_SEED=3 swift test --filter FuzzTests             # fuzz a fondo: 20 veces más casos y otra semilla
 ```
 
-Los tests nunca tocan tus notas: trabajan sobre copias temporales.
+Los tests nunca tocan tus notas: trabajan sobre copias temporales. Además de los tests por función, hay un fuzz con semilla fija: notas deformadas (tablas rotas, cifras absurdas, dígitos de otros alfabetos, emojis compuestos, bytes inválidos) pasan por todos los lectores y editores y por todas las pantallas, y cada operación de la app se deshace y se repite comprobando la carpeta byte a byte.
 
 **Firma.** `build-app.sh` firma con el primer certificado «Apple Development» del llavero, o ad hoc si no hay ninguno. Para distribuir, `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh` firma con runtime endurecido, sello de tiempo y el permiso de Calendarios ([VOTsidian.entitlements](scripts/VOTsidian.entitlements)), listo para notarizar.
 
