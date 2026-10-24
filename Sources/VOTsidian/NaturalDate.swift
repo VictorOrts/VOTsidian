@@ -109,7 +109,7 @@ enum NaturalDate {
         return (input.trimmingCharacters(in: .whitespaces), nil, .none)
     }
 
-    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0; var time: Int? = nil }
+    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0; var time: Int? = nil; var muted = false }
 
     /// La hora escrita en una frase: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «sobre las 10», «a mediodía» o
     /// «17:30» suelto. Devuelve la frase sin ella y la hora en minutos. «A las 1» a «a las 6» sin «de la mañana» son de la tarde,
@@ -166,10 +166,18 @@ enum NaturalDate {
                 base = base.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
             }
         }
+        // «sin aviso», «sin avisar», «no avisar»: la tarea no va a Calendar ni a las notificaciones.
+        var muted = false
+        if let r = base.range(of: #"(?i)\s*\b(sin avisos?|sin avisar|no avisar)\b"#, options: .regularExpression) {
+            muted = true
+            base.removeSubrange(r)
+            base = base.trimmingCharacters(in: .whitespaces)
+        }
         let timed = extractTime(base)
         var r = extractTask(timed.text, today: today, noPriority: true)
         r.priority = priority
         r.time = timed.minutes
+        r.muted = muted
         return r
     }
 

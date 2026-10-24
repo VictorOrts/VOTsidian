@@ -6,7 +6,7 @@ enum QuickCommand: Equatable {
     case mood(Int, Date)
     case sleep(Double, Date)
     case injection(Date)
-    case task(String, Date?, String?, Int, Int?)       // texto, fecha, repetición, prioridad, hora
+    case task(String, Date?, String?, Int, Int?, Bool)       // texto, fecha, repetición, prioridad, hora, sin aviso
     case idea(String)
     case diary(String)
     case appointment(String, Date, Int?)               // texto, fecha, hora
@@ -25,8 +25,8 @@ enum QuickCommand: Equatable {
         case .mood(let n, let d): return "Anotar ánimo \(n) de 5 (\(day(d)))"
         case .sleep(let h, let d): return "Anotar sueño \(MD.formatNumber(h, comma: true)) h (\(day(d)))"
         case .injection(let d): return "Registrar pinchazo o toma (\(day(d)))"
-        case .task(let t, let d, let r, let p, let h):
-            return "Tarea «\(t)»" + (d.map { " para \(day($0))" } ?? "") + (h.map { " a las \(TimeOfDay.text($0))" } ?? "") + (r.map { " · \(Recurrence.describe($0))" } ?? "") + (p == 3 ? " · urgente" : "")
+        case .task(let t, let d, let r, let p, let h, let m):
+            return "Tarea «\(t)»" + (d.map { " para \(day($0))" } ?? "") + (h.map { " a las \(TimeOfDay.text($0))" } ?? "") + (m ? " · sin aviso" : "") + (r.map { " · \(Recurrence.describe($0))" } ?? "") + (p == 3 ? " · urgente" : "")
         case .idea(let t): return "Guardar idea «\(t)»"
         case .diary(let t): return "Añadir a la nota de hoy: «\(t)»"
         case .appointment(let t, let d, let h): return "Cita «\(t)» el \(day(d))" + (h.map { " a las \(TimeOfDay.text($0))" } ?? "")
@@ -83,7 +83,7 @@ enum QuickCommand: Equatable {
         case "tarea", "t", "todo", "recordar", "recuerdame":
             let p = NaturalDate.extractTask(arg, today: today)
             guard !p.text.isEmpty else { return nil }
-            return .task(p.text, p.date, p.recurrence, p.priority, p.time)
+            return .task(p.text, p.date, p.recurrence, p.priority, p.time, p.muted)
         case "idea": return .idea(arg)
         case "nota", "diario", "apunta", "apunte": return .diary(arg)
         case "cita", "medico":

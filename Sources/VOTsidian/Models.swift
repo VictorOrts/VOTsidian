@@ -191,6 +191,8 @@ struct TaskItem: Identifiable, Equatable {
     var priority = 0   // 3 alta ⏫ · 2 media 🔼 · 1 baja 🔽
     /// Hora (minutos desde medianoche), escrita como `⏰ 17:30` detrás de la fecha. Sin ella, es de día completo.
     var time: Int? = nil
+    /// `🔕` en la línea: sale en la app, pero no va a Calendar ni a las notificaciones de macOS.
+    var muted = false
     var id: String { "\(file):\(line)" }
     var noteName: String { (file as NSString).lastPathComponent.replacingOccurrences(of: ".md", with: "") }
 }

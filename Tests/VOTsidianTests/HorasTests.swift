@@ -26,7 +26,7 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     let c = NaturalDate.extractDateTime("dermatólogo el 29/10 a las 9 y media", today: today)
     #expect(c.text == "dermatólogo" && c.date == D("2026-10-29") && c.time == 9 * 60 + 30)
     #expect(QuickCommand.parse("cita dentista el 29/10 a las 17:30", today: today) == .appointment("dentista", D("2026-10-29"), 17 * 60 + 30))
-    #expect(QuickCommand.parse("tarea revisión coche mañana a las 9", today: today) == .task("revisión coche", D("2026-10-24"), nil, 0, 9 * 60))
+    #expect(QuickCommand.parse("tarea revisión coche mañana a las 9", today: today) == .task("revisión coche", D("2026-10-24"), nil, 0, 9 * 60, false))
     #expect(QuickCommand.appointment("dentista", D("2026-10-29"), 17 * 60 + 30).summary.hasSuffix("a las 17:30"))
 }
 
@@ -80,4 +80,34 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     // una nota de visita con «hora:»
     store.writeNote("Salud/Visita.md", text: "---\ntipo: cita_medica\nfecha: \(DayKey.string(tomorrow))\nhora: 12:15\n---\n# Visita\n")
     #expect(store.agenda(from: tomorrow, to: tomorrow)[DayKey.string(tomorrow)]?.first { $0.title == "Visita" }?.minutes == 12 * 60 + 15)
+}
+
+// MARK: 🔕 sin aviso en Calendar
+
+@MainActor @Test func mutedTasksStayInTheAppButNotInCalendar() throws {
+    let p = NaturalDate.extractTask("gimnasio mañana a las 19:00 sin aviso", today: D("2026-10-23"))
+    #expect(p.text == "gimnasio" && p.muted && p.time == 19 * 60 && p.date == D("2026-10-24"))
+    #expect(QuickCommand.parse("tarea gimnasio el viernes sin avisar", today: D("2026-10-23")) == .task("gimnasio", D("2026-10-30"), nil, 0, nil, true))
+    #expect(!NaturalDate.extractTask("llamar a Ana", today: D("2026-10-23")).muted)
+    // en la nota y de vuelta
+    let line = Edit.taskLine("Gimnasio", due: D("2026-10-27"), time: 19 * 60, muted: true)
+    #expect(line == "- [ ] Gimnasio 📅 2026-10-27 ⏰ 19:00 🔕")
+    let t = try #require(Parse.tasks(line, file: "x").first)
+    #expect(t.muted && t.text == "Gimnasio")
+    // editar sin decir nada lo conserva; se puede quitar
+    #expect(Parse.tasks(try #require(Edit.updateTask(line, task: t, newText: "Gym", due: t.due)), file: "x").first?.muted == true)
+    #expect(Parse.tasks(try #require(Edit.updateTask(line, task: t, newText: "Gym", due: t.due, muted: false)), file: "x").first?.muted == false)
+    // al repetirse, la siguiente sigue sin aviso
+    let weekly = "- [ ] Pilates 📅 2026-10-23 ⏰ 19:00 🔕 🔁 every week"
+    let w = try #require(Parse.tasks(weekly, file: "x").first)
+    #expect(w.muted && w.recurrence == "week")
+    #expect(Parse.tasks(try #require(Edit.completeRecurring(weekly, task: w, today: D("2026-10-23"))), file: "x").contains { !$0.done && $0.muted })
+    // en la app sí, en Calendar no
+    let store = Store(root: try syntheticVault())
+    let tomorrow = DayKey.adding(days: 1, to: DayKey.today())
+    store.addTask("Con aviso", due: tomorrow)
+    store.addTask("Callada", due: tomorrow, muted: true)
+    #expect(store.agenda(from: tomorrow, to: tomorrow)[DayKey.string(tomorrow)]?.contains { $0.title == "Callada" } == true)
+    let ev = ICS.events(store.reminderSources(), plan: ReminderPlan(), today: DayKey.today())
+    #expect(ev.contains { $0.title == "Con aviso" } && !ev.contains { $0.title == "Callada" })
 }

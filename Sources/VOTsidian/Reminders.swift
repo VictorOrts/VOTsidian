@@ -137,7 +137,7 @@ enum ICS {
                                 start: end, minutes: plan.weightMinutes, rule: "FREQ=MONTHLY;BYMONTHDAY=-1"))
         }
         if plan.tasks {
-            for t in tasks where !t.done {
+            for t in tasks where !t.done && !t.muted {   // 🔕: solo en la app
                 guard let due = t.due, due >= today else { continue }
                 // Con hora: evento a esa hora con aviso una hora antes. Las citas médicas avisan además el día anterior.
                 let medical = t.file == VaultPath.medico
