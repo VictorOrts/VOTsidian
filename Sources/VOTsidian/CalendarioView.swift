@@ -245,7 +245,11 @@ struct CalendarioView: View {
 
                 Divider()
                 Text("Añadir a este día").font(.headline)
-                Picker("", selection: $kind) { ForEach(Kind.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented).labelsHidden()
+                // Con cinco tipos el segmentado no cabe en los 400 pt del panel: si no cabe, menú (si no, empuja el panel y pierde el margen).
+                ViewThatFits(in: .horizontal) {
+                    Picker("", selection: $kind) { ForEach(Kind.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented).labelsHidden()
+                    Picker("Tipo", selection: $kind) { ForEach(Kind.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.menu).fixedSize()
+                }
                 HStack {
                     TextField(placeholder, text: $text).focused($focused).onSubmit(add)
                     Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
