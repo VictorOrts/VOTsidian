@@ -17,7 +17,11 @@ import Testing
         case .inicio: try render("Inicio", InicioView(go: { _ in }))
         case .dia: try render("Mi día", MiDiaView())
         case .tareas: try render("Tareas", TareasView())
-        case .calendario: try render("Calendario", CalendarioView())
+        case .calendario:
+            try render("Calendario", CalendarioView())
+            UserDefaults.standard.set(true, forKey: "calendarWeek")
+            defer { UserDefaults.standard.removeObject(forKey: "calendarWeek") }
+            try render("Calendario semana", CalendarioView())
         case .planificar: try render("Planificar", PlanificarView())
         case .semana: try render("Semana", SemanaView())
         case .mes: try render("Mes", MesView())

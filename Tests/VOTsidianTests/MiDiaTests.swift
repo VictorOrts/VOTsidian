@@ -44,6 +44,11 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     #expect(p("leer ⏱ 25m").duration == 25 && p("leer ⏱ 25m").text == "leer")
     // lo que no es una duración
     #expect(p("comprar 2 kilos de manzanas").duration == nil)
+    for s in ["subir de 3 a 5 kg", "leer de 10 a 20 páginas", "mesa de 2 a 4 personas", "ahorrar de 10 a 20 €", "series de 8 a 12 repeticiones", "niños de 5 a 7 años"] {
+        let r = p(s)
+        #expect(r.duration == nil && r.time == nil && r.text == s, "«\(s)» no es un horario")
+    }
+    #expect(p("reunión de 10 a 12 con Ana").duration == 120 && p("reunión de 10 a 12 con Ana").text == "reunión con Ana")
     #expect(p("llamar a Ana").duration == nil && p("pagar el 5 de noviembre").duration == nil)
 }
 
@@ -183,4 +188,56 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     #expect(store.noteMeta["Salud/Visita.md"]?["hora"].map(\.isEmpty) ?? true)
     store.undo(); store.undo()
     #expect(store.read("Salud/Visita.md") == visit)
+}
+
+// MARK: Robustez de la ficha y de la agenda
+
+@Test func draftKeepsWhatWasTypedWhenTheTaskMoves() throws {
+    let t = try #require(Parse.tasks("- [ ] Informe 📅 2026-10-26 ⏰ 10:00 ⏱ 1h", file: "x").first)
+    let base = TaskDraft(t)
+    var typing = base
+    typing.text = "Informe Q3"                          // se está escribiendo el texto…
+    let moved = try #require(Parse.tasks("- [ ] Informe 📅 2026-10-27 ⏰ 16:00 ⏱ 1h", file: "x").first)
+    let merged = typing.rebased(from: base, onto: TaskDraft(moved))   // …y mientras, se arrastró a otro día y hora
+    #expect(merged.text == "Informe Q3" && merged.due == D("2026-10-27") && merged.time == 16 * 60 && merged.duration == 60)
+}
+
+@Test func selectionClosesIfAnotherTaskTakesTheLine() {
+    let day = D("2026-10-24")
+    func task(_ text: String) -> TaskItem { TaskItem(file: "Inbox.md", line: 3, raw: "- [ ] \(text)", text: text, due: day, scheduled: nil, done: false, time: 600) }
+    let sel = EventSelection(id: "tInbox.md:3", title: "Informe")
+    let before = DayPlan.build(day: day, today: day, tasks: [task("Informe")], agenda: []).blocks
+    #expect(sel.resolve(day: day, blocks: before, agenda: []) != nil && before.first.map(sel.matches) == true)
+    // la nota cambió fuera: en la línea 3 ahora hay otra tarea
+    let after = DayPlan.build(day: day, today: day, tasks: [task("Pagar IBI")], agenda: []).blocks
+    #expect(sel.resolve(day: day, blocks: after, agenda: []) == nil && after.first.map(sel.matches) == false)
+}
+
+@MainActor @Test func savingOverAVanishedTaskTouchesNothing() throws {
+    let store = Store(root: try syntheticVault())
+    let tomorrow = DayKey.adding(days: 1, to: DayKey.today())
+    store.addTask("Informe", due: tomorrow)
+    store.addTask("Pagar IBI", due: tomorrow)
+    let stale = try #require(store.tasks.first { $0.text == "Informe" })
+    // fuera de la app se borra «Informe»: «Pagar IBI» sube a su línea
+    try store.read(VaultPath.inbox).replacingOccurrences(of: stale.raw + "\n", with: "").write(to: store.url(VaultPath.inbox), atomically: true, encoding: .utf8)
+    store.reload()
+    let disk = store.read(VaultPath.inbox)
+    var d = TaskDraft(stale)
+    d.text = "Informe Q3"
+    store.save(d, for: stale)
+    #expect(store.read(VaultPath.inbox) == disk && store.tasks.contains { $0.text == "Pagar IBI" } && store.message != nil)
+}
+
+@MainActor @Test func quickCommandTaskKeepsEverything() throws {
+    let store = Store(root: try syntheticVault())
+    let msg = store.run(try #require(QuickCommand.parse("tarea llamar a Ana a las 18:00 durante 15 min")))
+    #expect(store.tasks.first { $0.text == "llamar a Ana" }.map { $0.due == DayKey.today() && $0.time == 18 * 60 && $0.duration == 15 } == true)
+    #expect(msg.contains("a las 18:00") && msg.contains("15 min"))
+}
+
+@Test func blockIdsAreUnique() {
+    let day = D("2026-10-24")
+    let plan = DayPlan.build(day: day, today: day, tasks: [], agenda: [], meds: [(id: "1", title: "Tomar X", minutes: 540), (id: "1", title: "Tomar X", minutes: 540)])
+    #expect(Set(plan.blocks.map(\.id)).count == 2)
 }

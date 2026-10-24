@@ -23,6 +23,21 @@ struct TaskDraft: Equatable {
 
     var isValid: Bool { !text.trimmingCharacters(in: .whitespaces).isEmpty }
 
+    /// La tarea cambió mientras se editaba (se arrastró a otra hora): lo que no se ha tocado en el formulario toma el valor
+    /// nuevo; lo que sí, se queda como lo dejó quien edita.
+    func rebased(from base: TaskDraft, onto new: TaskDraft) -> TaskDraft {
+        var d = self
+        if text == base.text { d.text = new.text }
+        if hasDue == base.hasDue { d.hasDue = new.hasDue }
+        if due == base.due { d.due = new.due }
+        if hasTime == base.hasTime { d.hasTime = new.hasTime }
+        if time == base.time { d.time = new.time }
+        if duration == base.duration { d.duration = new.duration }
+        if priority == base.priority { d.priority = new.priority }
+        if muted == base.muted { d.muted = new.muted }
+        return d
+    }
+
     /// El texto de la nota con la tarea cambiada (`nil` si la línea ya no está). La hora solo va con fecha.
     func apply(_ note: String, task: TaskItem) -> String? {
         Edit.updateTask(note, task: task, newText: text, due: hasDue ? due : nil, priority: priority,
@@ -45,6 +60,8 @@ struct TaskEditor: View {
     var onClose: () -> Void
     @State private var draft: TaskDraft
     @State private var base: TaskDraft
+    /// La tarea sobre la que se guarda: la de cuando se empezó a editar, puesta al día solo si sigue siendo la misma.
+    @State private var origin: TaskItem
     @State private var confirmDelete = false
     @FocusState private var focused: Bool
 
@@ -54,6 +71,7 @@ struct TaskEditor: View {
         self.onClose = onClose
         _draft = State(initialValue: TaskDraft(task))
         _base = State(initialValue: TaskDraft(task))
+        _origin = State(initialValue: task)
     }
 
     private var dirty: Bool { draft != base }
@@ -80,12 +98,12 @@ struct TaskEditor: View {
             Toggle("Sin aviso en Calendar ni notificaciones", isOn: $draft.muted).toggleStyle(.checkbox)
                 .help("Sigue en Tareas y en el Calendario de la app; solo deja de ir a Calendar de macOS y a las notificaciones (🔕 en la nota).")
             HStack(spacing: 6) {
-                if let r = task.recurrence { Label(Recurrence.describe(r), systemImage: "repeat").font(.caption).foregroundStyle(.secondary) }
-                Button("En la nota \(task.noteName)") { store.pendingNote = task.file }.buttonStyle(.accentLink).font(.caption)
+                if let r = origin.recurrence { Label(Recurrence.describe(r), systemImage: "repeat").font(.caption).foregroundStyle(.secondary) }
+                Button("En la nota \(origin.noteName)") { store.pendingNote = origin.file }.buttonStyle(.accentLink).font(.caption)
             }
             HStack {
-                Button(task.done ? "Pendiente" : "Completar") { store.setTask(task, done: !task.done); onClose() }
-                if confirmDelete { Button("Confirmar", role: .destructive) { store.deleteTask(task); onClose() } }
+                Button(origin.done ? "Pendiente" : "Completar") { store.setTask(origin, done: !origin.done); onClose() }
+                if confirmDelete { Button("Confirmar", role: .destructive) { store.deleteTask(origin); onClose() } }
                 else { Button("Eliminar", role: .destructive) { confirmDelete = true } }
                 Spacer()
                 Button("Cancelar", action: onClose).keyboardShortcut(.cancelAction)
@@ -94,18 +112,39 @@ struct TaskEditor: View {
         }
         .onAppear { if focusToken > 0 { focused = true } }
         .onChange(of: focusToken) { focused = true }
-        // Si la tarea cambia por otro lado (se arrastró a otra hora) y no hay nada a medias, la ficha se pone al día.
-        .onChange(of: task) { if !dirty { draft = TaskDraft(task); base = draft } }
+        // La tarea cambió por otro lado. Si es la misma (mismo texto y nota: se arrastró a otra hora), la ficha se pone al día
+        // sin perder lo que se está escribiendo. Si es otra (la nota cambió fuera y otra tarea ocupa esa línea), se sigue
+        // guardando sobre la de antes, que se busca por su línea exacta: si ya no está, no se toca nada.
+        .onChange(of: task) {
+            guard task.file == origin.file, task.text == origin.text || !dirty else { return }
+            let new = TaskDraft(task)
+            draft = dirty ? draft.rebased(from: base, onto: new) : new
+            base = new
+            origin = task
+        }
     }
 
     private func save() {
         guard draft.isValid else { return }
-        if dirty { store.save(draft, for: task) }
+        if dirty { store.save(draft, for: origin) }
         onClose()
     }
 }
 
 // MARK: - Lo que se ha seleccionado en el Calendario o en Mi día
+
+/// Lo seleccionado: el id y el título de cuando se pulsó. Los ids de tarea son «nota:línea»; si la nota cambia fuera de la app
+/// y otra tarea pasa a esa línea, el título ya no coincide y la ficha se cierra en vez de enseñar otra tarea.
+struct EventSelection: Equatable {
+    var id: String
+    var title: String
+
+    func resolve(day: Date, blocks: [TimeBlock], agenda: [AgendaItem]) -> EventRef? {
+        EventRef.find(id, day: day, blocks: blocks, agenda: agenda).flatMap { $0.title == title ? $0 : nil }
+    }
+
+    func matches(_ b: TimeBlock) -> Bool { b.id == id && b.title == title }
+}
 
 /// Un elemento de la agenda (bloque con hora o elemento de todo el día), con lo necesario para la ficha.
 struct EventRef: Equatable {

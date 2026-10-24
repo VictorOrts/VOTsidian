@@ -26,7 +26,7 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     let c = NaturalDate.extractDateTime("dermatólogo el 29/10 a las 9 y media", today: today)
     #expect(c.text == "dermatólogo" && c.date == D("2026-10-29") && c.time == 9 * 60 + 30)
     #expect(QuickCommand.parse("cita dentista el 29/10 a las 17:30", today: today) == .appointment("dentista", D("2026-10-29"), 17 * 60 + 30))
-    #expect(QuickCommand.parse("tarea revisión coche mañana a las 9", today: today) == .task("revisión coche", D("2026-10-24"), nil, 0, 9 * 60, false))
+    #expect(QuickCommand.parse("tarea revisión coche mañana a las 9", today: today) == .task(.init(text: "revisión coche", date: D("2026-10-24"), time: 9 * 60)))
     #expect(QuickCommand.appointment("dentista", D("2026-10-29"), 17 * 60 + 30).summary.hasSuffix("a las 17:30"))
 }
 
@@ -87,7 +87,7 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
 @MainActor @Test func mutedTasksStayInTheAppButNotInCalendar() throws {
     let p = NaturalDate.extractTask("gimnasio mañana a las 19:00 sin aviso", today: D("2026-10-23"))
     #expect(p.text == "gimnasio" && p.muted && p.time == 19 * 60 && p.date == D("2026-10-24"))
-    #expect(QuickCommand.parse("tarea gimnasio el viernes sin avisar", today: D("2026-10-23")) == .task("gimnasio", D("2026-10-30"), nil, 0, nil, true))
+    #expect(QuickCommand.parse("tarea gimnasio el viernes sin avisar", today: D("2026-10-23")) == .task(.init(text: "gimnasio", date: D("2026-10-30"), muted: true)))
     #expect(!NaturalDate.extractTask("llamar a Ana", today: D("2026-10-23")).muted)
     // en la nota y de vuelta
     let line = Edit.taskLine("Gimnasio", due: D("2026-10-27"), time: 19 * 60, muted: true)

@@ -47,7 +47,7 @@ extension Store {
         case .mood(let n, let d): setDiaryValue(d, "animo", Double(n))
         case .sleep(let h, let d): setDiaryValue(d, "sueno_h", h)
         case .injection(let d): injectToday(date: d)
-        case .task(let t, let d, let r, let p, let h, let m): addTask(t, due: d, recurrence: r, priority: p, time: h, muted: m)
+        case .task(let p): return addTask(p)
         case .idea(let t): addIdea(t)
         case .diary(let t): appendToDiary(DayKey.today(), text: t)
         case .appointment(let t, let d, let h): addAppointment(t, date: d, time: h)

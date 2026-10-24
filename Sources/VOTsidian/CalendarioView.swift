@@ -12,7 +12,7 @@ struct CalendarioView: View {
     /// Mes (rejilla) o semana por horas. Se recuerda.
     @AppStorage("calendarWeek") private var weekMode = false
     /// Elemento seleccionado del día elegido (bloque de la semana, ficha de la cabecera o fila del panel): su ficha va arriba del panel.
-    @State private var selectedEvent: String?
+    @State private var selectedEvent: EventSelection?
     @State private var focusToken = 0
     @State private var selected = DayKey.today()
     @State private var kind = Kind.tarea
@@ -110,7 +110,7 @@ struct CalendarioView: View {
                         ForEach(days, id: \.self) { d in
                             TimelineColumn(day: d, blocks: store.dayPlan(d, agenda: agenda[DayKey.string(d)] ?? []).blocks, compact: true,
                                            selected: d == selected ? selectedEvent : nil) { b, focus in
-                                if let b { selectEvent(b.id, on: d, focus: focus) } else { selectedEvent = nil }
+                                if let b { selectEvent(EventSelection(id: b.id, title: b.title), on: d, focus: focus) } else { selectedEvent = nil }
                             }
                                 .background(d == selected ? Brand.accent.opacity(0.05) : .clear)
                         }
@@ -138,9 +138,9 @@ struct CalendarioView: View {
                     Text(item.title).font(.caption2).lineLimit(1).padding(.horizontal, 4).padding(.vertical, 1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(item.kind.color.opacity(0.16), in: RoundedRectangle(cornerRadius: 4))
-                        .overlay { if selectedEvent == item.id && day == selected { RoundedRectangle(cornerRadius: 4).stroke(Brand.accent, lineWidth: 1.5) } }
+                        .overlay { if selectedEvent == EventSelection(id: item.id, title: item.title) && day == selected { RoundedRectangle(cornerRadius: 4).stroke(Brand.accent, lineWidth: 1.5) } }
                         .contentShape(Rectangle())
-                        .onTapGesture { selectEvent(item.id, on: day) }
+                        .onTapGesture { selectEvent(item, on: day) }
                         .draggable(item.task.map(\.id) ?? "")
                 }
                 if items.count > 3 { Text("+\(items.count - 3) más").font(.caption2).foregroundStyle(.secondary) }
@@ -226,7 +226,7 @@ struct CalendarioView: View {
 
     private func dayPanel(agenda: [AgendaItem]) -> some View {
         let visible = agenda.filter { $0.kind != .diary }
-        let event = selectedEvent.flatMap { EventRef.find($0, day: selected, blocks: store.dayPlan(selected, agenda: agenda).blocks, agenda: agenda) }
+        let event = selectedEvent?.resolve(day: selected, blocks: store.dayPlan(selected, agenda: agenda).blocks, agenda: agenda)
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
@@ -302,10 +302,10 @@ struct CalendarioView: View {
             else if let p = item.path { Button { store.pendingNote = p } label: { Image(systemName: "chevron.right").accessibilityLabel("Siguiente / abrir") }.buttonStyle(.borderless).foregroundStyle(.tertiary) }
         }
         .padding(.vertical, 2).padding(.horizontal, 4)
-        .background(selectedEvent == item.id ? Brand.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(selectedEvent == EventSelection(id: item.id, title: item.title) ? Brand.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 6))
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) { selectEvent(item.id, on: selected, focus: true) }
-        .simultaneousGesture(TapGesture().onEnded { selectEvent(item.id, on: selected) })
+        .onTapGesture(count: 2) { selectEvent(item, on: selected, focus: true) }
+        .simultaneousGesture(TapGesture().onEnded { selectEvent(item, on: selected) })
         .draggable(item.task.map { $0.id } ?? "")
     }
 
@@ -332,10 +332,14 @@ struct CalendarioView: View {
     // MARK: Acciones
 
     /// Selecciona un elemento de `day` (y ese día, si no lo estaba). Con `focus`, el cursor va al texto de la ficha.
-    private func selectEvent(_ id: String, on day: Date, focus: Bool = false) {
+    private func selectEvent(_ sel: EventSelection, on day: Date, focus: Bool = false) {
         if day != selected { select(day) }
-        selectedEvent = id
+        selectedEvent = sel
         if focus { focusToken += 1 }
+    }
+
+    private func selectEvent(_ item: AgendaItem, on day: Date, focus: Bool = false) {
+        selectEvent(EventSelection(id: item.id, title: item.title), on: day, focus: focus)
     }
 
     private func select(_ day: Date) {
