@@ -43,7 +43,7 @@ extension Store {
         for d in doses { if let mg = d.mg { byMg[mg, default: 0] += 1 } }
         var perMonth: [Int: [Double]] = [:]
         for (k, r) in reviews where r.totalPossible > 0 {
-            guard let m = k.firstMatch(of: /(\d{4})-W(\d{2})/), let y = Int(m.1), let w = Int(m.2) else { continue }
+            guard let m = k.firstMatch(of: /([0-9]{4})-W([0-9]{2})/), let y = Int(m.1), let w = Int(m.2) else { continue }
             var c = DateComponents(); c.yearForWeekOfYear = y; c.weekOfYear = w; c.weekday = 2
             guard let monday = Calendar(identifier: .iso8601).date(from: c), inYear(monday) else { continue }
             perMonth[cal.component(.month, from: monday), default: []].append(Double(r.totalDone) / Double(r.totalPossible) * 100)

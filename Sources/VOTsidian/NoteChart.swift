@@ -8,7 +8,7 @@ import SwiftUI
 //     ```grafica
 //     tabla: Sueño          (título de la sección de la tabla; sin él, la primera tabla)
 //     x: Fecha              (sin él, la primera columna)
-//     y: Horas, Ánimo       (sin él, todas las columnas con números)
+//     y: Horas, Despertares  (sin él, todas las columnas con números)
 //     tipo: linea           (linea, barras, area, puntos o tarta)
 //     titulo: Cómo duermo
 //     ```

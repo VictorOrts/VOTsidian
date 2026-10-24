@@ -19,7 +19,7 @@ enum LinkContext {
 
     static func clean(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespaces)
-        s = s.replacing(/^(?:#{1,6}\s+|>\s*|(?:[-*]|\d+\.)\s+(?:\[[ xX]\]\s+)?)/, with: "")
+        s = s.replacing(/^(?:#{1,6}\s+|>\s*|(?:[-*]|[0-9]+\.)\s+(?:\[[ xX]\]\s+)?)/, with: "")
         s = s.replacing(/!?\[\[([^\]|]*)(?:\\?\|([^\]]*))?\]\]/) { m in m.2.map(String.init) ?? String(m.1) }
         return s
     }

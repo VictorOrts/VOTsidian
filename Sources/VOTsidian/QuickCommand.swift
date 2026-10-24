@@ -64,7 +64,7 @@ enum QuickCommand: Equatable {
         /// Primer número del argumento (admite coma decimal) y el resto como posible fecha.
         func numberAndDate() -> (Double, Date)? {
             let parts = arg.split(separator: " ", maxSplits: 1).map(String.init)
-            guard let first = parts.first, first.range(of: #"^\d+([.,]\d+)?$"#, options: .regularExpression) != nil, let n = MD.number(first) else { return nil }
+            guard let first = parts.first, first.range(of: #"^[0-9]+([.,][0-9]+)?$"#, options: .regularExpression) != nil, let n = MD.number(first) else { return nil }
             let rest = parts.count > 1 ? parts[1] : ""
             let d = rest.isEmpty ? today : (NaturalDate.extract(rest, today: today).date ?? today)
             return (n, d)

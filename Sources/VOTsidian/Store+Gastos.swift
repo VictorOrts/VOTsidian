@@ -10,7 +10,7 @@ extension Store {
     var budgetMonths: [String] {
         let prefix = Store.gastosFolder + "/"
         return notes.compactMap { n in
-            guard n.path.hasPrefix(prefix), n.name.range(of: #"^\d{4}-\d{2}$"#, options: .regularExpression) != nil else { return nil }
+            guard n.path.hasPrefix(prefix), n.name.range(of: #"^[0-9]{4}-[0-9]{2}$"#, options: .regularExpression) != nil else { return nil }
             return n.name
         }.sorted()
     }

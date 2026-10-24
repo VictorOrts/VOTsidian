@@ -353,10 +353,10 @@ extension Parse {
                 let full = amount(cell(row.cells, p)) ?? 0
                 // «3», «3 meses», «trimestral», «anual»…
                 let everyText = MD.fold(cell(row.cells, ev))
-                let times = everyText.firstMatch(of: /(\d{1,2})/).flatMap { Int($0.1) }.map { max($0, 1) }
+                let times = everyText.firstMatch(of: /([0-9]{1,2})/).flatMap { Int($0.1) }.map { max($0, 1) }
                 let every = everyText.contains("anual") ? 12 : everyText.contains("ano") ? (times ?? 1) * 12 : everyText.contains("semestr") ? 6
                     : everyText.contains("trimestr") ? 3 : everyText.contains("bimestr") ? 2 : times ?? 1
-                let start = cell(row.cells, st).range(of: #"^\d{4}-\d{2}"#, options: .regularExpression).map { String(cell(row.cells, st)[$0]) }
+                let start = cell(row.cells, st).range(of: #"^[0-9]{4}-[0-9]{2}"#, options: .regularExpression).map { String(cell(row.cells, st)[$0]) }
                 var l = BudgetLine(name: cell(row.cells, n), planned: full, kind: kind,
                                    paid: ["✅", "✔", "☑", "✓"].contains { paid.contains($0) } || ["x", "[x]", "si", "pagado", "pagada"].contains(MD.fold(paid)),
                                    day: Int(cell(row.cells, d)).flatMap { (1...31).contains($0) ? $0 : nil }, line: row.index,

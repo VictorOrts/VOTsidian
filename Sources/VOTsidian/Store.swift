@@ -522,7 +522,7 @@ final class Store {
         var found: [String: WeekReview] = [:]
         var weekCache: [String: (text: String, week: WeekReview)] = [:]
         for (rel, t) in texts where rel.hasPrefix(VaultPath.revisiones + "/") {
-            guard let m = (rel as NSString).lastPathComponent.firstMatch(of: /(\d{4}-W\d{2})/) else { continue }
+            guard let m = (rel as NSString).lastPathComponent.firstMatch(of: /([0-9]{4}-W[0-9]{2})/) else { continue }
             let week: WeekReview
             if let c = reviewCache[rel], c.text == t { week = c.week } else { week = Parse.week(t, key: String(m.1)) }
             weekCache[rel] = (t, week)

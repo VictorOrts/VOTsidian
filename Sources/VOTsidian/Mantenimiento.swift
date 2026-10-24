@@ -55,13 +55,13 @@ extension Store {
     }
 
     var maintenanceTasks: [TaskItem] {
-        tasks.filter { $0.file == VaultPath.casa && $0.recurrence != nil && !$0.done }
+        tasks(in: VaultPath.casa).filter { $0.recurrence != nil && !$0.done }
             .sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
     }
 
     /// Añade a la nota Casa las tareas elegidas, con su primera fecha. Las que ya existen no se repiten.
     func addMaintenance(_ presets: [MaintenancePreset], first: Date) {
-        let existing = Set(tasks.filter { $0.file == VaultPath.casa }.map { MD.fold($0.text) })
+        let existing = Set(tasks(in: VaultPath.casa).map { MD.fold($0.text) })
         let fresh = presets.filter { !existing.contains(MD.fold($0.title)) }
         edit(VaultPath.casa) { Edit.appendToSectionCreating($0, section: Maintenance.section, lines: fresh.map { Maintenance.line($0, first: first) }) }
     }
