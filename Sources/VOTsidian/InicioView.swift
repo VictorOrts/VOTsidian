@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Orden y visibilidad de las tarjetas de Inicio. Se guarda como «id:1,id:0,…» (1 visible, 0 oculta).
 enum HomeCard: String, CaseIterable, Identifiable {
-    case atencion, hoy, peso, medicacion, tareas, habitos, mascota, nutricion, gastos, vehiculo, suscripciones, prestamos, viajes, lecturas
+    case atencion, hoy, peso, medicacion, tareas, habitos, mascota, nutricion, gastos, vehiculo, suscripciones, prestamos, viajes, lecturas, tramites
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -21,6 +21,7 @@ enum HomeCard: String, CaseIterable, Identifiable {
         case .prestamos: "Préstamos y deudas"
         case .viajes: "Viajes"
         case .lecturas: "Lecturas"
+        case .tramites: "Trámites y seguros"
         }
     }
     var full: Bool { self == .atencion || self == .hoy }
@@ -37,6 +38,7 @@ enum HomeCard: String, CaseIterable, Identifiable {
         case .prestamos: .prestamos
         case .viajes: .viajes
         case .lecturas: .lecturas
+        case .tramites: .tramites
         default: nil
         }
     }
@@ -234,6 +236,7 @@ struct InicioView: View {
             case .prestamos: prestamosCard
             case .viajes: viajesCard
             case .lecturas: lecturasCard
+            case .tramites: tramitesCard
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -490,6 +493,24 @@ struct InicioView: View {
                 Label(l.goal > 0 ? "\(done) de \(l.goal) este año" : "\(plural(done, "libro", "libros")) este año", systemImage: "checkmark.seal")
                 if l.goal > 0 { ProgressView(value: Double(min(done, l.goal)), total: Double(l.goal)).tint(Brand.accent) }
                 ForEach(l.reading.prefix(2)) { b in Label(b.title, systemImage: "book").foregroundStyle(.secondary) }
+            }
+        }
+    }
+
+    private var tramitesCard: some View {
+        let d = store.tramites
+        let today = DayKey.today()
+        let soon = d.pendingProcedures.prefix(3)
+        let renewals = d.insurances.compactMap { i in i.nextRenewal(from: today).map { (i.name, $0) } }.sorted { $0.1 < $1.1 }.prefix(2)
+        return Card(title: "Trámites y seguros", icon: "building.columns", actionTitle: "Abrir", action: { go(.tramites) }) {
+            if soon.isEmpty && renewals.isEmpty { Label("Sin plazos ni renovaciones", systemImage: "checkmark.seal").foregroundStyle(.secondary) }
+            ForEach(Array(soon), id: \.procedure.id) { e in
+                let n = DayKey.days(from: today, to: e.due)
+                Label("\(e.procedure.name): \(n < 0 ? "venció " + relativeDays(n) : relativeDays(n))", systemImage: n < 0 ? "exclamationmark.triangle.fill" : "calendar")
+                    .foregroundStyle(n < 0 ? Brand.bad : n <= 30 ? Brand.warn : .primary)
+            }
+            ForEach(Array(renewals), id: \.0) { name, date in
+                Label("Seguro de \(name): renueva \(relativeDays(DayKey.days(from: today, to: date)))", systemImage: "shield.lefthalf.filled").foregroundStyle(.secondary)
             }
         }
     }

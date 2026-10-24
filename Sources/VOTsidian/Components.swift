@@ -83,6 +83,24 @@ struct Card<Content: View>: View {
     }
 }
 
+/// «Ver las 300» / «Ver solo las últimas 40» bajo una lista recortada. Una lista de cientos de filas se pinta entera cada vez
+/// que cambia algo, así que por defecto se enseñan solo las últimas.
+struct ShowAllButton: View {
+    let total: Int
+    let limit: Int
+    var noun = "filas"
+    @Binding var showAll: Bool
+
+    var body: some View {
+        if total > limit {
+            HStack(spacing: 8) {
+                if !showAll { Text("Se ven \(limit) de \(total).").font(.caption).foregroundStyle(.secondary) }
+                Button(showAll ? "Ver solo \(limit)" : "Ver las \(total) \(noun)") { showAll.toggle() }.buttonStyle(.accentLink).font(.callout)
+            }
+        }
+    }
+}
+
 /// Aviso de «no hay nada» dentro de una tarjeta. Mismo aspecto en toda la app: icono tenue y texto secundario.
 struct EmptyNote: View {
     let text: String

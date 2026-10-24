@@ -1,6 +1,6 @@
 # VOTsidian
 
-**Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa, vehículo, viajes y lecturas en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
+**Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa, vehículo, trámites, viajes y lecturas en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
 
 [![tests](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml/badge.svg)](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml)
 ![macOS 26+](https://img.shields.io/badge/macOS-26%2B-black)
@@ -104,6 +104,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 | **Lecturas** | Libros pendientes, leyendo y terminados con nota de 1 a 5, objetivo anual y ritmo de lectura. |
 | **Personas** | Cumpleaños y última vez que hablasteis. |
 | **Documentos** | Caducidades de DNI, pasaporte, seguros… con aviso 30 días antes. Solo la referencia, nunca el documento. |
+| **Trámites y seguros** | Plazos de la renta, el IBI y otros trámites, que se repiten o son de una vez: al marcarlos hechos se calcula el siguiente y el importe puede ir a Gastos. Seguros con prima, renovación (aviso 30 días antes para comparar ofertas), teléfono de asistencia y coste al año. |
 | **Objetivos** | Objetivos por área y revisión trimestral. |
 
 ## Atajos de teclado
@@ -123,7 +124,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 - **Deshacer.** Cualquier cambio hecho desde la app se deshace con ⌥⌘Z, también los que tocan varias notas a la vez.
 - **Recuperar.** El historial de una nota restaura versiones anteriores. También se puede restaurar una copia entera; antes, la app guarda el estado actual.
 - **iCloud.** Avisa de notas duplicadas por conflicto y de archivos que aún no se han descargado.
-- **Exportar.** Resumen del año en PDF, datos en CSV (un archivo por módulo, incluidos vehículo, suscripciones, préstamos, viajes y lecturas) y todas las notas en `.zip`.
+- **Exportar.** Resumen del año en PDF, datos en CSV (un archivo por módulo, incluidos vehículo, suscripciones, préstamos, viajes, lecturas, trámites y seguros) y todas las notas en `.zip`.
 
 ## Desarrollo
 
@@ -140,6 +141,7 @@ swift test                                                            # todos lo
 VAULT_COPY=/ruta/a/tus/notas swift test                               # además, sobre una copia de tus notas
 VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas de cada pantalla, en claro y oscuro
 VOT_FUZZ=20 VOT_FUZZ_SEED=3 swift test --filter FuzzTests             # fuzz a fondo: 20 veces más casos y otra semilla
+VOT_BENCH=1 swift test -c release --filter heavyUserBenchmark          # tiempos con una carpeta de 3 años de uso
 ```
 
 Los tests nunca tocan tus notas: trabajan sobre copias temporales. Además de los tests por función, hay un fuzz con semilla fija: notas deformadas (tablas rotas, cifras absurdas, dígitos de otros alfabetos, emojis compuestos, bytes inválidos) pasan por todos los lectores y editores y por todas las pantallas, y cada operación de la app se deshace y se repite comprobando la carpeta byte a byte.

@@ -7,7 +7,7 @@ import Foundation
 // que empieza de cero elige lo que quiere y la app le crea esas notas con el formato correcto.
 
 enum Module: String, CaseIterable, Identifiable {
-    case peso, nutricion, medicacion, salud, finanzas, suscripciones, prestamos, casa, compra, moda, mascota, vehiculo, viajes, lecturas, personas, documentos, objetivos
+    case peso, nutricion, medicacion, salud, finanzas, suscripciones, prestamos, casa, compra, moda, mascota, vehiculo, viajes, lecturas, personas, documentos, tramites, objetivos
 
     var id: String { rawValue }
 
@@ -29,6 +29,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .lecturas: "Lecturas"
         case .personas: "Personas"
         case .documentos: "Documentos"
+        case .tramites: "Trámites y seguros"
         case .objetivos: "Objetivos"
         }
     }
@@ -51,6 +52,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .lecturas: "Libros pendientes, leyendo y terminados, con un objetivo anual y tu ritmo de lectura."
         case .personas: "Cumpleaños y cuándo hablaste por última vez con cada persona."
         case .documentos: "DNI, pasaporte, seguros… con avisos antes de que caduquen."
+        case .tramites: "Plazos de la renta, el IBI y otros trámites con aviso, y tus seguros: prima, renovación y teléfono de asistencia."
         case .objetivos: "Objetivos por área y una revisión cada trimestre."
         }
     }
@@ -73,6 +75,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .lecturas: "book"
         case .personas: "person.2"
         case .documentos: "doc.on.doc"
+        case .tramites: "building.columns"
         case .objetivos: "target"
         }
     }
@@ -95,6 +98,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .lecturas: [.lecturas]
         case .personas: [.personas]
         case .documentos: [.documentos]
+        case .tramites: [.tramites]
         case .objetivos: [.objetivos]
         }
     }
@@ -118,6 +122,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .lecturas: ["lecturas"]
         case .personas: ["personas"]
         case .documentos: ["documentos"]
+        case .tramites: ["tramites"]
         case .objetivos: ["objetivos"]
         }
     }
@@ -146,7 +151,7 @@ enum Starter {
     static let labels: [String: String] = [
         "peso": "Peso", "medidas": "Medidas", "plan": "Plan nutricional", "proyecto": "Proyecto con hitos de peso",
         "medicacion": "Medicación", "medico": "Salud y médicos", "mascota": "Mascota", "vehiculo": "Vehículo", "suscripciones": "Suscripciones", "prestamos": "Préstamos y deudas", "lecturas": "Lecturas", "viajes": "Viajes", "casa": "Casa", "moda": "Ropa",
-        "inbox": "Bandeja de tareas", "documentos": "Documentos", "personas": "Personas", "objetivos": "Objetivos",
+        "inbox": "Bandeja de tareas", "documentos": "Documentos", "tramites": "Trámites y seguros", "personas": "Personas", "objetivos": "Objetivos",
         "finanzas": "Finanzas", "gastos": "Carpeta de gastos (una nota por mes)", "revisiones": "Carpeta de revisiones", "compra": "Lista de la compra",
     ]
 
@@ -462,6 +467,33 @@ enum Starter {
 
             | Documento | Número o referencia | Caduca / renueva | Notas |
             | :-------- | :------------------ | :--------------- | :---- |
+
+            """
+        case "tramites":
+            return """
+            ---
+            tipo: tramites
+            ---
+
+            # Trámites y seguros
+
+            ## Impuestos y plazos
+
+            > «Plazo»: la próxima fecha límite (AAAA-MM-DD o DD/MM/AAAA). «Cada»: anual, semestral, trimestral, mensual, o vacío si es una sola vez. Al marcarlo hecho, la app pone la fecha en «Hecho» y calcula el siguiente plazo.
+
+            | Trámite | Plazo | Cada | Importe | Hecho | Notas |
+            | :------ | :---- | :--- | ------: | :---- | :---- |
+            | Declaración de la renta | | Anual | | | |
+            | IBI | | Anual | | | |
+
+            ## Pólizas
+
+            > «Renovación»: el día que se renueva y se cobra. La app avisa 30 días antes para que compares ofertas. «Partida»: la de Gastos a la que va la prima.
+
+            | Seguro | Compañía | Póliza | Prima | Cada | Renovación | Teléfono | Partida | Notas |
+            | :----- | :------- | :----- | ----: | :--- | :--------- | :------- | :------ | :---- |
+            | Hogar | | | | Anual | | | | |
+            | Salud | | | | Mensual | | | | |
 
             """
         case "objetivos":

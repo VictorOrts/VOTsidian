@@ -190,10 +190,32 @@ enum MD {
         return Int(v)
     }
 
+    /// ¿Hay un «[[» en el texto? Recorre bytes: mucho más barato que una expresión regular, para descartar líneas sin enlaces.
+    static func hasDoubleBracket(_ s: String) -> Bool {
+        var previous: UInt8 = 0
+        for b in s.utf8 {
+            if b == 91, previous == 91 { return true }
+            previous = b
+        }
+        return false
+    }
+
     /// Primer número del texto. Entiende coma decimal («105,5») y separador de miles («1.234,5», «1.234.567», «1,234.5»).
+    /// Solo cifras ASCII, recorriendo bytes: se llama en cada celda de cada tabla y una expresión regular era lo más caro.
     static func number(_ s: String) -> Double? {
-        guard let m = s.firstMatch(of: /-?\d+(?:[.,]\d+)*/) else { return nil }
-        var t = String(m.0)
+        let b = Array(s.utf8)
+        func isDigit(_ i: Int) -> Bool { i < b.count && b[i] >= 48 && b[i] <= 57 }
+        var i = 0
+        while i < b.count, !isDigit(i) { i += 1 }
+        guard i < b.count else { return nil }
+        let start = i > 0 && b[i - 1] == 45 ? i - 1 : i          // «-» justo delante
+        var j = i
+        while isDigit(j) { j += 1 }
+        while j < b.count, b[j] == 46 || b[j] == 44, isDigit(j + 1) {   // «.» o «,» seguidos de cifras
+            j += 1
+            while isDigit(j) { j += 1 }
+        }
+        var t = String(decoding: b[start..<j], as: UTF8.self)
         let commas = t.filter { $0 == "," }.count, dots = t.filter { $0 == "." }.count
         if commas > 0, dots > 0 {
             // El separador que va último es el decimal; el otro, de miles.

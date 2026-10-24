@@ -7,6 +7,7 @@ struct BasesView: View {
     @State private var query = BaseView(name: "")
     @State private var saved: [BaseView] = []
     @State private var showNew = false
+    @State private var allNotes = false
     @State private var showSave = false
     @State private var newViewName = ""
 
@@ -68,7 +69,8 @@ struct BasesView: View {
                                 GridRow { header(BaseQuery.nameKey); header(BaseQuery.modifiedKey); Text("Etiquetas"); ForEach(columns, id: \.self) { header($0) } }.font(.caption).foregroundStyle(.secondary)
                                 Divider()
                             }
-                            ForEach(notes, id: \.self) { path in
+                            // Cada fila lleva un campo editable por columna: con cientos de notas, solo las primeras.
+                            ForEach(notes.prefix(allNotes ? notes.count : 100), id: \.self) { path in
                                 GridRow {
                                     Button(((path as NSString).lastPathComponent as NSString).deletingPathExtension) { store.pendingNote = path }
                                         .buttonStyle(.accentLink).frame(width: 190, alignment: .leading)
@@ -79,6 +81,7 @@ struct BasesView: View {
                             }
                         }
                     }
+                    ShowAllButton(total: notes.count, limit: 100, noun: "notas", showAll: $allNotes)
                 }
             }
             .padding(24)

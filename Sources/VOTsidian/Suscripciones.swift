@@ -70,24 +70,10 @@ struct SuscripcionesData: Equatable {
             }
         }
 
-        /// Primer cobro de la serie que cae en `day` o después. Se cuenta siempre desde el ancla, así «31 de enero» sigue
-        /// siendo fin de mes en febrero y vuelve al 31 en marzo.
+        /// Primer cobro de la serie que cae en `day` o después (la serie empieza en el ancla).
         func occurrence(atOrAfter day: Date) -> Date? {
-            let cal = DayKey.calendar()
             guard anchor < day else { return anchor }
-            switch period {
-            case .days(let n), .weeks(let n):
-                let step = period == .days(n) ? n : 7 * n
-                let k = (DayKey.days(from: anchor, to: day) + step - 1) / step
-                return DayKey.adding(days: k * step, to: anchor)
-            case .months(let n):
-                var k = max(0, (cal.dateComponents([.month], from: anchor, to: day).month ?? 0) / n)
-                while let d = cal.date(byAdding: .month, value: k * n, to: anchor) {
-                    if d >= day { return d }
-                    k += 1
-                }
-                return nil
-            }
+            return period.index(atOrAfter: day, from: anchor).flatMap { period.date($0, from: anchor) }
         }
 
         /// Cobros entre `start` y `end`, ambos incluidos (como mucho 400).
@@ -113,6 +99,41 @@ struct SuscripcionesData: Equatable {
     /// Activas y pruebas por orden de fecha: lo que toca antes, primero.
     func upcoming(today: Date = DayKey.today()) -> [(item: Item, date: Date)] {
         items.compactMap { i in i.next(from: today).map { (i, $0) } }.sorted { $0.date < $1.date }
+    }
+}
+
+extension SuscripcionesData.Period {
+    /// El día número `k` de la serie que pasa por `anchor` (0 es el ancla; negativo, antes). Se cuenta siempre desde el ancla:
+    /// «31 de enero» mensual es el 28 en febrero y vuelve al 31 en marzo.
+    func date(_ k: Int, from anchor: Date) -> Date? {
+        switch self {
+        case .days(let n): DayKey.adding(days: k * n, to: anchor)
+        case .weeks(let n): DayKey.adding(days: k * 7 * n, to: anchor)
+        case .months(let n): DayKey.calendar().date(byAdding: .month, value: k * n, to: anchor)
+        }
+    }
+
+    /// El menor `k` cuyo día cae en `day` o después.
+    func index(atOrAfter day: Date, from anchor: Date) -> Int? {
+        let days = DayKey.days(from: anchor, to: day)
+        var k: Int = switch self {
+        case .days(let n): Int((Double(days) / Double(n)).rounded(.down))
+        case .weeks(let n): Int((Double(days) / Double(7 * n)).rounded(.down))
+        case .months(let n): Int((Double(DayKey.calendar().dateComponents([.month], from: anchor, to: day).month ?? 0) / Double(n)).rounded(.down))
+        }
+        var steps = 0
+        while let d = date(k, from: anchor), d < day { k += 1; steps += 1; if steps > 400 { return nil } }
+        while let d = date(k - 1, from: anchor), d >= day { k -= 1; steps += 1; if steps > 800 { return nil } }
+        return k
+    }
+
+    /// Lo que cuesta al año un importe que se paga con este periodo.
+    func yearly(_ amount: Double) -> Double {
+        switch self {
+        case .days(let n): amount * 365 / Double(n)
+        case .weeks(let n): amount * 52 / Double(n)
+        case .months(let n): amount * 12 / Double(n)
+        }
     }
 }
 

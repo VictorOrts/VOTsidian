@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AgendaItem: Identifiable {
     enum Kind: String {
-        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, vehiculo, suscripcion, prestamo, viaje, lectura, event, shopping, diary
+        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, vehiculo, suscripcion, prestamo, viaje, lectura, tramite, event, shopping, diary
         var icon: String {
             switch self {
             case .task: "circle"
@@ -18,6 +18,7 @@ struct AgendaItem: Identifiable {
             case .prestamo: "creditcard.and.123"
             case .viaje: "airplane"
             case .lectura: "book"
+            case .tramite: "building.columns"
             case .event: "party.popper"
             case .shopping: "bag"
             case .diary: "note.text"
@@ -38,6 +39,7 @@ struct AgendaItem: Identifiable {
             case .prestamo: Brand.slate
             case .viaje: Brand.rose
             case .lectura: Brand.lime
+            case .tramite: Brand.amber
             case .event: Brand.rose
             case .shopping: Brand.lime
             case .diary: Brand.info
@@ -140,6 +142,15 @@ extension Store {
         for b in lecturas.books where b.status == .finished {
             if let f = b.finished { add(AgendaItem(id: "lb\(b.line)", kind: .lectura, title: "Terminado: \(b.title)", detail: b.author, date: f, screen: .lecturas)) }
         }
+        for (p, due) in tramites.pendingProcedures {
+            add(AgendaItem(id: "tp\(p.line)", kind: .tramite, title: "Plazo: \(p.name)", detail: p.amount.map(Money.exact) ?? "", date: due, screen: .tramites))
+        }
+        for p in tramites.procedures { if let d = p.done { add(AgendaItem(id: "th\(p.line)", kind: .tramite, title: "Hecho: \(p.name)", date: d, screen: .tramites)) } }
+        for i in tramites.insurances {
+            for d in i.renewals(from: start, to: end) {
+                add(AgendaItem(id: "ts\(i.line)|\(DayKey.string(d))", kind: .tramite, title: "Renueva el seguro de \(i.name)", detail: i.premium > 0 ? Money.exact(i.premium) : "", date: d, screen: .tramites))
+            }
+        }
         for e in events { add(AgendaItem(id: "e\(e.path)", kind: .event, title: e.name, date: e.date, path: e.path)) }
         for (path, m) in noteMeta where m["tipo"] == "cita_medica" {
             if let d = m["fecha"].flatMap(DayKey.date) {
@@ -196,7 +207,7 @@ extension Store {
         "calendario": .calendario, "grafo": .grafo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
         "medicos": .salud, "analiticas": .salud, "analisis": .salud, "medico": .salud, "doctor": .salud, "inicio": .inicio,
         "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos, "coche": .vehiculo, "vehiculo": .vehiculo, "suscripciones": .suscripciones, "prestamos": .prestamos, "deudas": .prestamos,
-        "lecturas": .lecturas, "libros": .lecturas, "viajes": .viajes,
+        "lecturas": .lecturas, "libros": .lecturas, "viajes": .viajes, "tramites": .tramites, "seguros": .tramites, "impuestos": .tramites,
     ]
 
     func screenAlias(_ name: String) -> Screen? { Store.screenAliases[MD.fold((name as NSString).lastPathComponent)] }

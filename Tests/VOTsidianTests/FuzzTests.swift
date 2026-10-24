@@ -78,6 +78,8 @@ private func readEverything(_ t: String) {
     _ = loans.statuses().map { (loans.dueDates($0, upTo: DayKey.adding(days: 900, to: DayKey.today())), $0.progress, $0.estimatedEnd) }
     let books = Parse.lecturas(t)
     _ = (books.finished(in: 2026), books.pages(in: 2026), books.averageDays, books.projection(), books.goal)
+    let tr = Parse.tramites(t)
+    _ = (tr.pendingProcedures, tr.yearlyInsurance, tr.insurances.map { ($0.nextRenewal(), $0.renewals(from: DayKey.today(), to: DayKey.adding(days: 900, to: DayKey.today()))) })
     let trips = Parse.viajes(t)
     _ = (trips.upcoming(), trips.trips.map { (trips.spent($0), $0.days, trips.isOngoing($0)) }, trips.packing)
     _ = (Parse.tasks(t, file: "x.md").map(\.text), Shopping.parse(t), Links.extract(t), MDParser.blocks(t), MD.frontmatter(t), MD.frontmatterList(t, key: "aliases"))
@@ -106,6 +108,7 @@ private func editEverything(_ t: String, _ r: inout Rng) {
     _ = (Edit.addVehiculoRow(t, section: "Repostajes", cells: ["x"]), Edit.setRowValues(t, line: line, expectFirst: "a", values: ["estado": "x"]), Edit.uncheckSection(t, section: "Equipaje"))
     _ = (Edit.addSuscripcion(t, name: "N", amount: 1, every: "Mensual", date: day, category: "", trial: false), Edit.addPrestamo(t, name: "P", initial: 5, installment: 1, day: 3, until: nil, category: ""))
     _ = (Edit.addPrestamoPago(t, date: day, loan: "P", amount: 1, note: ""), Edit.addLibro(t, title: "L", author: "A", pages: 3), Edit.addViaje(t, name: "V", start: day, end: day, budget: 1), Edit.addViajeGasto(t, date: day, trip: "V", concept: "c", amount: 1))
+    _ = (Edit.addTramite(t, name: "T", due: day, every: "Anual", amount: 3), Edit.addSeguro(t, name: "S", company: "C", premium: 3, every: "Anual", renewal: day, phone: "", category: ""))
     _ = (Edit.addMedication(t, Medication(name: "X", dose: "1 mg", form: "Pastilla", every: 1), current: nil), Edit.upgradeMedicationNote(t, current: Medication(name: "X", dose: "", form: "", every: 7)))
     if let task {
         _ = (Edit.setTask(t, task: task, done: true), Edit.completeRecurring(t, task: task), Edit.updateTask(t, task: task, newText: "z", due: day, priority: 1))
@@ -274,6 +277,10 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         ("orden libro", { $0.run(.book("Orden", "")) }),
         ("orden cuota", { $0.run(.loanPayment("Coche")) }),
         ("orden gasto", { $0.run(.expense(ExpenseParser.Result(amount: 9, category: "Alimentación", note: "x", person: nil, date: day))) }),
+        ("trámite hecho con gasto", { s in if let p = s.tramites.procedures.first(where: { $0.name == "Basuras" }) { s.markTramiteDone(p, expense: true) } }),
+        ("pago de seguro", { s in if let i = s.tramites.insurances.first { s.logSeguroPayment(i) } }),
+        ("trámite nuevo", { $0.addTramite(name: "Tasa", due: day, every: "Anual", amount: 30) }),
+        ("seguro nuevo", { $0.addSeguro(name: "Coche", company: "X", premium: 400, every: "Anual", renewal: day, phone: "1", category: "") }),
         ("nota nueva", { _ = $0.createNote(folder: "Casa", name: "Probando", template: "En blanco") }),
         ("propiedad", { $0.setProperty(VaultPath.peso, key: "objetivo_peso_kg", value: "70") }),
     ]
@@ -342,4 +349,32 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         _ = (store.alerts(), store.sidebarCounts(), store.agenda(from: DayKey.today(), to: DayKey.adding(days: 60, to: DayKey.today())), store.reminderSources())
         _ = ICS.events(store.reminderSources(), plan: ReminderPlan()).map(CalendarEventSpec.init)
     }
+}
+
+// MARK: El lector de números rápido da lo mismo que el de antes
+
+/// `MD.number` tal como era, con expresión regular (solo cifras ASCII, como ahora).
+private func referenceNumber(_ s: String) -> Double? {
+    guard let m = s.firstMatch(of: /-?[0-9]+(?:[.,][0-9]+)*/) else { return nil }
+    var t = String(m.0)
+    let commas = t.filter { $0 == "," }.count, dots = t.filter { $0 == "." }.count
+    if commas > 0, dots > 0 {
+        let decimal: Character = t.lastIndex(of: ",")! > t.lastIndex(of: ".")! ? "," : "."
+        t = t.filter { $0 != (decimal == "," ? "." : ",") }.replacingOccurrences(of: ",", with: ".")
+    } else if dots > 1 || commas > 1 {
+        t = t.replacingOccurrences(of: dots > 1 ? "." : ",", with: "")
+    } else {
+        t = t.replacingOccurrences(of: ",", with: ".")
+    }
+    return Double(t)
+}
+
+@Test func fastNumberParserMatchesTheOldOne() {
+    var r = Rng(state: 4242 &+ seed)
+    let pieces = ["1", "23", "456", "7.890", "1,5", ".", ",", "-", "--", " ", "€", "kg", "a", "1.234,56", "1,234.56", "1.2.3", "1,,2", "..5", "5..", "-0", "ñ", "٣", "１", "e", "+", "0", "00", "%"]
+    for _ in 0..<(20_000 * scale) {
+        let s = (0..<Int.random(in: 0...6, using: &r)).map { _ in pieces.randomElement(using: &r)! }.joined()
+        #expect(MD.number(s) == referenceNumber(s), "«\(s)»: \(String(describing: MD.number(s))) frente a \(String(describing: referenceNumber(s)))")
+    }
+    for s in ["105,5", "1.234,5", "1.234.567", "1,234.5", "-3", "a-5", "5-3", "12,99 €", "", "abc", "1e5"] { #expect(MD.number(s) == referenceNumber(s), "\(s)") }
 }

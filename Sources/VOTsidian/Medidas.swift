@@ -59,7 +59,7 @@ enum NoteInfo {
         let fence = MD.fenced(lines)
         var start = 0
         if lines.first == "---", let end = lines.dropFirst().firstIndex(of: "---") { start = end + 1 }
-        for (i, l) in lines.enumerated() where i >= start && !fence.contains(i) {
+        for (i, l) in lines.enumerated() where i >= start && !fence.contains(i) && l.utf8.contains(UInt8(ascii: "#")) {
             for m in l.matches(of: /(?:^|\s)#([\p{L}][\p{L}\p{N}_\/-]*)/) { out.append(String(m.1)) }
         }
         var seen = Set<String>()

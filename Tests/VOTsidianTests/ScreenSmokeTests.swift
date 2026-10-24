@@ -36,6 +36,7 @@ import Testing
         case .prestamos: try render("Préstamos", PrestamosView())
         case .lecturas: try render("Lecturas", LecturasView())
         case .viajes: try render("Viajes", ViajesView())
+        case .tramites: try render("Trámites", TramitesView())
         case .personas: try render("Personas", PersonasView())
         case .documentos: try render("Documentos", DocumentosView())
         case .finanzas: try render("Finanzas", FinanzasView())

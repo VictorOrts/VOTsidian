@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PersonasView: View {
     @Environment(Store.self) private var store
+    @State private var allPeople = false
     private let file = VaultPath.personas
 
     var body: some View {
@@ -27,7 +28,8 @@ struct PersonasView: View {
                 }
                 Card(title: "Contacto", icon: "bubble.left.and.bubble.right") {
                     if people.isEmpty { EmptyNote("Sin personas.") }
-                    ForEach(people.sorted { ($0.lastContact ?? .distantPast) < ($1.lastContact ?? .distantPast) }) { p in
+                    // Primero con quien hace más que no hablas: si son muchas, basta con las primeras.
+                    ForEach(people.sorted { ($0.lastContact ?? .distantPast) < ($1.lastContact ?? .distantPast) }.prefix(allPeople ? people.count : 30)) { p in
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(p.name).fontWeight(.medium)
@@ -41,6 +43,7 @@ struct PersonasView: View {
                             Button("Hablé hoy") { markContact(p) }.controlSize(.small)
                         }
                     }
+                    ShowAllButton(total: people.count, limit: 30, noun: "personas", showAll: $allPeople)
                 }
                 NoteTables(file: file, icon: "person.2", include: { $0.col("persona") != nil })
             }
