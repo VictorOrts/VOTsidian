@@ -11,7 +11,7 @@ struct ProyectosView: View {
         let order = ["activo": 0, "pausado": 1, "completado": 2]
         return store.noteMeta.compactMap { path, m -> Row? in
             guard m["tipo"] == "proyecto" else { return nil }
-            let t = store.tasks.filter { $0.file == path }
+            let t = store.tasks(in: path)
             return Row(path: path, name: ((path as NSString).lastPathComponent as NSString).deletingPathExtension, meta: m,
                        open: t.filter { !$0.done }.count, done: t.filter(\.done).count)
         }.sorted {
@@ -59,7 +59,7 @@ struct ProyectosView: View {
                             ProgressView(value: Double(r.done), total: Double(total)).tint(Brand.accent)
                             Text("\(r.done) de \(total) tareas hechas").font(.caption).foregroundStyle(.secondary)
                         }
-                        ForEach(store.tasks.filter { $0.file == r.path && !$0.done }.prefix(4)) { TaskRow(task: $0) }
+                        ForEach(store.tasks(in: r.path).filter { !$0.done }.prefix(4)) { TaskRow(task: $0) }
                     }
                 }
                 Button { showNew = true } label: { Label("Nuevo proyecto", systemImage: "plus") }.buttonStyle(.borderedProminent)

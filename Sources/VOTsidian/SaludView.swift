@@ -21,7 +21,7 @@ struct SaludView: View {
     }
 
     private var appointments: [TaskItem] {
-        store.tasks.filter { $0.file == file && !$0.done }.sorted { ($0.due ?? .distantFuture, $0.time ?? -1) < ($1.due ?? .distantFuture, $1.time ?? -1) }
+        store.tasks(in: file).filter { !$0.done }.sorted { ($0.due ?? .distantFuture, $0.time ?? -1) < ($1.due ?? .distantFuture, $1.time ?? -1) }
     }
 
     var body: some View {

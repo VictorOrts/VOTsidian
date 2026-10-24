@@ -181,7 +181,7 @@ struct InicioView: View {
         let today = DayKey.today()
         let items = (store.agenda(from: today, to: today)[DayKey.string(today)] ?? []).filter { $0.kind != .done && $0.kind != .diary }
         let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < today } ?? false) }
-        return Card(title: "Hoy", icon: "sun.max", actionTitle: "Calendario", action: { go(.calendario) }) {
+        return Card(title: "Hoy", icon: "sun.max", actionTitle: "Mi día", action: { go(.dia) }) {
             HStack {
                 TextField("Añadir tarea… (ej: llamar al dentista el viernes)", text: $quick).onSubmit(addQuick)
                 Button("Añadir", action: addQuick).buttonStyle(.borderedProminent).disabled(quick.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -192,6 +192,7 @@ struct InicioView: View {
                 MoodPicker(value: store.diaryValue(today, "animo")) { store.setDiaryValue(today, "animo", $0) }
                 Spacer()
                 Button { store.openToday() } label: { Label("Nota de hoy", systemImage: "note.text") }.controlSize(.small)
+                Button { store.showEmpezar = true } label: { Label("Empezar el día", systemImage: "sunrise") }.controlSize(.small)
                 Button { store.showCierre = true } label: { Label("Cerrar el día", systemImage: "moon.stars") }.controlSize(.small)
             }
             ForEach(overdue.prefix(4)) { TaskRow(task: $0) }

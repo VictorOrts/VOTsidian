@@ -86,13 +86,13 @@ struct FinanzasView: View {
                                     .buttonStyle(.borderedProminent).controlSize(.small).padding(.top, 14)
                             }
                         }
-                        ForEach(store.tasks.filter { $0.file == e.path && !$0.done }) { TaskRow(task: $0) }
+                        ForEach(store.tasks(in: e.path).filter { !$0.done }) { TaskRow(task: $0) }
                     }
                 }
                 Button { showNew = true } label: { Label("Nuevo evento o pago", systemImage: "plus") }.buttonStyle(.borderedProminent)
                 Card(title: "Objetivos de ahorro y pagos", icon: "list.bullet") {
-                    ForEach(store.tasks.filter { $0.file == file && !$0.done }) { TaskRow(task: $0) }
-                    if store.tasks.filter({ $0.file == file && !$0.done }).isEmpty { EmptyNote("Sin tareas.") }
+                    ForEach(store.tasks(in: file).filter { !$0.done }) { TaskRow(task: $0) }
+                    if store.tasks(in: file).filter({ !$0.done }).isEmpty { EmptyNote("Sin tareas.") }
                 }
             }
             .padding(24)

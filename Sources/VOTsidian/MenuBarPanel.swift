@@ -28,6 +28,7 @@ struct MenuBarPanel: View {
             HStack {
                 Button { show() } label: { Label("Abrir", systemImage: "macwindow") }
                 Button { show(); store.openToday() } label: { Label("Nota de hoy", systemImage: "note.text") }
+                Button { show(); store.showEmpezar = true } label: { Label("Empezar", systemImage: "sunrise") }
                 Button { show(); store.showCierre = true } label: { Label("Cerrar el día", systemImage: "moon.stars") }
                 Spacer()
             }.controlSize(.small)

@@ -193,6 +193,8 @@ struct TaskItem: Identifiable, Equatable {
     var time: Int? = nil
     /// `🔕` en la línea: sale en la app, pero no va a Calendar ni a las notificaciones de macOS.
     var muted = false
+    /// Lo que se calcula que dura (minutos), escrito como `⏱ 1h30m`. Da la altura del bloque en «Mi día» y el final del evento en Calendar.
+    var duration: Int? = nil
     var id: String { "\(file):\(line)" }
     var noteName: String { (file as NSString).lastPathComponent.replacingOccurrences(of: ".md", with: "") }
 }

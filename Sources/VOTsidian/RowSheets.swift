@@ -94,6 +94,7 @@ struct TaskSheet: View {
     @State private var hasTime = false
     @State private var time = TimeOfDay.date(10 * 60)
     @State private var muted = false
+    @State private var duration = 0
     @State private var confirmDelete = false
 
     var body: some View {
@@ -107,6 +108,10 @@ struct TaskSheet: View {
                 Toggle("A las", isOn: $hasTime).toggleStyle(.checkbox).disabled(!hasDue)
                 DatePicker("Hora", selection: $time, displayedComponents: .hourAndMinute).labelsHidden().disabled(!hasDue || !hasTime).fixedSize()
             }
+            Picker("Dura", selection: $duration) {
+                Text("Sin calcular").tag(0)
+                ForEach(TaskDuration.presets(including: duration), id: \.self) { Text(TaskDuration.human($0)).tag($0) }
+            }.frame(width: 220).help("Altura del bloque en Mi día y duración del evento en Calendar (⏱ en la nota).")
             Toggle("Sin aviso en Calendar ni notificaciones", isOn: $muted).toggleStyle(.checkbox)
                 .help("Sigue en Tareas y en el Calendario de la app; solo deja de ir a Calendar de macOS y a las notificaciones (🔕 en la nota).")
             Text("Está en la nota \(task.noteName).").font(.caption).foregroundStyle(.secondary)
@@ -117,7 +122,7 @@ struct TaskSheet: View {
                 Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("Guardar") {
                     store.updateTask(task, text: text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : nil, priority: priority,
-                                     time: .some(hasDue && hasTime ? TimeOfDay.minutes(of: time) : nil), muted: muted)
+                                     time: .some(hasDue && hasTime ? TimeOfDay.minutes(of: time) : nil), muted: muted, duration: .some(duration > 0 ? duration : nil))
                     dismiss()
                 }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -127,6 +132,7 @@ struct TaskSheet: View {
             text = task.text; hasDue = task.due != nil; due = task.due ?? Date(); priority = task.priority
             hasTime = task.time != nil; if let t = task.time { time = TimeOfDay.date(t) }
             muted = task.muted
+            duration = task.duration ?? 0
         }
     }
 }

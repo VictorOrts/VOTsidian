@@ -129,7 +129,8 @@ import Testing
     UserDefaults.standard.set(HomeCard.allCases.map { "\($0.rawValue):0" }.joined(separator: ","), forKey: "inicioLayout")
     paint("Inicio sin tarjetas", InicioView(go: { _ in }))
     UserDefaults.standard.removeObject(forKey: "inicioLayout")
-    paint("Avisos", RemindersView()); paint("Calendario", CalendarioView()); paint("Peso", PesoView()); paint("Correlaciones", CorrelacionesView())
+    paint("Avisos", RemindersView()); paint("Calendario", CalendarioView()); paint("Mi día", MiDiaView());
+    UserDefaults.standard.set(true, forKey: "calendarWeek"); paint("Calendario semana", CalendarioView()); UserDefaults.standard.removeObject(forKey: "calendarWeek"); paint("Peso", PesoView()); paint("Correlaciones", CorrelacionesView())
     paint("Medicación", MedicacionView()); paint("Gastos", GastosView()); paint("Finanzas", FinanzasView()); paint("Semana", SemanaView()); paint("Mes", MesView())
     paint("Vehículo", VehiculoView()); paint("Suscripciones", SuscripcionesView()); paint("Préstamos", PrestamosView()); paint("Lecturas", LecturasView()); paint("Viajes", ViajesView())
     paint("Notas", NotasView()); paint("Bases", BasesView()); paint("Grafo", GrafoView()); paint("Personas", PersonasView()); paint("Tareas", TareasView()); paint("Planificar", PlanificarView())

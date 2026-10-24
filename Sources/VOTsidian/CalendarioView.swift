@@ -8,6 +8,9 @@ struct CalendarioView: View {
 
     @Environment(Store.self) private var store
     @State private var monthOffset = 0
+    @State private var weekOffset = 0
+    /// Mes (rejilla) o semana por horas. Se recuerda.
+    @AppStorage("calendarWeek") private var weekMode = false
     @State private var selected = DayKey.today()
     @State private var kind = Kind.tarea
     @State private var text = ""
@@ -22,6 +25,29 @@ struct CalendarioView: View {
 
     var body: some View {
         let _ = BodyCounter.hit("CalendarioView")
+        HStack(spacing: 0) {
+            Group { if weekMode { week } else { month } }
+                .padding(20)
+                .frame(maxWidth: .infinity)
+            Divider()
+            dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
+                .frame(width: 400)
+        }
+        .navigationTitle("Calendario")
+        .onAppear { loadNote() }
+        .onDisappear { saveNote() }
+        .autosave(on: noteDraft) { saveNote(quiet: true) }
+        .onChange(of: store.read(Store.diaryPath(selected))) { if noteDraft == noteBase { loadNote() } }
+    }
+
+    private var modePicker: some View {
+        Picker("", selection: $weekMode) { Text("Mes").tag(false); Text("Semana").tag(true) }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+    }
+
+    // MARK: Mes
+
+    private var month: some View {
         let first = monthStart
         let lead = (cal.component(.weekday, from: first) + 5) % 7
         let days = cal.range(of: .day, in: .month, for: first)!.count
@@ -30,12 +56,11 @@ struct CalendarioView: View {
         let gridEnd = DayKey.adding(days: rows * 7 - 1, to: gridStart)
         let agenda = store.agenda(from: gridStart, to: gridEnd)
 
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 12) {
                 // Si no cabe la leyenda al lado del mes, va debajo.
                 ViewThatFits(in: .horizontal) {
-                    HStack { monthNavigation(first); Spacer(); legend }
-                    VStack(alignment: .leading, spacing: 8) { monthNavigation(first); legend }
+                    HStack { monthNavigation(first); Spacer(); legend; modePicker }
+                    VStack(alignment: .leading, spacing: 8) { HStack { monthNavigation(first); Spacer(); modePicker }; legend }
                 }
                 HStack(spacing: 6) {
                     ForEach(["L", "M", "X", "J", "V", "S", "D"], id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity) }
@@ -52,18 +77,76 @@ struct CalendarioView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity)
+    }
 
-            Divider()
-            dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
-                .frame(width: 400)
+    // MARK: Semana por horas
+
+    /// Siete columnas de horas (lunes a domingo). Arriba, lo de todo el día y las tareas sin hora; soltar una tarea en una
+    /// columna le pone ese día y esa hora, y en la cabecera, solo el día.
+    private var week: some View {
+        let start = DayKey.adding(days: weekOffset * 7, to: DayKey.weekStart(DayKey.today()))
+        let days = (0..<7).map { DayKey.adding(days: $0, to: start) }
+        let agenda = store.agenda(from: start, to: days[6])
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Button { weekOffset -= 1 } label: { Image(systemName: "chevron.left").accessibilityLabel("Semana anterior") }
+                Text(weekTitle(start, days[6])).font(.title2.weight(.semibold)).frame(minWidth: 230)
+                Button { weekOffset += 1 } label: { Image(systemName: "chevron.right").accessibilityLabel("Semana siguiente") }
+                Button("Hoy") { weekOffset = 0; select(DayKey.today()) }
+                Spacer()
+                modePicker
+            }
+            HStack(alignment: .top, spacing: 4) {
+                Color.clear.frame(width: 42, height: 1)
+                ForEach(days, id: \.self) { d in weekHeader(d, items: (agenda[DayKey.string(d)] ?? []).filter { $0.minutes == nil && $0.kind != .done && $0.kind != .diary }) }
+            }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    HStack(alignment: .top, spacing: 4) {
+                        HourLabels()
+                        ForEach(days, id: \.self) { d in
+                            TimelineColumn(day: d, blocks: store.dayPlan(d, agenda: agenda[DayKey.string(d)] ?? []).blocks, compact: true)
+                                .background(d == selected ? Brand.accent.opacity(0.05) : .clear)
+                        }
+                    }.padding(.vertical, 8)
+                }
+                .onAppear { proxy.scrollTo("h7", anchor: .top) }
+            }
         }
-        .navigationTitle("Calendario")
-        .onAppear { loadNote() }
-        .onDisappear { saveNote() }
-        .autosave(on: noteDraft) { saveNote(quiet: true) }
-        .onChange(of: store.read(Store.diaryPath(selected))) { if noteDraft == noteBase { loadNote() } }
+    }
+
+    private func weekTitle(_ a: Date, _ b: Date) -> String {
+        let sameMonth = cal.isDate(a, equalTo: b, toGranularity: .month)
+        return "\(cal.component(.day, from: a))" + (sameMonth ? "" : " de " + DayKey.esLong(a, .dateTime.month(.wide))) + " – " + DayKey.esLong(b, .dateTime.day().month(.wide))
+    }
+
+    private func weekHeader(_ day: Date, items: [AgendaItem]) -> some View {
+        let isToday = day == DayKey.today(), isSel = day == selected
+        return Button { select(day) } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(DayKey.esLong(day, .dateTime.weekday(.abbreviated))).font(.caption).foregroundStyle(.secondary)
+                    Text("\(cal.component(.day, from: day))").font(.system(size: 15, weight: isToday ? .bold : .medium, design: .rounded)).foregroundStyle(isToday ? Brand.accent : .primary)
+                }
+                ForEach(items.prefix(3)) { item in
+                    Text(item.title).font(.caption2).lineLimit(1).padding(.horizontal, 4).padding(.vertical, 1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(item.kind.color.opacity(0.16), in: RoundedRectangle(cornerRadius: 4))
+                        .draggable(item.task.map(\.id) ?? "")
+                }
+                if items.count > 3 { Text("+\(items.count - 3) más").font(.caption2).foregroundStyle(.secondary) }
+            }
+            .padding(5)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+            .background(isSel ? Brand.accent.opacity(0.15) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: Brand.radius))
+            .contentShape(Rectangle())
+        }.buttonStyle(.plain)
+        .dropDestination(for: String.self) { ids, _ in
+            guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }) else { return false }
+            store.reschedule(t, to: day)
+            feedback = "«\(t.text)» movida al \(shortDate(day))"
+            return true
+        }
     }
 
     // MARK: Rejilla
@@ -136,9 +219,14 @@ struct CalendarioView: View {
         let visible = agenda.filter { $0.kind != .diary }
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(capitalizedFirst(DayKey.esLong(selected, .dateTime.weekday(.wide).day().month(.wide)))).font(.title3.weight(.semibold))
-                    Text(relativeDays(DayKey.days(from: DayKey.today(), to: selected))).foregroundStyle(.secondary)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(capitalizedFirst(DayKey.esLong(selected, .dateTime.weekday(.wide).day().month(.wide)))).font(.title3.weight(.semibold))
+                        Text(relativeDays(DayKey.days(from: DayKey.today(), to: selected))).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button { store.pendingPlanDay = selected; store.screen = .dia } label: { Label("Por horas", systemImage: "calendar.day.timeline.left") }
+                        .controlSize(.small).help("Abrir este día en Mi día")
                 }
 
                 if visible.isEmpty { EmptyNote("Nada este día.", icon: "checkmark.circle") }

@@ -36,9 +36,11 @@ extension Store {
     func backupFinished(ok: Bool, day: String) {
         defer { backupsStamp += 1; refreshPublished() }
         if ok {
+            Log.backups.info("Copia automática del \(day, privacy: .public) hecha")
             backupFailure = nil
             pruneAutoBackups()
         } else {
+            Log.backups.error("La copia automática del \(day, privacy: .public) no se pudo hacer")
             let when = DayKey.date(day).map(DayKey.dmy) ?? day
             backupFailure = "La copia de seguridad del \(when) no se pudo hacer. Prueba «Hacer copia ahora» en Ajustes."
         }
@@ -62,6 +64,7 @@ extension Store {
         guard !autoBackupExists(day) else { lastBackupDay = day; pruneAutoBackups(); return }
         // Los archivos que iCloud no tiene en este Mac solo se copiarían como marcadores vacíos: se piden ya,
         // y lo que no haya llegado queda avisado en Avisos («no entran en las copias»).
+        if !pendingDownloads.isEmpty { Log.icloud.notice("Antes de la copia: \(self.pendingDownloads.count, privacy: .public) archivos sin bajar de iCloud; se piden") }
         for rel in pendingDownloads { try? FileManager.default.startDownloadingUbiquitousItem(at: url(rel)) }
         let src = root
         let password = backupPassword
@@ -136,9 +139,13 @@ extension Store {
         let staging = stagingURL(for: dest)
         try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
         guard !fm.fileExists(atPath: dest.path), !fm.fileExists(atPath: staging.path) else { return false }
-        do { try fm.copyItem(at: src, to: staging) } catch { try? fm.removeItem(at: staging); return false }
+        do { try fm.copyItem(at: src, to: staging) } catch {
+            Log.backups.error("No se pudo clonar la carpeta para cifrarla: \(error.localizedDescription, privacy: .public)")
+            try? fm.removeItem(at: staging); return false
+        }
         DispatchQueue.global(qos: .utility).async {
             let ok = EncryptedBackup.create(from: staging, to: dest, password: password)
+            if !ok { Log.backups.error("No se pudo crear la imagen cifrada \(dest.lastPathComponent, privacy: .private)") }
             try? FileManager.default.removeItem(at: staging)
             completion?(ok)
         }
@@ -157,7 +164,10 @@ extension Store {
         do {
             try fm.copyItem(at: src, to: partial)
             try fm.moveItem(at: partial, to: dest)
-        } catch { try? fm.removeItem(at: partial) }
+        } catch {
+            Log.backups.error("No se pudo copiar la carpeta: \(error.localizedDescription, privacy: .public)")
+            try? fm.removeItem(at: partial)
+        }
         return fm.fileExists(atPath: dest.path)
     }
 
@@ -196,8 +206,14 @@ extension Store {
         let onDisk = try? String(contentsOf: u, encoding: .utf8)
         // Solo si de verdad no está: una nota ilegible o pendiente de iCloud no se sustituye por la plantilla.
         let starter = onDisk == nil && !exists(rel) && !pendingDownloads.contains(rel) ? starterText(for: rel) : nil
-        guard let text = onDisk ?? starter else { message = "No se pudo leer \(rel)."; return false }
-        guard let new = transform(text) else { message = "No encontré dónde cambiar \(rel). No se modificó."; return false }
+        guard let text = onDisk ?? starter else {
+            Log.notes.error("No se pudo leer \(rel, privacy: .private) para cambiarla (¿pendiente de iCloud: \(self.pendingDownloads.contains(rel), privacy: .public)?)")
+            message = "No se pudo leer \(rel)."; return false
+        }
+        guard let new = transform(text) else {
+            Log.notes.notice("No se encontró dónde cambiar \(rel, privacy: .private): la nota no tiene la forma esperada")
+            message = "No encontré dónde cambiar \(rel). No se modificó."; return false
+        }
         guard new != text || starter != nil else { return true }
         ensureBackup()
         var ok = true
@@ -206,7 +222,10 @@ extension Store {
             try new.write(to: u, atomically: true, encoding: .utf8)
             message = nil
             record(rel, previous: onDisk, written: new, quiet: quiet)
-        } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)"; ok = false }
+        } catch {
+            Log.notes.error("No se pudo guardar \(rel, privacy: .private): \(error.localizedDescription, privacy: .public)")
+            message = "No se pudo guardar \(rel): \(error.localizedDescription)"; ok = false
+        }
         reload(changed: [rel])
         return ok
     }

@@ -38,6 +38,53 @@ enum TimeOfDay {
     }
 }
 
+/// Lo que dura una tarea, en minutos, como se escribe en las notas: `⏱ 45m`, `⏱ 2h`, `⏱ 1h30m`.
+enum TaskDuration {
+    /// Hasta un día entero: lo demás es un error al escribir.
+    static let range = 5...(24 * 60)
+
+    static func text(_ minutes: Int) -> String {
+        let h = minutes / 60, m = minutes % 60
+        return h == 0 ? "\(m)m" : m == 0 ? "\(h)h" : "\(h)h\(m)m"
+    }
+
+    /// Las duraciones de los menús, con `current` si no es una de ellas (para no perderla al editar).
+    static func presets(including current: Int = 0) -> [Int] {
+        let base = [15, 30, 45, 60, 90, 120, 180, 240]
+        return current > 0 && !base.contains(current) ? (base + [current]).sorted() : base
+    }
+
+    /// «1 h 30 min», para leerlo en pantalla.
+    static func human(_ minutes: Int) -> String {
+        let h = minutes / 60, m = minutes % 60
+        return h == 0 ? "\(m) min" : m == 0 ? "\(h) h" : "\(h) h \(m) min"
+    }
+
+    /// El marcador en una línea de tarea. Con o sin el selector de variación (⏱️), que añaden algunos teclados de emoji.
+    static let pattern = #"⏱\x{FE0F}?\s*(?:[0-9]{1,2}h(?:[0-9]{1,2}m?)?|[0-9]{1,4}m(?:in)?)"#
+
+    /// La duración marcada en una línea. Con `NSString`: la búsqueda de `String` no devuelve nada si el emoji lleva el selector
+    /// de variación, porque el resultado no cae en el borde de una letra.
+    static func find(in line: String) -> Int? {
+        let ns = line as NSString
+        let r = ns.range(of: pattern, options: .regularExpression)
+        guard r.location != NSNotFound else { return nil }
+        return parse(ns.substring(with: r).drop { !$0.isASCII || !$0.isNumber })
+    }
+
+    /// «45m», «2h», «1h30m», «1h30», «90min».
+    static func parse<S: StringProtocol>(_ s: S) -> Int? {
+        let s = String(s)
+        guard let m = s.trimmingCharacters(in: .whitespaces).firstMatch(of: /^(?:([0-9]{1,2})\s*h)?\s*(?:([0-9]{1,4})\s*(?:m|min)?)?$/) else { return nil }
+        let h = m.1.flatMap { Int($0) }, mi = m.2.flatMap { Int($0) }
+        guard h != nil || mi != nil else { return nil }
+        // «90» sin unidad solo vale detrás de las horas («1h30»); suelto podría ser cualquier cosa.
+        if h == nil, !s.contains("m") { return nil }
+        let total = (h ?? 0) * 60 + (mi ?? 0)
+        return range.contains(total) ? total : nil
+    }
+}
+
 enum DayKey {
     /// Se crea una vez: se pide en cada fecha que se analiza o se pinta. La zona horaria sigue a la del sistema.
     private static let shared: Calendar = {

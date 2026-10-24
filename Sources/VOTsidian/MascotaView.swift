@@ -13,7 +13,7 @@ struct MascotaView: View {
     var body: some View {
         let _ = BodyCounter.hit("MascotaView")
         let n = store.mascota
-        let tasks = store.tasks.filter { $0.file == VaultPath.mascota && !$0.done }
+        let tasks = store.tasks(in: VaultPath.mascota).filter { !$0.done }
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .mascota)

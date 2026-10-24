@@ -98,6 +98,11 @@ private let edits: [(String, @MainActor (Store) -> Void)] = [
     #expect(own.visible && own.counts["VehiculoView"] != nil)
     let other = try repaints(.vehiculo) { $0.edit("Notas/B.md") { $0 + "\nmás" } }
     #expect(!other.visible && other.counts.isEmpty, "Vehículo se repintó con una nota ajena: \(other.counts)")
+    let task = try repaints(.vehiculo) { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.setTask(t, done: true) } }
+    #expect(task.counts.isEmpty, "Vehículo se repintó al marcar una tarea de otra nota: \(task.counts)")
+    // Notas: cambiar otra nota no recalcula la pantalla (las menciones las vigila una vista aparte)
+    let notes = try repaints(.notas) { $0.addExpense(9, category: "Alimentación", note: "pan", date: DayKey.today()) }
+    #expect(notes.counts["NotasView"] == nil, "Notas se recalculó con un cambio en otra nota: \(notes.counts)")
 }
 
 @MainActor @Test func typingInTheEditorDoesNotRecomputeTheNoteList() throws {
@@ -149,4 +154,18 @@ private let edits: [(String, @MainActor (Store) -> Void)] = [
     #expect(thin.contains { $0.kg == 120 } && thin.contains { $0.kg == 60 }, "se perdió un pico al recortar la gráfica")
     #expect(zip(thin, thin.dropFirst()).allSatisfy { $0.date < $1.date })   // en orden y sin repetir
     #expect(thinnedKeepingExtremes(Array(records.prefix(50)), to: 120).count == 50)
+}
+
+@MainActor @Test func tasksOfOneNoteOnlyFollowThatNote() throws {
+    let store = try makeStore()
+    func notifies(_ change: () -> Void) -> Bool {
+        final class Flag: @unchecked Sendable { var fired = false }
+        let flag = Flag()
+        withObservationTracking { _ = store.tasks(in: VaultPath.vehiculo) } onChange: { flag.fired = true }
+        change()
+        return flag.fired
+    }
+    #expect(!notifies { if let t = store.tasks.first(where: { $0.text == "previa" }) { store.setTask(t, done: true) } }, "avisó por una tarea de otra nota")
+    #expect(notifies { store.edit(VaultPath.vehiculo) { $0 + "\n- [ ] Cambiar escobillas\n" } }, "no avisó por una tarea de su nota")
+    #expect(store.tasks(in: VaultPath.vehiculo).contains { $0.text == "Cambiar escobillas" })
 }

@@ -13,14 +13,20 @@ extension Store {
         // Si el archivo existe pero no se puede leer, no se sobrescribe: no sabríamos qué se pierde ni cómo deshacerlo.
         let exists = FileManager.default.fileExists(atPath: u.path)
         let previous = exists ? readOptional(rel) : nil
-        if exists, previous == nil { message = "No pude leer \(rel). No se modificó."; return false }
+        if exists, previous == nil {
+            Log.notes.error("No se pudo leer \(rel, privacy: .private) antes de escribirla; no se toca")
+            message = "No pude leer \(rel). No se modificó."; return false
+        }
         ensureBackup()
         do {
             try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
             try text.write(to: u, atomically: true, encoding: .utf8)
             message = nil
             record(rel, previous: previous, written: text, quiet: quiet)
-        } catch { message = "No se pudo guardar \(rel): \(error.localizedDescription)"; return false }
+        } catch {
+            Log.notes.error("No se pudo guardar \(rel, privacy: .private): \(error.localizedDescription, privacy: .public)")
+            message = "No se pudo guardar \(rel): \(error.localizedDescription)"; return false
+        }
         if exists { reload(changed: [rel]) } else { reload() }
         return true
     }
@@ -205,8 +211,8 @@ extension Store {
         edit(file) { Edit.insertTableRow($0, afterLine: afterLine, cells: cells) }
     }
 
-    func updateTask(_ t: TaskItem, text: String, due: Date?, priority: Int = -1, time: Int?? = nil, muted: Bool? = nil) {
-        edit(t.file) { Edit.updateTask($0, task: t, newText: text, due: due, priority: priority, time: time, muted: muted) }
+    func updateTask(_ t: TaskItem, text: String, due: Date?, priority: Int = -1, time: Int?? = nil, muted: Bool? = nil, duration: Int?? = nil) {
+        edit(t.file) { Edit.updateTask($0, task: t, newText: text, due: due, priority: priority, time: time, muted: muted, duration: duration) }
     }
 
     func deleteTask(_ t: TaskItem) {

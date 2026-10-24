@@ -94,7 +94,8 @@ enum Notifier {
             content.sound = .default
             let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: p.fire)
             let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-            try? await center.add(UNNotificationRequest(identifier: p.id, content: content, trigger: trigger))
+            do { try await center.add(UNNotificationRequest(identifier: p.id, content: content, trigger: trigger)) }
+            catch { Log.notifications.error("macOS rechazó una notificación: \(error.localizedDescription, privacy: .public)") }
         }
         return planned.count
     }

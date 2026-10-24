@@ -109,7 +109,7 @@ enum NaturalDate {
         return (input.trimmingCharacters(in: .whitespaces), nil, .none)
     }
 
-    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0; var time: Int? = nil; var muted = false }
+    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0; var time: Int? = nil; var muted = false; var duration: Int? = nil }
 
     /// La hora escrita en una frase: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «sobre las 10», «a mediodía» o
     /// «17:30» suelto. Devuelve la frase sin ella y la hora en minutos. «A las 1» a «a las 6» sin «de la mañana» son de la tarde,
@@ -146,6 +146,44 @@ enum NaturalDate {
         return (input, nil)
     }
 
+    /// Lo que dura algo: «de 10 a 11:30» (hora y duración), «durante 45 min», «durante 2 horas», «durante hora y media» o
+    /// «⏱ 1h30m» tal cual. Devuelve la frase sin ello. Las horas de 1 a 6 son de la tarde, como en `extractTime`.
+    static func extractDuration(_ input: String) -> (text: String, time: Int?, minutes: Int?) {
+        let input = input.precomposedStringWithCanonicalMapping
+        let folded = aligned(input)
+        let ns = folded as NSString
+        let full = NSRange(location: 0, length: ns.length)
+        func group(_ m: NSTextCheckingResult, _ i: Int) -> Int? { m.range(at: i).location == NSNotFound ? nil : Int(ns.substring(with: m.range(at: i))) }
+        func cut(_ m: NSTextCheckingResult) -> String {
+            (input as NSString).replacingCharacters(in: m.range, with: "").replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+        }
+        if let re = try? NSRegularExpression(pattern: #"\b(?:de|desde las?)\s+([0-9]{1,2})(?:[:.]([0-9]{2}))?\s+(?:a|hasta)(?:\s+las?)?\s+([0-9]{1,2})(?:[:.]([0-9]{2}))?(?:\s*h\b)?"#),
+           let m = re.firstMatch(in: folded, range: full), var h1 = group(m, 1), var h2 = group(m, 3) {
+            if (1...6).contains(h1) { h1 += 12 }
+            if (1...6).contains(h2) || h2 < h1 && h2 < 12 { h2 += 12 }
+            let start = h1 * 60 + (group(m, 2) ?? 0), end = h2 * 60 + (group(m, 4) ?? 0)
+            if h1 < 24, h2 <= 24, (group(m, 2) ?? 0) < 60, (group(m, 4) ?? 0) < 60, TaskDuration.range.contains(end - start) { return (cut(m), start, end - start) }
+        }
+        let words: [(String, (NSTextCheckingResult) -> Int?)] = [
+            (#"\bdurante (?:una )?hora y media\b"#, { _ in 90 }),
+            (#"\bdurante media hora\b"#, { _ in 30 }),
+            (#"\bdurante una hora\b"#, { _ in 60 }),
+            (#"\bdurante ([0-9]{1,2})\s*(?:horas?\b|h)(?:\s*y media)?(?:\s*([0-9]{1,2})\s*(?:minutos|min|m)?\b)?"#, { m in
+                guard let h = group(m, 1) else { return nil }
+                return h * 60 + (ns.substring(with: m.range).contains("y media") ? 30 : group(m, 2) ?? 0)
+            }),
+            (#"\bdurante ([0-9]{1,4})\s*(?:m|min|minutos?)\b"#, { group($0, 1) }),
+            (#"⏱\x{FE0F}?\s*([0-9]{1,2}h(?:[0-9]{1,2}m?)?|[0-9]{1,4}m(?:in)?)"#, { m in TaskDuration.parse(ns.substring(with: m.range(at: 1))) }),
+        ]
+        for (pattern, value) in words {
+            if let re = try? NSRegularExpression(pattern: pattern), let m = re.firstMatch(in: folded, range: full), let v = value(m), TaskDuration.range.contains(v) {
+                return (cut(m), nil, v)
+            }
+        }
+        return (input, nil, nil)
+    }
+
     /// Fecha y hora de una frase («cita dentista el 29/10 a las 17:30»): primero la hora, luego la fecha con lo que queda.
     static func extractDateTime(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?, time: Int?) {
         let t = extractTime(input)
@@ -173,11 +211,13 @@ enum NaturalDate {
             base.removeSubrange(r)
             base = base.trimmingCharacters(in: .whitespaces)
         }
-        let timed = extractTime(base)
+        let lasting = extractDuration(base)
+        let timed = extractTime(lasting.text)
         var r = extractTask(timed.text, today: today, noPriority: true)
         r.priority = priority
-        r.time = timed.minutes
+        r.time = lasting.time ?? timed.minutes
         r.muted = muted
+        r.duration = lasting.minutes
         return r
     }
 

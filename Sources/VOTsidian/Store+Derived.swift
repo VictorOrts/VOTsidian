@@ -83,9 +83,9 @@ extension Store {
         writeNote(VaultPath.inbox, text: "# Inbox\n\n## Pendiente de clasificar\n\n## Ideas\n")
     }
 
-    func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil, muted: Bool = false) {
+    func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil, muted: Bool = false, duration: Int? = nil) {
         ensureInbox()
-        edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority, time: time, muted: muted) }
+        edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority, time: time, muted: muted, duration: duration) }
     }
 
     /// Guarda una tarea escrita en lenguaje natural con todo lo que se entendió: fecha (o `defaultDue`), hora, repetición,
@@ -95,9 +95,9 @@ extension Store {
     func addTask(_ p: NaturalDate.ParsedTask, defaultDue: Date? = nil) -> String {
         // Solo con hora («llamar a Ana a las 18:00») es para hoy.
         let due = p.date ?? defaultDue ?? (p.time != nil ? DayKey.today() : nil)
-        addTask(p.text, due: due, recurrence: p.recurrence, priority: p.priority, time: due == nil ? nil : p.time, muted: p.muted)
+        addTask(p.text, due: due, recurrence: p.recurrence, priority: p.priority, time: due == nil ? nil : p.time, muted: p.muted, duration: p.duration)
         return (due.map { "Añadida para \(longDate($0))" } ?? "Añadida al Inbox") + (due != nil ? p.time.map { " a las \(TimeOfDay.text($0))" } ?? "" : "")
-            + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "") + (p.muted ? " · sin aviso" : "")
+            + (p.duration.map { " · \(TaskDuration.human($0))" } ?? "") + (p.recurrence.map { " · \(Recurrence.describe($0))" } ?? "") + (p.muted ? " · sin aviso" : "")
     }
 
     /// Una cita médica en «Próximas citas» de Médico, con hora si se sabe. Desde Salud, el Calendario y ⌘K.
