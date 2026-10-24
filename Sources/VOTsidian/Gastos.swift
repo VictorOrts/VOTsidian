@@ -430,7 +430,7 @@ extension Edit {
         guard let r = MD.section(lines, containing: "Ingresos") else { return nil }
         let rows = MD.tableRows(lines).filter { r.contains($0.index) }
         guard let last = rows.last, let width = rows.first?.cells.count else { return nil }
-        lines.insert(rowString([name] + Array(repeating: "", count: max(width - 1, 0))), at: last.index + 1)
+        lines.insertClamped(rowString([name] + Array(repeating: "", count: max(width - 1, 0))), at: last.index + 1)
         return lines.joined(separator: "\n")
     }
 
@@ -439,14 +439,14 @@ extension Edit {
         let t = normalizeBudgetTable(text, section: "Partidas")
         var lines = MD.lines(t)
         guard let r = MD.section(lines, containing: "Partidas"), let last = MD.tableRows(lines).last(where: { r.contains($0.index) }) else { return nil }
-        lines.insert(rowString([name, budgetNumber(amount), kind.rawValue, "", "", every > 1 ? String(every) : "", every > 1 ? start ?? "" : ""]), at: last.index + 1)
+        lines.insertClamped(rowString([name, budgetNumber(amount), kind.rawValue, "", "", every > 1 ? String(every) : "", every > 1 ? start ?? "" : ""]), at: last.index + 1)
         return lines.joined(separator: "\n")
     }
 
     /// Cambia el nombre de una partida y el de sus movimientos, para que sigan contando en ella.
     static func renameBudgetLine(_ text: String, line: Int, from old: String, to new: String) -> String? {
         var lines = MD.lines(text)
-        guard line < lines.count, MD.cells(lines[line]).first == old else { return nil }
+        guard line >= 0, line < lines.count, MD.cells(lines[line]).first == old else { return nil }
         var cells = MD.cells(lines[line]); cells[0] = new
         lines[line] = rowString(cells)
         guard let r = MD.section(lines, containing: "Movimientos") else { return lines.joined(separator: "\n") }
@@ -464,7 +464,7 @@ extension Edit {
         var lines = MD.lines(text)
         guard let r = MD.section(lines, containing: "Movimientos") else { return nil }
         guard let last = MD.tableRows(lines).last(where: { r.contains($0.index) }) else { return nil }
-        lines.insert(rowString([DayKey.string(date), budgetNumber(amount), category, note]), at: last.index + 1)
+        lines.insertClamped(rowString([DayKey.string(date), budgetNumber(amount), category, note]), at: last.index + 1)
         return lines.joined(separator: "\n")
     }
 
@@ -475,7 +475,8 @@ extension Edit {
         // Solo lo que cambia: una tabla escrita a mano sin columna «Nota» se puede corregir igual si la nota no se toca.
         let changes = [("Fecha", DayKey.string(date), date != m.date), ("Importe", budgetNumber(amount), amount != m.amount), ("Nota", note, note != m.note)]
         for (column, value, _) in changes.filter(\.2) {
-            guard let first = MD.cells(MD.lines(t)[m.line]).first,
+            let current = MD.lines(t)
+            guard m.line >= 0, m.line < current.count, let first = MD.cells(current[m.line]).first,
                   let next = setSectionCell(t, section: "Movimientos", line: m.line, expectFirst: first, column: column, value: value) else { return nil }
             t = next
         }

@@ -1,5 +1,12 @@
 import Foundation
 
+extension Array {
+    /// Inserta sin salirse de los límites: una tabla que es solo la cabecera, al final del archivo, o una línea que ya no está,
+    /// no debe cerrar la app.
+    mutating func insertClamped(_ element: Element, at index: Int) { insert(element, at: Swift.min(Swift.max(index, 0), count)) }
+    mutating func insertClamped(contentsOf elements: [Element], at index: Int) { insert(contentsOf: elements, at: Swift.min(Swift.max(index, 0), count)) }
+}
+
 extension MD {
     /// Índice de la línea `raw`: el `hint` si sigue ahí; si no, la coincidencia más cercana a él.
     /// Con líneas idénticas (dos «- [ ] Comprar pan») evita tocar la que no era.
@@ -33,16 +40,19 @@ enum DayKey {
     /// Fecha ISO `2026-10-18`.
     static func date(_ text: String) -> Date? {
         let t = text.trimmingCharacters(in: .whitespaces)
-        guard t.range(of: #"^\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) != nil else { return nil }
+        // [0-9] y no \d: «\d» acepta también cifras de otros alfabetos, que `Int` no entiende.
+        guard t.range(of: #"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"#, options: .regularExpression) != nil else { return nil }
         let p = t.split(separator: "-").compactMap { Int($0) }
+        guard p.count == 3 else { return nil }
         return make(p[0], p[1], p[2])
     }
 
     /// Fecha `18/10/2026`.
     static func dmyDate(_ text: String) -> Date? {
         let t = text.trimmingCharacters(in: .whitespaces)
-        guard t.range(of: #"^\d{1,2}/\d{1,2}/\d{4}$"#, options: .regularExpression) != nil else { return nil }
+        guard t.range(of: #"^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$"#, options: .regularExpression) != nil else { return nil }
         let p = t.split(separator: "/").compactMap { Int($0) }
+        guard p.count == 3 else { return nil }
         return make(p[2], p[1], p[0])
     }
 
@@ -60,7 +70,8 @@ enum DayKey {
         calendar().dateComponents([.day], from: calendar().startOfDay(for: a), to: calendar().startOfDay(for: b)).day ?? 0
     }
 
-    static func adding(days: Int, to d: Date) -> Date { calendar().date(byAdding: .day, value: days, to: d)! }
+    /// Con un número de días absurdo, el calendario no da fecha: se suman los segundos a mano en vez de cerrar la app.
+    static func adding(days: Int, to d: Date) -> Date { calendar().date(byAdding: .day, value: days, to: d) ?? d.addingTimeInterval(Double(days) * 86_400) }
 
     static func weekKey(_ date: Date) -> String {
         let cal = Calendar(identifier: .iso8601)

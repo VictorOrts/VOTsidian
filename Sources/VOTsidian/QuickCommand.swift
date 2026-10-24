@@ -161,13 +161,13 @@ enum Shopping {
         let new = fresh.map { "- [ ] \($0)" }
         if let r = MD.section(lines, containing: category), let head = (0..<lines.count).first(where: { lines[$0].hasPrefix("## ") && MD.fold(lines[$0]).contains(MD.fold(category)) }) {
             let last = r.last(where: { lines[$0].hasPrefix("- [") }) ?? head
-            lines.insert(contentsOf: new, at: last + 1)
+            lines.insertClamped(contentsOf: new, at: last + 1)
         } else {
             // sección nueva antes del pie (no antes del cierre del encabezado YAML, que también es «---»)
             var at = lines.count
             let header = lines.first == "---" ? lines.dropFirst().firstIndex(of: "---") ?? 0 : 0
             if let hr = lines.lastIndex(of: "---"), hr > header { at = hr }
-            lines.insert(contentsOf: ["## \(category)"] + new + [""], at: at)
+            lines.insertClamped(contentsOf: ["## \(category)"] + new + [""], at: at)
         }
         return (lines.joined(separator: "\n"), fresh.count)
     }
