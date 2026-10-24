@@ -8,7 +8,7 @@ mensajes de commit y documentación, en español. Formato de cada nota para el u
 
 ```bash
 swift build                                    # compilar
-swift test                                     # ~220 tests, ~35 s (incluye fuzz)
+swift test                                     # ~250 tests, ~50 s (incluye fuzz)
 ./scripts/build-app.sh                         # build/VOTsidian.app (release, firmada)
 VOT_SHOTS=.claude/capturas VOT_SHOT_SCREEN=vehiculo VOT_SHOT_HEIGHT=1500 swift test --filter screenshots   # captura de una pantalla
 VOT_FUZZ=10 VOT_FUZZ_SEED=3 swift test --filter FuzzTests                                               # fuzz a fondo
@@ -58,10 +58,16 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Números de notas: `MD.number` (cifras ASCII) y `MD.int` (nunca `Int(Double)`: un número enorme cierra la app). Insertar líneas
   con `insertClamped`. Plegar texto conservando posiciones con `NaturalDate.aligned`. Fechas con `[0-9]`, no `\d`.
 - Las notas con `tipo: compra` o `tipo: viajes` no aportan tareas (`Store.notTaskTypes`).
-- Marcadores de tarea propios, además de los de Obsidian Tasks: `⏰ 17:30` (hora, tras la fecha) y `🔕` (no va a Calendar ni a
-  las notificaciones). Se escriben con `Edit.taskLine`/`dueMark` y se conservan en `updateTask` y `completeRecurring`.
+- Marcadores de tarea propios, además de los de Obsidian Tasks: `⏰ 17:30` (hora, tras la fecha), `⏱ 1h30m` (duración,
+  `TaskDuration`) y `🔕` (no va a Calendar ni a las notificaciones). Se escriben con `Edit.taskLine`/`dueMark`/`durationMark` y se
+  conservan en `updateTask` y `completeRecurring`. Un emoji con selector de variación (`⏱️`) no lo encuentra `String.range(of:)`
+  con regex ni un literal `/⏱/`: buscar con `NSString` (ver `TaskDuration.find`).
+- Mi día (`MiDia.swift`, `MiDiaView.swift`): `DayPlan.build` (puro) reparte las tareas en bloques con hora y «sin hora»;
+  `TimelineColumn` se comparte con la semana por horas del Calendario. Arrastrar usa el `id` de la tarea como `String`.
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
+- Registro: `Log.notes/icloud/backups/calendar/notifications` (`Log.swift`). Errores y cuentas `.public`; rutas `.private`;
+  nunca el texto de una nota.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
   probar contra Calendar real.
 
@@ -77,19 +83,21 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
 - **Qué repinta cada cambio** (lo mide `VOT_MATRIX=1 swift test --filter fluidezMatrix`; las comprobaciones de `FluidezTests` corren
   siempre). Reglas para no romperlo:
-  - Las vistas leen notas con `store.read(rel)` (registra solo esa nota, `NoteSlot`), nunca `noteTexts`. Una caché que se salta la
+  - Las vistas leen notas con `store.read(rel)` (registra solo esa nota, `NoteSlot`), nunca `noteTexts`. Las tareas de una sola
+    nota, con `store.tasks(in: rel)`, no `store.tasks.filter { $0.file == … }` (que registra todas las tareas). Una caché que se salta la
     lectura (como `budget`, `budgetYear` o `agenda`) tiene que registrar sus dependencias (`touch(rel)`, leer las propiedades) antes
     de devolver lo guardado.
   - `revision` no se observa: ninguna vista debe usarlo para refrescarse. Avisos y barra lateral están en `currentAlerts` y `sidebar`,
     publicados en `refreshPublished()` (aplazado con `refreshPublishedSoon()`); las copias, en `backupsStamp`; los enlaces, en `linksVersion`.
   - Las propiedades publicadas deben ser `Equatable` (la observación de Swift 6.3 no avisa si el valor no cambia); lo que cambia en
     cada edición y no se pinta (`undoStack`, `lastQuietWrite`…) va con `@ObservationIgnored`.
-  - `ContentView` no debe leer nada que cambie en cada edición: el aviso de «guardado» y el banner son vistas aparte.
+  - `ContentView` no debe leer nada que cambie en cada edición: el aviso de «guardado» y el banner son vistas aparte. Lo mismo
+    con un `.task(id:)` que dependa de `textsVersion`: va en una vista invisible aparte (`MentionsWatcher` en Notas).
   - Lo que se recalcula con cada pulsación (el borrador del editor es estado de `NotasView`) se separa en vistas `Equatable`
     (`NoteListPanel`) que comparan solo lo que pintan.
 - Mediciones guardadas para comparar: `.claude/mediciones/` (fuera de git).
 
 ## Forma de trabajar
 
-- Rama de trabajo `novedades`; `master` es la principal. Commits solo cuando se pidan, en español, separando código y documentación.
+- Una rama por tarea (`mejoras`, `novedades`…); `master` es la principal. Commits solo cuando se pidan, en español, separando código y documentación.
 - Cada función nueva actualiza README y GUIA. Antes de dar algo por hecho: `swift test` completo y, si toca pantallas, una captura.

@@ -14,7 +14,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
   - [Finanzas y gastos](#finanzas-y-gastos) · [Suscripciones](#suscripciones) · [Préstamos y deudas](#préstamos-y-deudas)
   - [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo) · [Viajes](#viajes) · [Lecturas](#lecturas)
   - [Personas](#personas) · [Documentos](#documentos) · [Trámites y seguros](#trámites-y-seguros) · [Objetivos](#objetivos)
-- [Tareas](#tareas) · [Órdenes rápidas](#órdenes-rápidas-k)
+- [Tareas](#tareas) · [Mi día](#mi-día) · [Órdenes rápidas](#órdenes-rápidas-k)
 - [Notas que crea la app](#notas-que-crea-la-app)
 - [Gráficas en una nota](#gráficas-en-una-nota)
 - [Calendar y avisos](#calendar-y-avisos)
@@ -30,7 +30,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 
 Si la carpeta ya tiene notas, no se cambia ninguna: solo se crean las que faltan.
 
-Siempre están **Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
+Siempre están **Mi día, Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
 
 ## Módulos y sus notas
 
@@ -409,6 +409,7 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 |---|---|
 | `📅 2026-11-02` | Fecha límite |
 | `⏰ 17:30` | Hora, detrás de la fecha (opcional). Sin ella, la tarea es de todo el día. |
+| `⏱ 1h30m` | Lo que calculas que dura (`45m`, `2h`, `1h30m`). Da la altura del bloque en Mi día y la duración del evento en Calendar (sin ella, 15 minutos). |
 | `🔕` | Sin aviso: sigue en la app, pero no va a Calendar ni a las notificaciones de macOS. Se pone con «sin aviso» al escribirla o desde «Editar tarea». |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
 | `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…) |
@@ -417,6 +418,19 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30».
 
 La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Si solo dices la hora, sin día, es para hoy. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
+
+La duración se entiende así: «de 10 a 11:30» (pone la hora y la duración), «durante 45 min», «durante 2 horas», «durante hora y media», «durante media hora» o `⏱ 1h30m` tal cual. Un tramo que pasa de medianoche («de 22 a 2») no se toma como duración.
+
+## Mi día
+
+El día por horas, de 0 a 24 h. No guarda nada aparte: todo va en la línea de cada tarea, con `⏰` y `⏱`.
+
+- **Bloques.** Cada tarea con hora es un bloque tan alto como lo que dura (30 minutos si no tiene `⏱`). Las citas de Médico también se mueven, porque son tareas. Las citas de una nota de visita, las tomas de medicación con hora y lo que viene de otros módulos salen fijos; pulsarlos lleva a su pantalla. Lo de todo el día (cumpleaños, renovaciones…) va en fichas arriba.
+- **Sin hora.** A la izquierda, las tareas del día que aún no tienen hora y, si es hoy, las vencidas. Arrástralas a una franja para ponerles hora (en pasos de 15 minutos). Arrastrar un bloque a otra hora lo mueve; tirar del borde de abajo cambia lo que dura. Para quitarle la hora a una tarea, arrástrala de vuelta a «Sin hora». Con el botón derecho sobre un bloque: completar, quitar la hora, cuánto dura, editar o abrir su nota.
+- **Jornada.** Arriba, lo planificado frente a las horas que quieres dedicar al día (8 por defecto, se cambia en el menú «de 8 h»). Cuentan las tareas y citas pendientes con hora, y las tareas sin hora que tienen duración; la medicación y lo hecho no. Si te pasas, la barra se pone roja.
+- **Repartir.** Coloca las tareas sin hora en los huecos libres, por orden (primero las vencidas y las de más prioridad), entre las 9:00 y las 20:00, o desde ahora si es hoy. Las que no caben se quedan sin hora. ⌥⌘Z lo deshace de una vez.
+- **Empezar el día.** Desde Inicio, Mi día, la barra de menús o ⌘K. Repasa en tres pasos lo que quedó pendiente (a hoy, a mañana o hecha), lo de hoy (con cuánto dura cada cosa) y lo de los próximos tres días (adelantar a hoy), y termina en Mi día para repartirlo.
+- **Semana por horas.** En Calendario, «Semana» enseña de lunes a domingo con las mismas columnas de horas. Soltar una tarea en una columna le pone ese día y esa hora; en la cabecera de un día, solo el día. «Por horas», en el panel de un día, lo abre en Mi día.
 
 ## Órdenes rápidas (⌘K)
 
@@ -486,6 +500,8 @@ Los avisos (citas, pagos, caducidades, cuotas, renovaciones, viajes…) se puede
 - **Notificaciones de macOS.** Para los próximos 30 días, hasta 60 avisos.
 
 La sincronización con Calendar y las notificaciones solo funcionan en la app empaquetada (`build-app.sh`), no con `swift run`. Lo que avisa cada módulo está en su sección de «Formato de cada nota».
+
+Si algo no llega (Calendar no se actualiza, una copia falla, iCloud no baja un archivo), la app lo apunta en el registro del sistema. Ábrelo en Consola.app y filtra por el subsistema `com.votsidian.app`, o en Terminal: `log stream --predicate 'subsystem == "com.votsidian.app"' --level info`. Nunca se apunta el contenido de las notas, y las rutas salen ocultas salvo que macOS muestre los datos privados.
 
 ## Copias y deshacer
 
