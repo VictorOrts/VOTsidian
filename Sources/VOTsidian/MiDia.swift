@@ -71,6 +71,13 @@ struct DayPlan: Equatable {
             plan.blocks.append(TimeBlock(id: "med\(med.id)|\(med.minutes)", title: med.title, start: med.minutes, duration: medicationDuration,
                                          source: .medication, kind: .dose, screen: .medicacion))
         }
+        // Ids únicos: una pauta con la misma hora dos veces, o dos elementos con el mismo id, romperían el `ForEach`.
+        var seen: [String: Int] = [:]
+        for i in plan.blocks.indices {
+            let n = seen[plan.blocks[i].id, default: 0]
+            seen[plan.blocks[i].id] = n + 1
+            if n > 0 { plan.blocks[i].id += "#\(n)" }
+        }
         plan.blocks.sort { ($0.start, $0.id) < ($1.start, $1.id) }
         // Vencidas primero; dentro, por prioridad.
         plan.unscheduled.sort { a, b in

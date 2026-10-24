@@ -10,3 +10,8 @@ DerivedData/
 /.claude/capturas/
 /.claude/settings.local.json
 /.claude/mediciones/
+# Intermedios del compilador escritos fuera de .build/ por alguna compilación
+/*.d
+/*.dia
+/*.swiftdeps
+/*.swiftmodule

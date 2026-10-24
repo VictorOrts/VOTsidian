@@ -419,7 +419,7 @@ En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar 
 
 La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Si solo dices la hora, sin día, es para hoy. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
 
-La duración se entiende así: «de 10 a 11:30» (pone la hora y la duración), «durante 45 min», «durante 2 horas», «durante hora y media», «durante media hora» o `⏱ 1h30m` tal cual. Un tramo que pasa de medianoche («de 22 a 2») no se toma como duración.
+La duración se entiende así: «de 10 a 11:30» (pone la hora y la duración), «durante 45 min», «durante 2 horas», «durante hora y media», «durante media hora» o `⏱ 1h30m` tal cual. Un tramo que pasa de medianoche («de 22 a 2») no se toma como duración, ni uno de cantidades («subir de 3 a 5 kg», «leer de 10 a 20 páginas»). Las órdenes de ⌘K («tarea …») entienden lo mismo: hora, duración, repetición, prioridad y «sin aviso».
 
 ## Mi día
 

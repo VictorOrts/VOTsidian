@@ -27,12 +27,12 @@ struct TimelineColumn: View {
     let day: Date
     let blocks: [TimeBlock]
     var compact = false
-    var selected: String? = nil
+    var selected: EventSelection? = nil
     /// El bloque pulsado (`nil` en un hueco) y si fue doble clic.
     var onSelect: (TimeBlock?, Bool) -> Void = { _, _ in }
     @State private var targeted = false
-    /// Duración mientras se estira un bloque, antes de soltar.
-    @State private var stretching: (id: String, minutes: Int)?
+    /// Duración mientras se estira un bloque, antes de soltar. `GestureState`: si el gesto se cancela, vuelve sola a `nil`.
+    @GestureState private var stretching: (id: String, minutes: Int)?
 
     var body: some View {
         let cols = DayPlan.columns(blocks)
@@ -44,15 +44,19 @@ struct TimelineColumn: View {
                 ForEach(blocks) { b in
                     let c = cols[b.id] ?? (0, 1)
                     let w = (geo.size.width - 4) / CGFloat(c.of)
-                    let minutes = stretching?.id == b.id ? stretching!.minutes : b.duration
+                    // Lo que pasa de medianoche se corta al final del día; un bloque a las 23:55 se sube lo justo para verse entero.
+                    let minutes = min(stretching?.id == b.id ? stretching!.minutes : b.duration, 24 * 60 - b.start)
+                    let height = max(compact ? 16 : 20, yOffset(minutes) - 2)
                     block(b, minutes: minutes)
-                        .frame(width: max(10, w - 2), height: max(compact ? 16 : 20, yOffset(minutes) - 2))
-                        .offset(x: 2 + CGFloat(c.column) * w, y: yOffset(b.start) + 1)
+                        .frame(width: max(10, w - 2), height: height)
+                        .offset(x: 2 + CGFloat(c.column) * w, y: min(yOffset(b.start) + 1, hourHeight * 24 - height))
                 }
                 if day == DayKey.today() {
-                    let now = TimeOfDay.minutes(of: Date())
-                    HStack(spacing: 0) { Circle().fill(Brand.bad).frame(width: 7, height: 7); Rectangle().fill(Brand.bad).frame(height: 1.5) }
-                        .offset(y: yOffset(now) - 3.5).allowsHitTesting(false)
+                    // Se mueve sola cada minuto aunque la app pase horas abierta.
+                    TimelineView(.everyMinute) { ctx in
+                        HStack(spacing: 0) { Circle().fill(Brand.bad).frame(width: 7, height: 7); Rectangle().fill(Brand.bad).frame(height: 1.5) }
+                            .offset(y: yOffset(TimeOfDay.minutes(of: ctx.date)) - 3.5)
+                    }.allowsHitTesting(false)
                 }
             }
         }
@@ -101,7 +105,7 @@ struct TimelineColumn: View {
         .background(b.kind.color.opacity(b.done ? 0.08 : 0.18), in: shape)
         .overlay(alignment: .leading) { Rectangle().fill(b.kind.color).frame(width: 3).clipShape(shape) }
         .clipShape(shape)
-        .overlay { if selected == b.id { shape.stroke(Brand.accent, lineWidth: 2) } }
+        .overlay { if selected?.matches(b) == true { shape.stroke(Brand.accent, lineWidth: 2) } }
         .help(b.title + (b.detail.isEmpty ? "" : " · \(b.detail)"))
         // El clic simple selecciona al momento (sin esperar a ver si es doble); el doble, además, lleva al texto.
         let tappable = content
@@ -120,16 +124,22 @@ struct TimelineColumn: View {
 
     /// Borde de abajo: arrastrarlo cambia lo que dura, en pasos de 15 minutos.
     private func stretchHandle(_ b: TimeBlock, task t: TaskItem) -> some View {
+        // `pointerStyle` y no `NSCursor.push/pop`: si el bloque se redibuja con el ratón encima, el cursor no se queda atascado.
         Rectangle().fill(Color.clear).frame(height: 7).contentShape(Rectangle())
-            .onHover { inside in if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
+            .pointerStyle(.frameResize(position: .bottom))
             .highPriorityGesture(
                 DragGesture(minimumDistance: 2)
-                    .onChanged { v in stretching = (b.id, max(15, DayPlan.snap(Double(b.duration) + Double(v.translation.height) / hourHeight * 60))) }
-                    .onEnded { _ in
-                        if let s = stretching, s.minutes != b.duration { store.setDuration(t, s.minutes) }
-                        stretching = nil
+                    .updating($stretching) { v, state, _ in state = (b.id, stretched(b, by: v.translation.height)) }
+                    .onEnded { v in
+                        let m = stretched(b, by: v.translation.height)
+                        if m != b.duration { store.setDuration(t, m) }
                     }
             )
+    }
+
+    /// Duración al estirar: en pasos de 15 minutos, entre 15 minutos y el final del día.
+    private func stretched(_ b: TimeBlock, by dy: CGFloat) -> Int {
+        max(TaskDuration.range.lowerBound, min(24 * 60 - b.start, max(15, DayPlan.snap(Double(b.duration) + Double(dy) / hourHeight * 60))))
     }
 
     @ViewBuilder private func taskMenu(_ t: TaskItem, block b: TimeBlock) -> some View {
@@ -162,7 +172,7 @@ struct MiDiaView: View {
     @State private var feedback = ""
     @State private var targeted = false
     /// Bloque o elemento de todo el día seleccionado: su ficha sustituye a «Sin hora» mientras está abierta.
-    @State private var selectedEvent: String?
+    @State private var selectedEvent: EventSelection?
     @State private var focusToken = 0
     @FocusState private var focused: Bool
 
@@ -172,12 +182,12 @@ struct MiDiaView: View {
         let plan = store.dayPlan(day, agenda: agenda)
         let allDay = agenda.filter { $0.minutes == nil && $0.task == nil && $0.kind != .diary && $0.kind != .done }
         HStack(spacing: 0) {
-            side(plan, event: selectedEvent.flatMap { EventRef.find($0, day: day, blocks: plan.blocks, agenda: agenda) })
+            side(plan, event: selectedEvent?.resolve(day: day, blocks: plan.blocks, agenda: agenda))
                 .frame(width: 340)
             Divider()
             VStack(alignment: .leading, spacing: 0) {
                 if !allDay.isEmpty {
-                    FlowChips(items: allDay, selected: selectedEvent) { select($0.id) }
+                    FlowChips(items: allDay, selected: selectedEvent) { select(EventSelection(id: $0.id, title: $0.title)) }
                         .padding(.horizontal, 16).padding(.vertical, 10)
                     Divider()
                 }
@@ -185,7 +195,7 @@ struct MiDiaView: View {
                     ScrollView {
                         HStack(alignment: .top, spacing: 6) {
                             HourLabels()
-                            TimelineColumn(day: day, blocks: plan.blocks, selected: selectedEvent) { b, focus in select(b?.id, focus: focus) }
+                            TimelineColumn(day: day, blocks: plan.blocks, selected: selectedEvent) { b, focus in select(b.map { EventSelection(id: $0.id, title: $0.title) }, focus: focus) }
                         }
                         .padding(.vertical, 12).padding(.trailing, 16)
                     }
@@ -284,8 +294,8 @@ struct MiDiaView: View {
 
     private func move(_ days: Int) { day = DayKey.adding(days: days, to: day); feedback = ""; selectedEvent = nil }
 
-    private func select(_ id: String?, focus: Bool = false) {
-        selectedEvent = id
+    private func select(_ sel: EventSelection?, focus: Bool = false) {
+        selectedEvent = sel
         if focus { focusToken += 1 }
     }
 
@@ -351,7 +361,7 @@ private struct UnscheduledRow: View {
 /// Lo de todo el día (cumpleaños, renovaciones, caducidades…), en fichas encima de la agenda.
 private struct FlowChips: View {
     let items: [AgendaItem]
-    var selected: String?
+    var selected: EventSelection?
     let onSelect: (AgendaItem) -> Void
 
     var body: some View {
@@ -363,7 +373,7 @@ private struct FlowChips: View {
                         Label(it.title, systemImage: it.kind.icon).font(.caption).lineLimit(1)
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(it.kind.color.opacity(0.15), in: Capsule())
-                            .overlay { if selected == it.id { Capsule().stroke(Brand.accent, lineWidth: 1.5) } }
+                            .overlay { if selected?.id == it.id && selected?.title == it.title { Capsule().stroke(Brand.accent, lineWidth: 1.5) } }
                     }.buttonStyle(.plain)
                 }
             }

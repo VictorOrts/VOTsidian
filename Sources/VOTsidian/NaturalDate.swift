@@ -109,7 +109,7 @@ enum NaturalDate {
         return (input.trimmingCharacters(in: .whitespaces), nil, .none)
     }
 
-    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0; var time: Int? = nil; var muted = false; var duration: Int? = nil }
+    struct ParsedTask: Equatable { var text: String; var date: Date?; var recurrence: String? = nil; var priority = 0; var time: Int? = nil; var muted = false; var duration: Int? = nil }
 
     /// La hora escrita en una frase: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «sobre las 10», «a mediodía» o
     /// «17:30» suelto. Devuelve la frase sin ella y la hora en minutos. «A las 1» a «a las 6» sin «de la mañana» son de la tarde,
@@ -158,7 +158,9 @@ enum NaturalDate {
             (input as NSString).replacingCharacters(in: m.range, with: "").replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
         }
-        if let re = try? NSRegularExpression(pattern: #"\b(?:de|desde las?)\s+([0-9]{1,2})(?:[:.]([0-9]{2}))?\s+(?:a|hasta)(?:\s+las?)?\s+([0-9]{1,2})(?:[:.]([0-9]{2}))?(?:\s*h\b)?"#),
+        // Un tramo de cantidades no es un horario: «subir de 3 a 5 kg», «leer de 10 a 20 páginas», «de 2 a 4 personas».
+        let notHours = #"(?![0-9])(?!\s*(?:[€%x]|(?:kg|kilos?|g|gr|gramos|km|kilometros|m|metros|cm|l|litros?|ml|paginas?|pags?|capitulos?|euros?|veces|series|repeticiones|personas|anos|meses|semanas|dias|minutos|min|horas|libros?|unidades|uds?)\b))"#
+        if let re = try? NSRegularExpression(pattern: #"\b(?:de|desde las?)\s+([0-9]{1,2})(?:[:.]([0-9]{2}))?\s+(?:a|hasta)(?:\s+las?)?\s+([0-9]{1,2})(?:[:.]([0-9]{2}))?(?:\s*h\b)?"# + notHours),
            let m = re.firstMatch(in: folded, range: full), var h1 = group(m, 1), var h2 = group(m, 3) {
             if (1...6).contains(h1) { h1 += 12 }
             if (1...6).contains(h2) || h2 < h1 && h2 < 12 { h2 += 12 }
