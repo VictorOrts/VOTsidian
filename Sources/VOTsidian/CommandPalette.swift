@@ -118,7 +118,7 @@ struct CommandPalette: View {
         let list = items
         let shown = Array(list.prefix(60))
         VStack(spacing: 0) {
-            TextField("Busca o escribe una orden: peso 105,5 · ánimo 4 · dormí 7,5 · pinchazo hoy · compra leche", text: $query)
+            TextField("Busca o escribe una orden: peso 105,5 · dormí 7,5 · pinchazo hoy · compra leche", text: $query)
                 .textFieldStyle(.plain).font(.title3).padding(16).focused($focused)
                 .onSubmit { if shown.indices.contains(selection) { shown[selection].run() } }
                 .onKeyPress(.downArrow) { selection = min(selection + 1, max(shown.count - 1, 0)); return .handled }

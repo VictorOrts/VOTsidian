@@ -265,7 +265,7 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         ("repartir el día", { s in s.addTask("sin hora", due: day); s.autoSchedule(s.dayPlan(day), from: 0, until: 24 * 60) }),
         ("idea", { $0.addIdea("una idea") }),
         ("diario", { $0.appendToDiary(day, text: "hoy") }),
-        ("ánimo", { $0.setDiaryValue(day, "animo", 4) }),
+        ("sueño", { $0.setDiaryValue(day, "sueno_h", 7) }),
         ("gasto", { $0.addExpense(12, category: "Alimentación", note: "pan", date: day) }),
         ("compra", { _ = $0.addShopping(["leche", "pan"]) }),
         ("repostaje con gasto", { $0.addRepostaje(date: day, km: 115_000, liters: 30, amount: 45, expense: true) }),
@@ -311,7 +311,7 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         // y repetirla desde ahí da lo mismo que la primera vez
         op(store)
         let again = try snapshot(store.root)
-        let stable = again == after || ["diario", "ánimo", "completar"].contains(name)   // llevan la hora o la fecha de hoy dentro
+        let stable = again == after || ["diario", "sueño", "completar"].contains(name)   // llevan la hora o la fecha de hoy dentro
         #expect(stable, "repetir «\(name)» da otro resultado: \(Set(again.keys).symmetricDifference(after.keys).sorted() + again.keys.filter { after[$0] != nil && after[$0] != again[$0] }.sorted())")
     }
 }

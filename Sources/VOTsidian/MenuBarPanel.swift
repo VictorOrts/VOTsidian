@@ -20,7 +20,6 @@ struct MenuBarPanel: View {
             header
             Divider()
             quickAdd
-            moodRow
             habitsRow
             medsRow
             tasksList
@@ -82,13 +81,6 @@ struct MenuBarPanel: View {
         VStack(alignment: .leading, spacing: 4) {
             TextField("Añadir tarea… (ej: llamar al dentista el viernes)", text: $quick).onSubmit(add)
             if !message.isEmpty { Label(message, systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.accent) }
-        }
-    }
-
-    private var moodRow: some View {
-        HStack {
-            Text("Ánimo").font(.caption).foregroundStyle(.secondary)
-            MoodPicker(value: store.diaryValue(today, "animo")) { store.setDiaryValue(today, "animo", $0) }
         }
     }
 

@@ -70,17 +70,16 @@ import Testing
 @MainActor @Test func exportsOnCopy() throws {
     guard let path = ProcessInfo.processInfo.environment["VAULT_COPY"] else { return }
     let store = Store(root: try tempVaultCopy(path))
-    store.setDiaryValue(DayKey.date("2026-03-05")!, "animo", 4)
     store.setDiaryValue(DayKey.date("2026-03-05")!, "sueno_h", 7)
     let out = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
     let files = try store.exportData(to: out)
     let names = Set(files.map(\.lastPathComponent))
-    #expect(names.isSuperset(of: ["peso.csv", "medicacion.csv", "habitos.csv", "tareas.csv", "animo_sueno.csv", "resumen.md"]))
+    #expect(names.isSuperset(of: ["peso.csv", "medicacion.csv", "habitos.csv", "tareas.csv", "sueno.csv", "resumen.md"]))
     let peso = try String(contentsOf: out.appendingPathComponent("peso.csv"), encoding: .utf8)
     #expect(peso.hasPrefix("fecha,peso_kg,notas\n") && peso.components(separatedBy: "\n").count > 2)
     let dosis = try String(contentsOf: out.appendingPathComponent("medicacion.csv"), encoding: .utf8)
     #expect(dosis.hasPrefix("fecha,medicamento,dosis,") && dosis.components(separatedBy: "\n").count > 2)
-    #expect(try String(contentsOf: out.appendingPathComponent("animo_sueno.csv"), encoding: .utf8).contains("2026-03-05,4,7"))
+    #expect(try String(contentsOf: out.appendingPathComponent("sueno.csv"), encoding: .utf8).contains("2026-03-05,7"))
     #expect(try String(contentsOf: out.appendingPathComponent("habitos.csv"), encoding: .utf8).components(separatedBy: "\n").count > 2)
 
     let stats = store.yearStats(2026)

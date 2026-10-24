@@ -61,7 +61,7 @@ import Testing
     // Con VAULT_COPY usa tus notas; si no, un vault sintético para que el humo también corra en CI.
     let store = Store(root: try ProcessInfo.processInfo.environment["VAULT_COPY"].map(tempVaultCopy) ?? syntheticVault())
     store.createSampleTemplates()
-    store.setDiaryValue(DayKey.today(), "animo", 4)
+    store.setDiaryValue(DayKey.today(), "sueno_h", 7)
     store.appendToDiary(DayKey.today(), text: "prueba")
     _ = store.createNote(folder: "Casa", name: "Con incrustados", template: "En blanco")
     store.edit("Casa/Con incrustados.md") { $0 + "![[Peso#Registro]]\n\n![[Mascota]]\n" }

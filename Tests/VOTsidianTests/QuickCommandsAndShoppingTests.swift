@@ -11,7 +11,7 @@ import Testing
     #expect(p("peso 105,5") == .weight(105.5, today))
     #expect(p("Peso 105.5 ayer") == .weight(105.5, DayKey.date("2026-10-18")!))
     #expect(p("peso 20") == nil && p("peso") == nil && p("peso mucho") == nil)             // fuera de rango o sin número
-    #expect(p("ánimo 4") == .mood(4, today) && p("animo 6") == nil && p("animo 3,5") == nil)
+    #expect(p("ánimo 4") == nil)   // el ánimo ya no se lleva
     #expect(p("dormí 7,5") == .sleep(7.5, today) && p("sueño 7 anteayer") == .sleep(7, DayKey.date("2026-10-17")!) && p("dormi 20") == nil)
     #expect(p("pinchazo") == .injection(today) && p("pinchazo hoy") == .injection(today) && p("pinché ayer") == .injection(DayKey.date("2026-10-18")!))
     #expect(p("pinchazo ayer") == .injection(DayKey.date("2026-10-18")!) && p("pinchazo lo que sea") == nil)
@@ -73,8 +73,8 @@ import Testing
     let kgBefore = store.weight.records.count
     store.run(.weight(104.2, DayKey.today()))
     #expect(store.weight.last?.kg == 104.2 && store.weight.records.count == kgBefore + 1)
-    store.run(.mood(5, DayKey.today())); store.run(.sleep(8, DayKey.today()))
-    #expect(store.diaryValue(DayKey.today(), "animo") == 5 && store.diaryValue(DayKey.today(), "sueno_h") == 8)
+    store.run(.sleep(8, DayKey.today()))
+    #expect(store.diaryValue(DayKey.today(), "sueno_h") == 8)
     let dosesBefore = store.medicacion.doses.count, lastDose = store.medicacion.last?.dose
     store.run(.injection(DayKey.today()))
     #expect(store.medicacion.doses.count == dosesBefore + 1 && store.medicacion.last?.dose == lastDose)

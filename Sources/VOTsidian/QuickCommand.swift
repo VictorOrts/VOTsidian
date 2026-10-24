@@ -1,9 +1,8 @@
 import Foundation
 
-/// Órdenes cortas que se escriben en ⌘K: «peso 105,5», «ánimo 4», «dormí 7,5 ayer», «pinchazo hoy», «compra leche, huevos»…
+/// Órdenes cortas que se escriben en ⌘K: «peso 105,5», «dormí 7,5 ayer», «pinchazo hoy», «compra leche, huevos»…
 enum QuickCommand: Equatable {
     case weight(Double, Date)
-    case mood(Int, Date)
     case sleep(Double, Date)
     case injection(Date)
     /// Todo lo que se entendió de la frase (fecha, hora, duración, repetición, prioridad, sin aviso): se guarda con
@@ -24,7 +23,6 @@ enum QuickCommand: Equatable {
         func day(_ d: Date) -> String { d == DayKey.today() ? "hoy" : shortDate(d) }
         switch self {
         case .weight(let kg, let d): return "Registrar peso \(MD.formatNumber(kg, comma: true)) kg (\(day(d)))"
-        case .mood(let n, let d): return "Anotar ánimo \(n) de 5 (\(day(d)))"
         case .sleep(let h, let d): return "Anotar sueño \(MD.formatNumber(h, comma: true)) h (\(day(d)))"
         case .injection(let d): return "Registrar pinchazo o toma (\(day(d)))"
         case .task(let p):
@@ -76,9 +74,6 @@ enum QuickCommand: Equatable {
         case "peso", "pese", "kg":
             guard let (kg, d) = numberAndDate(), (30...400).contains(kg) else { return nil }
             return .weight(kg, d)
-        case "animo", "humor":
-            guard let (n, d) = numberAndDate(), n == n.rounded(), (1...5).contains(n) else { return nil }
-            return .mood(Int(n), d)
         case "sueno", "dormi", "dormido":
             guard let (h, d) = numberAndDate(), h > 0, h <= 16 else { return nil }
             return .sleep(h, d)

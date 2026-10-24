@@ -44,7 +44,6 @@ extension Store {
         func fail(_ text: String) -> String { message = text; return text }
         switch c {
         case .weight(let kg, let d): addWeight(date: d, kg: kg, note: "")
-        case .mood(let n, let d): setDiaryValue(d, "animo", Double(n))
         case .sleep(let h, let d): setDiaryValue(d, "sueno_h", h)
         case .injection(let d): injectToday(date: d)
         case .task(let p): return addTask(p)

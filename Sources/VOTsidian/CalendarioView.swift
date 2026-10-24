@@ -244,14 +244,6 @@ struct CalendarioView: View {
                 ForEach(visible) { item in row(item) }
 
                 Divider()
-                HStack(spacing: 10) {
-                    Text("Ánimo").font(.headline)
-                    MoodPicker(value: store.diaryValue(selected, "animo")) { store.setDiaryValue(selected, "animo", $0) }
-                    Spacer()
-                    Text("Sueño").font(.headline)
-                    DiaryNumberField(day: selected, key: "sueno_h", placeholder: "h")
-                }
-                Divider()
                 Text("Añadir a este día").font(.headline)
                 Picker("", selection: $kind) { ForEach(Kind.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented).labelsHidden()
                 HStack {

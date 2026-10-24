@@ -52,19 +52,15 @@ struct MesView: View {
                     Tile(title: "Tareas hechas", value: "\(done.count)")
                 }
 
-                let moods = store.diarySeries("animo", from: start, to: end)
                 let sleeps = store.diarySeries("sueno_h", from: start, to: end)
-                if !moods.isEmpty || !sleeps.isEmpty {
-                    Card(title: "Ánimo y sueño", icon: "face.smiling", info: "Se anotan en el calendario (panel de cada día) o en Inicio, y se guardan en la nota del día.") {
-                        HStack(spacing: 12) {
-                            Tile(title: "Ánimo medio", value: moods.isEmpty ? "–" : fmt(moods.reduce(0) { $0 + $1.1 } / Double(moods.count), unit: " / 5"), note: plural(moods.count, "día anotado", "días anotados"))
-                            Tile(title: "Sueño medio", value: sleeps.isEmpty ? "–" : fmt(sleeps.reduce(0) { $0 + $1.1 } / Double(sleeps.count), unit: " h"), note: plural(sleeps.count, "día anotado", "días anotados"))
-                        }
-                        if moods.count > 2 {
-                            Chart(moods, id: \.0) { m in
-                                BarMark(x: .value("Día", m.0, unit: .day), y: .value("Ánimo", m.1)).foregroundStyle(m.1 >= 4 ? Brand.accent : m.1 <= 2 ? Brand.bad : Brand.warn).cornerRadius(3)
+                if !sleeps.isEmpty {
+                    Card(title: "Sueño", icon: "moon.zzz", info: "Se anota con «dormí 7,5» en ⌘K y se guarda en la nota del día (sueno_h).") {
+                        Tile(title: "Sueño medio", value: fmt(sleeps.reduce(0) { $0 + $1.1 } / Double(sleeps.count), unit: " h"), note: plural(sleeps.count, "día anotado", "días anotados"))
+                        if sleeps.count > 2 {
+                            Chart(sleeps, id: \.0) { m in
+                                BarMark(x: .value("Día", m.0, unit: .day), y: .value("Horas", m.1)).foregroundStyle(m.1 >= 7 ? Brand.accent : m.1 < 6 ? Brand.bad : Brand.warn).cornerRadius(3)
                             }
-                            .chartYScale(domain: 0...5).frame(height: 110)
+                            .frame(height: 110)
                         }
                     }
                 }

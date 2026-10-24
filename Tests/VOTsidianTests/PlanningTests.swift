@@ -68,8 +68,8 @@ import Testing
     let mon = DayKey.weekStart(DayKey.date("2026-09-07")!)
     let weights = [WeightRecord(date: mon, kg: 100, note: ""), WeightRecord(date: DayKey.adding(days: 8, to: mon), kg: 98, note: "")]
     let doses = [Dose(date: mon, dose: "5 mg", site: "", note: "")]
-    let pts = Correlations.weeks(weights: weights, doses: doses, today: DayKey.adding(days: 13, to: mon), mood: { _, _ in 4 }, sleep: { _, _ in nil })
+    let pts = Correlations.weeks(weights: weights, doses: doses, today: DayKey.adding(days: 13, to: mon), sleep: { _, _ in 6.5 })
     #expect(pts.count == 2)
-    #expect(pts[0].kgChange == nil && pts[0].mg == 5 && pts[0].mood == 4 && pts[0].sleep == nil)
+    #expect(pts[0].kgChange == nil && pts[0].mg == 5 && pts[0].sleep == 6.5)
     #expect(pts[1].kgChange == -2)
 }

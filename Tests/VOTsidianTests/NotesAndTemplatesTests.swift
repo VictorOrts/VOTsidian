@@ -43,7 +43,7 @@ import Testing
     print("MENCIONES de Peso:", store.unlinkedMentions(of: VaultPath.peso).map(\.name))
 }
 
-// MARK: - Prioridad, plantillas y ánimo
+// MARK: - Prioridad, plantillas y valores del día
 
 @Test func taskPriority() throws {
     let text = "- [ ] Llamar al banco ⏫ 📅 2026-10-20\n- [ ] Regar 🔽\n- [ ] Normal"
@@ -76,16 +76,14 @@ import Testing
     let rel = try #require(store.createNote(folder: "Proyectos", name: "Reunión equipo", template: "Reunión"))
     #expect(store.noteMeta[rel]?["tipo"] == "reunion" && store.noteTags[rel]?.contains("reunion") == true)
 
-    // ánimo y sueño en la nota del día
+    // sueño en la nota del día
     let day = DayKey.date("2026-11-10")!
-    #expect(store.diaryValue(day, "animo") == nil)
-    store.setDiaryValue(day, "animo", 4)
+    #expect(store.diaryValue(day, "sueno_h") == nil)
     store.setDiaryValue(day, "sueno_h", 7.5)
-    #expect(store.diaryValue(day, "animo") == 4 && store.diaryValue(day, "sueno_h") == 7.5)
-    #expect(store.read(Store.diaryPath(day)).contains("animo: 4"))
-    store.setDiaryValue(day, "animo", nil)
-    #expect(store.diaryValue(day, "animo") == nil)
+    #expect(store.diaryValue(day, "sueno_h") == 7.5 && store.read(Store.diaryPath(day)).contains("sueno_h: 7.5"))
     #expect(store.diarySeries("sueno_h", from: DayKey.date("2026-11-01")!, to: DayKey.date("2026-11-30")!).count == 1)
+    store.setDiaryValue(day, "sueno_h", nil)
+    #expect(store.diaryValue(day, "sueno_h") == nil)
     // nota de hoy
     store.openToday()
     #expect(store.pendingNote == Store.diaryPath(DayKey.today()) && store.notes.contains { $0.path == Store.diaryPath(DayKey.today()) })
