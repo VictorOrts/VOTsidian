@@ -83,9 +83,9 @@ extension Store {
         writeNote(VaultPath.inbox, text: "# Inbox\n\n## Pendiente de clasificar\n\n## Ideas\n")
     }
 
-    func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil) {
+    func addTask(_ text: String, due: Date?, recurrence: String? = nil, priority: Int = 0, time: Int? = nil, muted: Bool = false) {
         ensureInbox()
-        edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority, time: time) }
+        edit(VaultPath.inbox) { Edit.addInboxTask($0, task: text, due: due, recurrence: recurrence, priority: priority, time: time, muted: muted) }
     }
 
     /// Una cita médica en «Próximas citas» de Médico, con hora si se sabe. Desde Salud, el Calendario y ⌘K.

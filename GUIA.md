@@ -409,6 +409,7 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 |---|---|
 | `📅 2026-11-02` | Fecha límite |
 | `⏰ 17:30` | Hora, detrás de la fecha (opcional). Sin ella, la tarea es de todo el día. |
+| `🔕` | Sin aviso: sigue en la app, pero no va a Calendar ni a las notificaciones de macOS. Se pone con «sin aviso» al escribirla o desde «Editar tarea». |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
 | `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…) |
 | `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja |

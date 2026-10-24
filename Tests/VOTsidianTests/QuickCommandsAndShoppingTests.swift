@@ -15,8 +15,8 @@ import Testing
     #expect(p("dormí 7,5") == .sleep(7.5, today) && p("sueño 7 anteayer") == .sleep(7, DayKey.date("2026-10-17")!) && p("dormi 20") == nil)
     #expect(p("pinchazo") == .injection(today) && p("pinchazo hoy") == .injection(today) && p("pinché ayer") == .injection(DayKey.date("2026-10-18")!))
     #expect(p("pinchazo ayer") == .injection(DayKey.date("2026-10-18")!) && p("pinchazo lo que sea") == nil)
-    if case .task(let t, let d, let r, let pr, _)? = p("tarea llamar al dentista el viernes urgente") { #expect(t == "llamar al dentista" && DayKey.string(d!) == "2026-10-23" && r == nil && pr == 3) } else { Issue.record("no es tarea") }
-    if case .task(let t, _, let r, _, _)? = p("t pagar alquiler cada mes") { #expect(t == "pagar alquiler" && r == "month") } else { Issue.record("no es tarea") }
+    if case .task(let t, let d, let r, let pr, _, _)? = p("tarea llamar al dentista el viernes urgente") { #expect(t == "llamar al dentista" && DayKey.string(d!) == "2026-10-23" && r == nil && pr == 3) } else { Issue.record("no es tarea") }
+    if case .task(let t, _, let r, _, _, _)? = p("t pagar alquiler cada mes") { #expect(t == "pagar alquiler" && r == "month") } else { Issue.record("no es tarea") }
     #expect(p("idea app para el gato") == .idea("app para el gato") && p("nota hoy fui al médico") == .diary("hoy fui al médico"))
     #expect(p("cita dermatólogo el 29/10") == .appointment("dermatólogo", DayKey.date("2026-10-29")!, nil) && p("cita dentista") == .appointment("dentista", today, nil))
     #expect(p("cintura 98,5") == .measure("Cintura", 98.5, today) && p("grasa 27 ayer") == .measure("Grasa", 27, DayKey.date("2026-10-18")!))
@@ -75,7 +75,7 @@ import Testing
     let dosesBefore = store.medicacion.doses.count, lastDose = store.medicacion.last?.dose
     store.run(.injection(DayKey.today()))
     #expect(store.medicacion.doses.count == dosesBefore + 1 && store.medicacion.last?.dose == lastDose)
-    store.run(.task("Probar orden", DayKey.adding(days: 2, to: DayKey.today()), nil, 3, nil))
+    store.run(.task("Probar orden", DayKey.adding(days: 2, to: DayKey.today()), nil, 3, nil, false))
     #expect(store.tasks.contains { $0.text == "Probar orden" && $0.priority == 3 })
     #expect(store.run(.shopping(["té", "Pan"])).contains("Añadido"))
     #expect(store.shoppingItems.contains { $0.text == "Té" && $0.category == "Otros" })

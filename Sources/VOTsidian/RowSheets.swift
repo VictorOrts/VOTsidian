@@ -93,6 +93,7 @@ struct TaskSheet: View {
     @State private var priority = 0
     @State private var hasTime = false
     @State private var time = TimeOfDay.date(10 * 60)
+    @State private var muted = false
     @State private var confirmDelete = false
 
     var body: some View {
@@ -106,6 +107,8 @@ struct TaskSheet: View {
                 Toggle("A las", isOn: $hasTime).toggleStyle(.checkbox).disabled(!hasDue)
                 DatePicker("Hora", selection: $time, displayedComponents: .hourAndMinute).labelsHidden().disabled(!hasDue || !hasTime).fixedSize()
             }
+            Toggle("Sin aviso en Calendar ni notificaciones", isOn: $muted).toggleStyle(.checkbox)
+                .help("Sigue en Tareas y en el Calendario de la app; solo deja de ir a Calendar de macOS y a las notificaciones (🔕 en la nota).")
             Text("Está en la nota \(task.noteName).").font(.caption).foregroundStyle(.secondary)
             HStack {
                 if confirmDelete { Button("Confirmar eliminar", role: .destructive) { store.deleteTask(task); dismiss() } }
@@ -114,7 +117,7 @@ struct TaskSheet: View {
                 Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("Guardar") {
                     store.updateTask(task, text: text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : nil, priority: priority,
-                                     time: .some(hasDue && hasTime ? TimeOfDay.minutes(of: time) : nil))
+                                     time: .some(hasDue && hasTime ? TimeOfDay.minutes(of: time) : nil), muted: muted)
                     dismiss()
                 }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -123,6 +126,7 @@ struct TaskSheet: View {
         .onAppear {
             text = task.text; hasDue = task.due != nil; due = task.due ?? Date(); priority = task.priority
             hasTime = task.time != nil; if let t = task.time { time = TimeOfDay.date(t) }
+            muted = task.muted
         }
     }
 }

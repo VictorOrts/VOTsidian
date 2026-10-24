@@ -58,6 +58,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Números de notas: `MD.number` (cifras ASCII) y `MD.int` (nunca `Int(Double)`: un número enorme cierra la app). Insertar líneas
   con `insertClamped`. Plegar texto conservando posiciones con `NaturalDate.aligned`. Fechas con `[0-9]`, no `\d`.
 - Las notas con `tipo: compra` o `tipo: viajes` no aportan tareas (`Store.notTaskTypes`).
+- Marcadores de tarea propios, además de los de Obsidian Tasks: `⏰ 17:30` (hora, tras la fecha) y `🔕` (no va a Calendar ni a
+  las notificaciones). Se escriben con `Edit.taskLine`/`dueMark` y se conservan en `updateTask` y `completeRecurring`.
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
