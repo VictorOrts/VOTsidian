@@ -133,7 +133,15 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 Paquete de Swift sin dependencias externas: SwiftUI, Swift Charts y AppKit.
 
 ```text
-Sources/VOTsidian/    app: modelos y lectura de notas (Parse, Edit), Store y una vista por pantalla
+Sources/VOTsidian/    la app, en carpetas:
+  App/                arranque, ventana, barra lateral, ⌘K y Ajustes
+  Store/              estado, lectura y escritura de la carpeta, deshacer, copias y módulos
+  Formato/            leer y transformar notas (Parse, Edit, Markdown, fechas): lo puro, lo que se testea
+  UI/                 componentes compartidos
+  Planificacion/      Inicio, Mi día, Tareas, Calendario, revisiones, proyectos y objetivos
+  Avisos/             avisos, notificaciones y Calendar
+  Conocimiento/       Notas, Bases, Grafo, Enlaces y Lienzo
+  Modulos/            Cuerpo, Dinero, Hogar y Ocio: el modelo (X.swift) y la pantalla (XView.swift) de cada módulo
 Tests/VOTsidianTests/ tests con Swift Testing sobre carpetas temporales
 scripts/              build-app.sh (empaqueta y firma) y make-icon.swift (genera el icono)
 ```

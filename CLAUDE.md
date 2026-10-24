@@ -23,6 +23,11 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 
 ## Arquitectura
 
+- Carpetas de `Sources/VOTsidian/`: `App` (ventana, barra lateral, ⌘K, Ajustes), `Store` (`Store` y sus extensiones, módulos,
+  copias), `Formato` (`Parse`, `Edit`, `MD`, `NaturalDate`: lo puro), `UI` (componentes), `Planificacion`, `Avisos`,
+  `Conocimiento` (Notas, Bases, Grafo, Lienzo) y `Modulos/<sección>`. SwiftPM recoge las subcarpetas solo: mover un archivo no
+  cambia nada del código. Sin tildes en los nombres de carpeta.
+
 - `Store` (`@MainActor @Observable`, en `Store.swift` y `Store+*.swift`): estado publicado y acciones. `VaultPath` da la ruta de
   cada nota por clave (`"vehiculo"` → `Vehículo/Vehículo.md`), configurable en Ajustes.
 - `Parse` (leer) y `Edit` (transformar texto → `String?`) son enums de funciones puras: ahí va la lógica, y es lo que se testea.
@@ -39,7 +44,7 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 
 ## Añadir un módulo (todos los puntos)
 
-1. `Sources/VOTsidian/X.swift`: modelo `XData`, `Parse.x`, `Edit.addX…` (con `Edit.addRow(text, section:)`), acciones en `extension Store`,
+1. `Sources/VOTsidian/Modulos/<sección>/X.swift` (Cuerpo, Dinero, Hogar u Ocio, como la barra lateral): modelo `XData`, `Parse.x`, `Edit.addX…` (con `Edit.addRow(text, section:)`), acciones en `extension Store`,
    y `xAlerts(today:)` si avisa. `XView.swift`: la pantalla (`MissingNoteBanner`, `Tile`, `Card`, `AlertList(alerts:emptyText:)`, `NoteTables`).
 2. `Store.swift`: `VaultPath.defaults` + `static var x`, comentario de claves, `private(set) var x = XData()`, `derive(VaultPath.x)`.
 3. `ContentView.swift`: `Screen` (case + icono + sección de la barra lateral + vista en `detail`).
