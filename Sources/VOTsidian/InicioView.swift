@@ -188,8 +188,6 @@ struct InicioView: View {
             }
             if !quickMsg.isEmpty { Label(quickMsg, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
             HStack(spacing: 12) {
-                Text("¿Cómo vas hoy?").foregroundStyle(.secondary)
-                MoodPicker(value: store.diaryValue(today, "animo")) { store.setDiaryValue(today, "animo", $0) }
                 Spacer()
                 Button { store.openToday() } label: { Label("Nota de hoy", systemImage: "note.text") }.controlSize(.small)
                 Button { store.showEmpezar = true } label: { Label("Empezar el día", systemImage: "sunrise") }.controlSize(.small)

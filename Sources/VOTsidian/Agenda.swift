@@ -358,7 +358,7 @@ extension Store {
     }
 }
 
-// MARK: - Nota de hoy y estado de ánimo (diario)
+// MARK: - Nota de hoy y valores del día (diario)
 
 extension Store {
     /// Crea (si falta) y abre la nota del día en el editor.
@@ -372,7 +372,7 @@ extension Store {
         pendingNote = rel
     }
 
-    /// Valor de ánimo (1 a 5), horas de sueño o energía de un día.
+    /// Un valor numérico del encabezado de la nota del día (horas de sueño…).
     func diaryValue(_ day: Date, _ key: String) -> Double? {
         noteMeta[Store.diaryPath(day)]?[key].flatMap { MD.number($0) }
     }

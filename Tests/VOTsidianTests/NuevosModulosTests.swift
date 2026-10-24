@@ -544,7 +544,7 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     }
     // los dos valores razonables siguen siendo los que eran
     #expect(MD.int(5) == 5 && MD.int(-3) == -3 && MD.int(1e12) == nil && MD.int(.nan) == nil && MD.int(.infinity) == nil && MD.int(nil) == nil)
-    #expect(QuickCommand.parse("animo 4") == .mood(4, DayKey.today()) && QuickCommand.parse("animo 6") == nil && QuickCommand.parse("animo 3,5") == nil)
+    #expect(QuickCommand.parse("animo 4") == nil)   // el ánimo ya no se lleva
     #expect(Vehiculo.km("99999999999") == nil && Vehiculo.km("250.000") == 250_000)
     let loan = try #require(Parse.prestamos("| Préstamo | Pendiente | Cuota | Día |\n| - | - | - | - |\n| A | 1000 | \(tiny) | 5 |").statuses().first)
     #expect(loan.installmentsLeft == nil && loan.estimatedEnd == nil)   // sin fecha de fin en vez de un cierre

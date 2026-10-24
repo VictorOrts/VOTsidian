@@ -26,7 +26,7 @@ import Testing
           + days.suffix(730).flatMap { d in ["| \(DayKey.string(d)) | A | 1 mg | | |", "| \(DayKey.string(d)) | A | 1 mg | | |"] }.joined(separator: "\n") + "\n")
     for m in 0..<36 { let d = DayKey.calendar().date(byAdding: .month, value: -m, to: today)!; try w("Finanzas/Gastos/\(Budget.monthKey(d)).md", gastosFixture(d, full: m > 0)) }
     for k in 0..<156 { let d = DayKey.adding(days: -7 * k, to: today); try w("\(VaultPath.revisiones)/\(DayKey.weekKey(d)).md", weekFixture) }
-    for d in days.suffix(1000) { try w("Diario/\(DayKey.string(d)).md", "---\nanimo: \(Int.random(in: 1...5))\nsueno_h: 7\n---\n# Día\n\n- algo que pasó\n") }
+    for d in days.suffix(1000) { try w("Diario/\(DayKey.string(d)).md", "---\nsueno_h: 7\n---\n# Día\n\n- algo que pasó\n") }
     for f in 0..<20 { for n in 0..<50 { try w("Carpeta \(f)/Nota \(f)-\(n).md", "---\ntipo: nota\n---\n# Nota\n" + String(repeating: "lorem ipsum dolor ", count: 80) + "\n- [ ] Tarea \(f)-\(n) 📅 \(DayKey.string(DayKey.adding(days: n, to: today)))\n[[Nota \(f)-\((n + 1) % 50)]]\n") } }
     try w(VaultPath.vehiculo, vehiculoFixture + "\n" + (0..<300).map { "| \(DayKey.string(DayKey.adding(days: -3 * $0, to: today))) | \(114_000 - 300 * $0) | 40 | 60 € |" }.joined(separator: "\n"))
     try w(VaultPath.suscripciones, "## Servicios\n\n| Servicio | Importe | Cada | Próximo cobro | Partida | Estado |\n| - | - | - | - | - | - |\n" + (0..<30).map { "| S\($0) | 9,99 € | Mensual | 2025-0\($0 % 9 + 1)-1\($0 % 9) | | Activa |" }.joined(separator: "\n"))

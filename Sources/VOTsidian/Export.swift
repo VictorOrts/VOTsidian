@@ -24,7 +24,6 @@ struct YearStats {
     var injections: Int
     var habitByMonth: [(month: Int, pct: Double)]
     var tasksDone: Int
-    var moodAvg: Double?
     var sleepAvg: Double?
     var diaryDays: Int
 
@@ -51,19 +50,17 @@ extension Store {
         }
         let start = cal.date(from: DateComponents(year: year, month: 1, day: 1))!
         let end = cal.date(from: DateComponents(year: year, month: 12, day: 31))!
-        let moods = diarySeries("animo", from: start, to: end)
         let sleeps = diarySeries("sueno_h", from: start, to: end)
         return YearStats(
             year: year, weights: weight.records.filter { inYear($0.date) },
             dosesByMg: byMg.map { (mg: $0.key, count: $0.value) }.sorted { $0.mg < $1.mg }, injections: doses.count,
             habitByMonth: perMonth.map { (month: $0.key, pct: $0.value.reduce(0, +) / Double($0.value.count)) }.sorted { $0.month < $1.month },
             tasksDone: tasks.filter { $0.done && ($0.completed.map(inYear) ?? false) }.count,
-            moodAvg: moods.isEmpty ? nil : moods.reduce(0) { $0 + $1.1 } / Double(moods.count),
             sleepAvg: sleeps.isEmpty ? nil : sleeps.reduce(0) { $0 + $1.1 } / Double(sleeps.count),
             diaryDays: notes.filter { $0.path.hasPrefix("Diario/") && (DayKey.date($0.name).map(inYear) ?? false) }.count)
     }
 
-    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, vehículo, suscripciones, préstamos, viajes, lecturas, trámites, seguros, ánimo y sueño) y un resumen. Devuelve los archivos creados.
+    /// Escribe tus datos en CSV (peso, medicación, medidas, hábitos, tareas, gastos, vehículo, suscripciones, préstamos, viajes, lecturas, trámites, seguros y sueño) y un resumen. Devuelve los archivos creados.
     @discardableResult
     func exportData(to dir: URL) throws -> [URL] {
         let fm = FileManager.default
@@ -107,10 +104,9 @@ extension Store {
         var diary: [[String]] = []
         for n in notes where n.path.hasPrefix("Diario/") {
             guard let d = DayKey.date(n.name) else { continue }
-            let a = diaryValue(d, "animo"), s = diaryValue(d, "sueno_h")
-            if a != nil || s != nil { diary.append([n.name, CSV.num(a), CSV.num(s)]) }
+            if let s = diaryValue(d, "sueno_h") { diary.append([n.name, CSV.num(s)]) }
         }
-        try write("animo_sueno.csv", CSV.file(["fecha", "animo", "sueno_h"], diary.sorted { $0[0] < $1[0] }))
+        try write("sueno.csv", CSV.file(["fecha", "sueno_h"], diary.sorted { $0[0] < $1[0] }))
         try write("resumen.md", doctorSummary())
         return made
     }
@@ -142,7 +138,7 @@ struct YearSummaryView: View {
                 if stats.lastKg != nil { tile("Peso", stats.deltaKg.map { fmtDelta($0) } ?? "–", stats.lastKg.map { "ahora \(fmt($0, unit: " kg"))" } ?? "") }
                 if stats.injections > 0 { tile("Medicación", "\(stats.injections)", stats.dosesByMg.map { "\(MD.formatNumber($0.mg, comma: true)) mg ×\($0.count)" }.joined(separator: " · ")) }
                 tile("Tareas hechas", "\(stats.tasksDone)", "")
-                tile("Ánimo", stats.moodAvg.map { fmt($0, unit: " / 5") } ?? "–", stats.sleepAvg.map { "sueño " + fmt($0, unit: " h") } ?? "")
+                if let s = stats.sleepAvg { tile("Sueño", fmt(s, unit: " h"), "media de las noches anotadas") }
             }
             if stats.weights.count > 1 {
                 Text("Peso (kg)").font(.headline)

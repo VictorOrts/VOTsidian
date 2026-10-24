@@ -4,7 +4,6 @@ import SwiftUI
 /// Una semana (lunes a domingo) con lo que se midió en ella.
 struct WeekPoint: Equatable {
     var start: Date
-    var mood: Double?
     var sleep: Double?
     var kgChange: Double?   // peso al final de la semana menos peso al final de la anterior
     var mg: Double?         // dosis vigente al final de la semana
@@ -61,9 +60,8 @@ enum Correlations {
         return sxy / (sxx * syy).squareRoot()
     }
 
-    /// Semanas desde el primer pesaje hasta hoy. `mood` y `sleep` devuelven la media entre dos fechas (ambas incluidas).
-    static func weeks(weights: [WeightRecord], doses: [Dose], today: Date,
-                      mood: (Date, Date) -> Double?, sleep: (Date, Date) -> Double?) -> [WeekPoint] {
+    /// Semanas desde el primer pesaje hasta hoy. `sleep` devuelve la media entre dos fechas (ambas incluidas).
+    static func weeks(weights: [WeightRecord], doses: [Dose], today: Date, sleep: (Date, Date) -> Double?) -> [WeekPoint] {
         let ws = weights.sorted { $0.date < $1.date }
         guard let first = ws.first else { return [] }
         func kg(upTo d: Date) -> Double? { ws.last { $0.date <= d }?.kg }
@@ -74,7 +72,7 @@ enum Correlations {
             let end = DayKey.adding(days: 6, to: start)
             var change: Double?
             if let now = kg(upTo: end), let before = kg(upTo: DayKey.adding(days: -1, to: start)) { change = now - before }
-            out.append(WeekPoint(start: start, mood: mood(start, end), sleep: sleep(start, end), kgChange: change, mg: mg(upTo: end)))
+            out.append(WeekPoint(start: start, sleep: sleep(start, end), kgChange: change, mg: mg(upTo: end)))
             start = DayKey.adding(days: 7, to: start)
         }
         return out
@@ -90,10 +88,8 @@ enum Correlations {
     }
 
     static func pairs(_ points: [WeekPoint]) -> [CorrelationPair] {
-        [pair("Sueño ↔ ánimo", "Sueño (h)", "Ánimo (1-5)", points, \.sleep, \.mood),
-         pair("Dosis ↔ cambio de peso semanal", "Dosis (mg)", "Cambio (kg/sem)", points, \.mg, \.kgChange),
-         pair("Sueño ↔ cambio de peso semanal", "Sueño (h)", "Cambio (kg/sem)", points, \.sleep, \.kgChange),
-         pair("Ánimo ↔ cambio de peso semanal", "Ánimo (1-5)", "Cambio (kg/sem)", points, \.mood, \.kgChange)]
+        [pair("Dosis ↔ cambio de peso semanal", "Dosis (mg)", "Cambio (kg/sem)", points, \.mg, \.kgChange),
+         pair("Sueño ↔ cambio de peso semanal", "Sueño (h)", "Cambio (kg/sem)", points, \.sleep, \.kgChange)]
     }
 }
 
@@ -105,7 +101,7 @@ extension Store {
                 return v.isEmpty ? nil : v.reduce(0, +) / Double(v.count)
             }
         }
-        return Correlations.weeks(weights: weight.records, doses: medicacion.doses, today: today, mood: avg("animo"), sleep: avg("sueno_h"))
+        return Correlations.weeks(weights: weight.records, doses: medicacion.doses, today: today, sleep: avg("sueno_h"))
     }
 }
 
@@ -119,7 +115,7 @@ struct CorrelacionesView: View {
         let doses = store.medicacion.doses.sorted { $0.date < $1.date }
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Aquí se cruzan peso, dosis, ánimo y sueño por semanas. Una relación no prueba que una cosa cause la otra: sirve para sospechar y comentarlo con tu médico.")
+                Text("Aquí se cruzan peso, dosis y sueño por semanas. Una relación no prueba que una cosa cause la otra: sirve para sospechar y comentarlo con tu médico.")
                     .font(.callout).foregroundStyle(.secondary)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 12)], spacing: 12) {
@@ -147,15 +143,11 @@ struct CorrelacionesView: View {
                     }
                 }
 
-                let withData = points.filter { $0.mood != nil || $0.sleep != nil }
+                let withData = points.filter { $0.sleep != nil }
                 if withData.isEmpty {
-                    Card(title: "Ánimo y sueño por semana", icon: "moon.zzz") { EmptyNote("Aún no hay ánimo ni sueño en las notas del día.") }
+                    Card(title: "Sueño por semana", icon: "moon.zzz") { EmptyNote("Aún no hay sueño en las notas del día. Se anota con «dormí 7,5» en ⌘K.") }
                 } else {
-                    // Cada serie con su escala: ánimo (1-5) y horas de sueño no caben en el mismo eje.
-                    HStack(alignment: .top, spacing: 12) {
-                        weeklyCard("Ánimo por semana", icon: "face.smiling", unit: "Ánimo (1-5)", color: Brand.accent, domain: 1...5, data: withData.compactMap { p in p.mood.map { (p.start, $0) } })
-                        weeklyCard("Sueño por semana", icon: "moon.zzz", unit: "Sueño (h)", color: Brand.violet, domain: nil, data: withData.compactMap { p in p.sleep.map { (p.start, $0) } })
-                    }
+                    weeklyCard("Sueño por semana", icon: "moon.zzz", unit: "Sueño (h)", color: Brand.violet, domain: nil, data: withData.compactMap { p in p.sleep.map { (p.start, $0) } })
                 }
             }
             .padding(24)
