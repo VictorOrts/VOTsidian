@@ -185,6 +185,12 @@ struct RemindersView: View {
             .readableWidth()
         }
         .navigationTitle("Avisos")
+        // Encender o apagar un tipo de aviso (o cambiar su hora) se aplica ya al calendario «VOTsidian» y a las notificaciones,
+        // sin esperar a que cambie alguna nota.
+        .onChange(of: plan) {
+            store.refreshCalendarSync()
+            store.refreshSystemNotifications(force: true)
+        }
         .confirmationDialog("¿Borrar el calendario «VOTsidian»?", isPresented: $confirmRemoveCalendar) {
             Button("Borrar", role: .destructive) {
                 calendarSync = false
