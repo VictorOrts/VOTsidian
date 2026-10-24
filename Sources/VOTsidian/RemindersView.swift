@@ -14,12 +14,18 @@ struct RemindersView: View {
     @AppStorage("remTasks") private var tasksOn = true
     @AppStorage("remMascota") private var mascotaOn = true
     @AppStorage("remVehiculo") private var vehiculoOn = true
+    @AppStorage("remSuscripciones") private var suscripcionesOn = true
+    @AppStorage("remPrestamos") private var prestamosOn = true
+    @AppStorage("remViajes") private var viajesOn = true
     @AppStorage("remBirthdays") private var birthdays = true
     @AppStorage("remDocs") private var docs = true
     @AppStorage("remEvents") private var eventsOn = true
     @AppStorage("remPayments") private var payments = true
     @AppStorage("systemNotifications") private var systemNotifications = false
     @State private var message = ""
+    @AppStorage("calendarSync") private var calendarSync = false
+    @AppStorage("calendarSyncStatus") private var syncStatus = ""
+    @State private var confirmRemoveCalendar = false
 
     private func time(_ minutes: Binding<Int>) -> Binding<Date> {
         Binding(
@@ -32,7 +38,8 @@ struct RemindersView: View {
         ReminderPlan(medicacion: medicacion, medicacionMinutes: medicacionMin, review: review, reviewWeekday: reviewDay, reviewMinutes: reviewMin,
                      monthlyWeight: weightOn, weightMinutes: weightMin, tasks: tasksOn, mascota: mascotaOn,
                      birthdays: birthdays, documents: docs, events: eventsOn, payments: payments,
-                     monthlyReview: monthReview, monthlyReviewMinutes: monthReviewMin, vehiculo: vehiculoOn)
+                     monthlyReview: monthReview, monthlyReviewMinutes: monthReviewMin, vehiculo: vehiculoOn,
+                     suscripciones: suscripcionesOn, prestamos: prestamosOn, viajes: viajesOn)
     }
 
     /// Fila de un aviso: nombre, sus ajustes (día, hora) y el interruptor, todo en la misma línea.
@@ -82,6 +89,9 @@ struct RemindersView: View {
                         row("Tareas con fecha", $tasksOn)
                         if store.isVisible(.mascota) { Divider(); row("Citas y vacunas de \(store.mascota.name)", $mascotaOn) }
                         if store.isVisible(.vehiculo) { Divider(); row("\(store.vehiculo.name): ITV, seguro (30 días antes) y mantenimiento (7 días antes)", $vehiculoOn) }
+                        if store.isVisible(.suscripciones) { Divider(); row("Renovaciones y fin de pruebas de suscripciones (el día antes)", $suscripcionesOn) }
+                        if store.isVisible(.prestamos) { Divider(); row("Cuotas de préstamos (el día antes)", $prestamosOn) }
+                        if store.isVisible(.viajes) { Divider(); row("Viajes (7 días antes)", $viajesOn) }
                         if store.isVisible(.personas) { Divider(); row("Cumpleaños (cada año)", $birthdays) }
                         if store.isVisible(.documentos) { Divider(); row("Caducidad de documentos (30 días antes)", $docs) }
                         if store.isVisible(.finanzas) || store.isVisible(.casa) { Divider(); row("Eventos y fechas de Casa (7 días antes)", $eventsOn) }
@@ -91,15 +101,53 @@ struct RemindersView: View {
 
                 // Las dos formas de recibir los avisos, juntas.
                 Card(title: "Cómo recibirlos", icon: "paperplane",
-                     info: "Cada evento tiene un identificador fijo. Si vuelves a importar, Calendar actualiza los eventos en vez de duplicarlos. Las notificaciones de macOS solo funcionan en la app (build-app.sh), no con swift run.") {
+                     info: "Calendar se puede mantener al día solo, con un calendario propio «VOTsidian» (pide permiso la primera vez y nunca toca tus otros calendarios), o importar un archivo .ics cuando quieras: cada evento tiene un identificador fijo, así que volver a importar actualiza en vez de duplicar. La sincronización y las notificaciones de macOS solo funcionan en la app (build-app.sh), no con swift run.") {
                     HStack {
-                        Label("Calendar", systemImage: "calendar")
+                        Label("Mantener el calendario «VOTsidian» al día", systemImage: "arrow.triangle.2.circlepath")
+                        Spacer()
+                        Toggle("Mantener el calendario VOTsidian al día", isOn: $calendarSync).labelsHidden().toggleStyle(.switch).controlSize(.small)
+                            .disabled(!CalendarSync.available)
+                            .onChange(of: calendarSync) { _, on in
+                                guard on else { return }
+                                Task {
+                                    do {
+                                        let r = try await CalendarSync.sync(events)
+                                        syncStatus = "\(Store.stamp("d/M HH:mm")): \(r.text)"
+                                        message = "Calendario «VOTsidian» listo. \(r.text)"
+                                    } catch {
+                                        calendarSync = false
+                                        message = error.localizedDescription
+                                    }
+                                }
+                            }
+                    }
+                    if !CalendarSync.available {
+                        Text("Solo funciona en la app (build-app.sh), no con swift run.").font(.caption).foregroundStyle(.secondary)
+                    } else if calendarSync {
+                        HStack {
+                            Text(syncStatus.isEmpty ? "Se sincroniza al abrir la app y cuando cambian tus notas." : "Última vez, \(syncStatus)").font(.callout).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Sincronizar ahora") {
+                                Task {
+                                    do {
+                                        let r = try await CalendarSync.sync(events)
+                                        syncStatus = "\(Store.stamp("d/M HH:mm")): \(r.text)"
+                                        message = r.text
+                                    } catch { message = error.localizedDescription }
+                                }
+                            }.controlSize(.small)
+                            Button("Borrar el calendario…") { confirmRemoveCalendar = true }.controlSize(.small)
+                        }
+                    }
+                    Divider()
+                    HStack {
+                        Label("Archivo .ics (sin permisos, una sola vez)", systemImage: "calendar")
                         Spacer()
                         Button("Añadir a Calendar") {
                             message = ICS.openInCalendar(events)
                                 ? "Calendar se abrió con \(plural(events.count, "evento", "eventos")). Confirma la importación."
                                 : "No se pudo crear el archivo de avisos."
-                        }.buttonStyle(.borderedProminent)
+                        }
                     }
                     Divider()
                     HStack {
@@ -134,5 +182,16 @@ struct RemindersView: View {
             .readableWidth()
         }
         .navigationTitle("Avisos")
+        .confirmationDialog("¿Borrar el calendario «VOTsidian»?", isPresented: $confirmRemoveCalendar) {
+            Button("Borrar", role: .destructive) {
+                calendarSync = false
+                Task {
+                    do { try await CalendarSync.removeCalendar(); syncStatus = ""; message = "Calendario «VOTsidian» borrado." }
+                    catch { message = error.localizedDescription }
+                }
+            }
+        } message: {
+            Text("Se borra con todos sus eventos. Tus notas no cambian, y puedes volver a activarlo cuando quieras.")
+        }
     }
 }

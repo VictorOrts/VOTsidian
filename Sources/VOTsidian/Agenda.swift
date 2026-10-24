@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AgendaItem: Identifiable {
     enum Kind: String {
-        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, vehiculo, event, shopping, diary
+        case task, done, appointment, dose, doseNext, weight, birthday, document, mascota, vehiculo, suscripcion, prestamo, viaje, lectura, event, shopping, diary
         var icon: String {
             switch self {
             case .task: "circle"
@@ -14,6 +14,10 @@ struct AgendaItem: Identifiable {
             case .document: "doc.on.doc"
             case .mascota: "pawprint"
             case .vehiculo: "car"
+            case .suscripcion: "repeat"
+            case .prestamo: "creditcard.and.123"
+            case .viaje: "airplane"
+            case .lectura: "book"
             case .event: "party.popper"
             case .shopping: "bag"
             case .diary: "note.text"
@@ -30,6 +34,10 @@ struct AgendaItem: Identifiable {
             case .document: Brand.slate
             case .mascota: Brand.clay
             case .vehiculo: Brand.sky
+            case .suscripcion: Brand.violet
+            case .prestamo: Brand.slate
+            case .viaje: Brand.rose
+            case .lectura: Brand.lime
             case .event: Brand.rose
             case .shopping: Brand.lime
             case .diary: Brand.info
@@ -115,6 +123,23 @@ extension Store {
         for s in vehiculo.nextServices() {
             if let d = s.date { add(AgendaItem(id: "vn\(s.what)", kind: .vehiculo, title: "\(vehiculo.name): toca \(s.what)", detail: "próximo", date: d, screen: .vehiculo)) }
         }
+        for i in suscripciones.items {
+            if i.status == .trial { add(AgendaItem(id: "sp\(i.line)", kind: .suscripcion, title: "Acaba la prueba de \(i.name)", detail: Money.exact(i.amount), date: i.anchor, screen: .suscripciones)) }
+            for d in i.occurrences(from: start, to: end) {
+                add(AgendaItem(id: "su\(i.line)|\(DayKey.string(d))", kind: .suscripcion, title: "Se renueva \(i.name)", detail: Money.exact(i.amount), date: d, screen: .suscripciones))
+            }
+        }
+        for p in prestamos.payments { add(AgendaItem(id: "pp\(p.line)", kind: .prestamo, title: "Cuota de \(p.loan)", detail: Money.exact(p.amount), date: p.date, screen: .prestamos)) }
+        for s in prestamos.statuses() {
+            for d in prestamos.dueDates(s, upTo: end) { add(AgendaItem(id: "pd\(s.loan.line)|\(DayKey.string(d))", kind: .prestamo, title: "Toca la cuota de \(s.loan.name)", detail: Money.exact(s.loan.installment), date: d, screen: .prestamos)) }
+        }
+        for t in viajes.trips where !t.isClosed {
+            if let s = t.start { add(AgendaItem(id: "vj\(t.line)", kind: .viaje, title: "Viaje a \(t.name)", detail: t.end.map { "hasta el \(DayKey.dmy($0))" } ?? "", date: s, screen: .viajes)) }
+            if let e = t.end, e != t.start { add(AgendaItem(id: "vv\(t.line)", kind: .viaje, title: "Vuelta de \(t.name)", date: e, screen: .viajes)) }
+        }
+        for b in lecturas.books where b.status == .finished {
+            if let f = b.finished { add(AgendaItem(id: "lb\(b.line)", kind: .lectura, title: "Terminado: \(b.title)", detail: b.author, date: f, screen: .lecturas)) }
+        }
         for e in events { add(AgendaItem(id: "e\(e.path)", kind: .event, title: e.name, date: e.date, path: e.path)) }
         for (path, m) in noteMeta where m["tipo"] == "cita_medica" {
             if let d = m["fecha"].flatMap(DayKey.date) {
@@ -139,7 +164,8 @@ extension Store {
         for n in notes where n.path.hasPrefix("Diario/") {
             if let d = DayKey.date(n.name) { add(AgendaItem(id: "n\(n.path)", kind: .diary, title: "Nota del día", date: d, path: n.path)) }
         }
-        return out
+        // Como los avisos: lo de los módulos ocultos no sale en el calendario ni en «Hoy».
+        return out.mapValues { $0.filter { $0.screen.map(isVisible) ?? true } }.filter { !$0.value.isEmpty }
     }
 
     /// Añade un punto a la nota del día (`Diario/AAAA-MM-DD.md`), que se crea con la fecha ya puesta.
@@ -169,7 +195,8 @@ extension Store {
         "tareas": .tareas, "proyectos": .proyectos, "habitos": .semana, "revision semanal": .semana, "revision mensual": .mes, "revisiones": .semana,
         "calendario": .calendario, "grafo": .grafo, "ajustes": .ajustes, "avisos": .avisos, "salud": .salud,
         "medicos": .salud, "analiticas": .salud, "analisis": .salud, "medico": .salud, "doctor": .salud, "inicio": .inicio,
-        "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos, "coche": .vehiculo, "vehiculo": .vehiculo,
+        "enlaces rotos": .enlaces, "gastos": .gastos, "presupuesto": .gastos, "coche": .vehiculo, "vehiculo": .vehiculo, "suscripciones": .suscripciones, "prestamos": .prestamos, "deudas": .prestamos,
+        "lecturas": .lecturas, "libros": .lecturas, "viajes": .viajes,
     ]
 
     func screenAlias(_ name: String) -> Screen? { Store.screenAliases[MD.fold((name as NSString).lastPathComponent)] }

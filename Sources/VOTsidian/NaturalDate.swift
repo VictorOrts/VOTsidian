@@ -9,6 +9,18 @@ enum NaturalDate {
     /// Qué se escribió, para saber cómo llevar la fecha al pasado (un gasto) cuando cae en el futuro.
     enum Kind { case none, exact, dayMonth, dayOfMonth, weekday, relative }
 
+    /// El texto sin tildes ni mayúsculas, con **exactamente** la misma longitud (en unidades UTF-16) que el original, para que las
+    /// posiciones que se encuentran en él valgan en el original. Lo que no se puede plegar sin cambiar la longitud (un emoji
+    /// compuesto, una bandera) se sustituye por un carácter que no coincide con nada.
+    static func aligned(_ input: String) -> String {
+        var out = ""
+        for ch in input {
+            let f = String(ch).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+            out += f.utf16.count == ch.utf16.count ? f : String(repeating: "\u{FFFD}", count: ch.utf16.count)
+        }
+        return out
+    }
+
     /// Devuelve el texto sin la expresión de fecha y la fecha, si la hay.
     static func extract(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?) {
         let r = extractKind(input, today: today)
@@ -19,10 +31,9 @@ enum NaturalDate {
     /// `weekday` («el viernes»), `exact` (con año) o `relative` («ayer», «en 3 días»).
     static func extractKind(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?, kind: Kind) {
         let cal = DayKey.calendar()
-        // Plegado carácter a carácter para que los rangos coincidan con el original.
-        let folded = String(input.map { ch -> Character in
-            String(ch).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).first ?? ch
-        })
+        // «n» + tilde suelta (al pegar desde un PDF, por ejemplo) pasa a «ñ»: así se reconoce «mañana» y las posiciones cuadran.
+        let input = input.precomposedStringWithCanonicalMapping
+        let folded = aligned(input)
         let ns = folded as NSString
         let full = NSRange(location: 0, length: ns.length)
         let todayYear = cal.component(.year, from: today)
@@ -53,11 +64,11 @@ enum NaturalDate {
         // El tipo de las fechas sin año depende de si se escribió el año: se apunta al resolver.
         var yearGiven = false
         let rules: [(String, Kind, (NSTextCheckingResult) -> Date?)] = [
-            (#"\b(\d{4})-(\d{2})-(\d{2})\b"#, .exact, { m in date(Int(group(m, 1)!), Int(group(m, 2)!)!, Int(group(m, 3)!)!) }),
-            (#"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b"#, .dayMonth, { m in
+            (#"\b([0-9]{4})-([0-9]{2})-([0-9]{2})\b"#, .exact, { m in date(Int(group(m, 1)!), Int(group(m, 2)!)!, Int(group(m, 3)!)!) }),
+            (#"\b([0-9]{1,2})/([0-9]{1,2})(?:/([0-9]{2,4}))?\b"#, .dayMonth, { m in
                 yearGiven = group(m, 3) != nil
                 return date(group(m, 3).flatMap { Int($0) }, Int(group(m, 2)!)!, Int(group(m, 1)!)!) }),
-            (#"\b(\d{1,2}) de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de (\d{4}))?\b"#, .dayMonth,
+            (#"\b([0-9]{1,2}) de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de ([0-9]{4}))?\b"#, .dayMonth,
              { m in
                 yearGiven = group(m, 3) != nil
                 return date(group(m, 3).flatMap { Int($0) }, months[group(m, 2)!]!, Int(group(m, 1)!)!) }),
@@ -66,7 +77,7 @@ enum NaturalDate {
             (#"\bpasado manana\b"#, .relative, { _ in DayKey.adding(days: 2, to: today) }),
             (#"\bmanana\b"#, .relative, { _ in DayKey.adding(days: 1, to: today) }),
             (#"\bhoy\b"#, .relative, { _ in today }),
-            (#"\ben (\d{1,4}) (dias?|semanas?|meses?)\b"#, .relative, { m in
+            (#"\ben ([0-9]{1,4}) (dias?|semanas?|meses?)\b"#, .relative, { m in
                 let n = Int(group(m, 1)!)!
                 let unit = group(m, 2)!
                 if unit.hasPrefix("semana") { return DayKey.adding(days: 7 * n, to: today) }
@@ -79,7 +90,7 @@ enum NaturalDate {
                 if delta == 0 { delta = 7 }
                 return DayKey.adding(days: delta, to: today)
             }),
-            (#"\bel (\d{1,2})\b"#, .dayOfMonth, { m in
+            (#"\bel ([0-9]{1,2})\b"#, .dayOfMonth, { m in
                 let d = Int(group(m, 1)!)!
                 let month = cal.component(.month, from: today)
                 // El próximo día `d` que exista: «el 31» en noviembre es el 31 de diciembre, no el 1.
@@ -119,13 +130,14 @@ enum NaturalDate {
 
     private static func extractTask(_ input: String, today: Date, noPriority: Bool) -> ParsedTask {
         let cal = DayKey.calendar()
-        let folded = String(input.map { String($0).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).first ?? $0 })
+        let input = input.precomposedStringWithCanonicalMapping
+        let folded = aligned(input)
         let ns = folded as NSString
         let patterns: [(String, (NSTextCheckingResult) -> (String, Date?))] = [
             (#"\b(?:cada dia laborable|todos los dias laborables|los dias laborables|entre semana|de lunes a viernes)\b"#, { _ in
                 ("weekday", cal.isDateInWeekend(today) ? Recurrence.next(after: today, rule: "weekday", today: today) : today)
             }),
-            (#"\bcada (\d+) (dias?|semanas?|meses|mes|anos?)\b"#, { m in
+            (#"\bcada ([0-9]+) (dias?|semanas?|meses|mes|anos?)\b"#, { m in
                 let n = ns.substring(with: m.range(at: 1)), u = ns.substring(with: m.range(at: 2))
                 let unit = u.hasPrefix("dia") ? "days" : u.hasPrefix("semana") ? "weeks" : u.hasPrefix("mes") ? "months" : "years"
                 return ("\(n) \(unit)", nil)

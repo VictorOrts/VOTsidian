@@ -55,7 +55,7 @@ struct Medication: Identifiable, Equatable {
         let t = MD.fold(text)
         if t.isEmpty || t.contains("falta") || t.contains("necesi") || t.contains("demanda") { return 0 }
         if let n = MD.number(t) {
-            let v = max(Int(n), 0)
+            let v = max(MD.int(n) ?? 0, 0)
             if t.contains("seman") { return max(v, 1) * 7 }
             if t.contains("mes") { return max(v, 1) * 30 }
             return v
@@ -246,7 +246,7 @@ extension Edit {
         }
         // Detrás de la última fila con fecha; en un registro vacío, bajo la cabecera.
         let after = log.rows.last(where: { day($0) != nil })?.line ?? (log.headerLine + 1)
-        lines.insert(row, at: after + 1)
+        lines.insertClamped(row, at: min(after + 1, lines.count))   // una tabla que es solo la cabecera, al final del archivo
         return lines.joined(separator: "\n")
     }
 
@@ -294,8 +294,8 @@ extension Edit {
         // La lista va antes del registro, y antes de su título si lo tiene; si no lo tiene, se le pone.
         let heading = (0..<log.headerLine).last { lines[$0].hasPrefix("#") }
         let onlyGap = heading.map { h in ((h + 1)..<log.headerLine).allSatisfy { let t = lines[$0].trimmingCharacters(in: .whitespaces); return t.isEmpty || t.hasPrefix(">") } } ?? false
-        if let h = heading, onlyGap { lines.insert(contentsOf: listLines, at: h) }
-        else { lines.insert(contentsOf: listLines + ["## Registro", ""], at: log.headerLine) }
+        if let h = heading, onlyGap { lines.insertClamped(contentsOf: listLines, at: h) }
+        else { lines.insertClamped(contentsOf: listLines + ["## Registro", ""], at: log.headerLine) }
         return lines.joined(separator: "\n")
     }
 
@@ -310,7 +310,7 @@ extension Edit {
         guard !list.rows.contains(where: { MD.fold(list.value($0, "medicamento")) == MD.fold(m.name) }) else { return nil }
         var lines = MD.lines(t)
         let after = list.rows.last(where: { !($0.cells.first ?? "").isEmpty })?.line ?? (list.headerLine + 1)
-        lines.insert(medicationRow(m, header: list.header), at: after + 1)
+        lines.insertClamped(medicationRow(m, header: list.header), at: after + 1)
         return lines.joined(separator: "\n")
     }
 }

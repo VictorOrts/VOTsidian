@@ -33,7 +33,7 @@ extension Store {
         out.files.append(NoteFile(path: rel))
         out.texts[rel] = entry.text
         out.links[rel] = entry.parsed.links
-        if entry.parsed.meta["tipo"] != "compra" { out.tasks += entry.parsed.tasks }   // la lista de la compra no son tareas
+        if !notTaskTypes.contains(entry.parsed.meta["tipo"] ?? "") { out.tasks += entry.parsed.tasks }   // la compra y el equipaje no son tareas
         out.metas[rel] = entry.parsed.meta
         out.tags[rel] = entry.parsed.tags
         out.snippets[rel] = entry.parsed.snippet

@@ -42,6 +42,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>26.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSCalendarsFullAccessUsageDescription</key><string>VOTsidian crea un calendario propio, «VOTsidian», con tus avisos (citas, pagos, caducidades…) y lo mantiene al día. Nunca cambia tus otros calendarios.</string>
+  <key>NSCalendarsUsageDescription</key><string>VOTsidian crea un calendario propio, «VOTsidian», con tus avisos (citas, pagos, caducidades…) y lo mantiene al día. Nunca cambia tus otros calendarios.</string>
   <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
@@ -50,8 +52,9 @@ PLIST
 # Sin SIGN_ID usa el primer certificado «Apple Development» válido del llavero (firma estable entre builds); si no hay, firma ad hoc.
 if [ -n "${SIGN_ID:-}" ]; then
   # Firma pedida a propósito: si falla, se para. Developer ID necesita runtime endurecido y sello de tiempo para notarizar.
+  # El runtime endurecido pide declarar el acceso a Calendarios (sincronización con EventKit).
   OPTS=()
-  case "$SIGN_ID" in "Developer ID Application"*) OPTS=(--options runtime --timestamp) ;; esac
+  case "$SIGN_ID" in "Developer ID Application"*) OPTS=(--options runtime --timestamp --entitlements scripts/VOTsidian.entitlements) ;; esac
   codesign --force ${OPTS[@]+"${OPTS[@]}"} --sign "$SIGN_ID" "$APP"
 else
   SIGN_ID=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development: .*\)"/\1/p' | head -1)

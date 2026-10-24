@@ -9,7 +9,7 @@ enum Edit {
         // Sin ninguna fila aún (nota recién creada), va justo debajo de la cabecera de la primera tabla.
         let separator = rows.first { r in !r.cells.isEmpty && r.cells.allSatisfy { $0.range(of: #"^:?-+:?$"#, options: .regularExpression) != nil } }
         guard let last = rows.last(where: { match($0.cells) }) ?? separator else { return nil }
-        lines.insert(row, at: last.index + 1)
+        lines.insertClamped(row, at: last.index + 1)
         return lines.joined(separator: "\n")
     }
 
@@ -40,7 +40,7 @@ enum Edit {
         var j = h + 2
         while j < lines.count, MD.isTable(lines[j]) {
             let c = MD.cells(lines[j])
-            if MD.fold(c[0]) == MD.fold(habit), day + 1 < c.count {
+            if MD.fold(c[0]) == MD.fold(habit), day >= 0, day + 1 < c.count {
                 lines[j] = MD.setCell(lines[j], col: day + 1, value: c[day + 1].contains("✅") ? "" : "✅")
                 return lines.joined(separator: "\n")
             }
@@ -104,7 +104,7 @@ enum Edit {
             return lines.joined(separator: "\n")
         }
         let lastItem = r.last(where: { lines[$0].hasPrefix("- ") }) ?? r.lowerBound - 1
-        lines.insert(line, at: lastItem + 1)
+        lines.insertClamped(line, at: lastItem + 1)
         return lines.joined(separator: "\n")
     }
 }
@@ -117,7 +117,7 @@ extension Edit {
         let rows = MD.tableRows(lines).filter { range.contains($0.index) }
         guard rows.count >= 2 else { return nil }
         let after = rows.dropFirst(2).last(where: { !($0.cells.first ?? "").isEmpty })?.index ?? rows[1].index
-        lines.insert("| " + cells.joined(separator: " | ") + " |", at: after + 1)
+        lines.insertClamped("| " + cells.joined(separator: " | ") + " |", at: after + 1)
         return lines.joined(separator: "\n")
     }
 
@@ -143,7 +143,7 @@ extension Edit {
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
         let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
-        lines.insert(prefix + task.text + priorityMark(task.priority) + " 📅 \(DayKey.string(next)) 🔁 every \(rule)", at: i + 1)
+        lines.insertClamped(prefix + task.text + priorityMark(task.priority) + " 📅 \(DayKey.string(next)) 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
     }
 }
@@ -173,7 +173,7 @@ extension Edit {
     static func insertTableRow(_ text: String, afterLine: Int, cells: [String]) -> String? {
         var lines = MD.lines(text)
         guard afterLine >= 0, afterLine < lines.count, MD.isTable(lines[afterLine]) else { return nil }
-        lines.insert(rowString(cells), at: afterLine + 1)
+        lines.insertClamped(rowString(cells), at: afterLine + 1)
         return lines.joined(separator: "\n")
     }
 
@@ -228,7 +228,7 @@ extension Edit {
             let quoted = old.hasPrefix("\"") || yamlNeedsQuotes(value)
             lines[i] = "\(key):" + (value.isEmpty ? "" : quoted ? " " + yamlQuoted(value) : " \(value)")
         } else {
-            lines.insert("\(key):" + (value.isEmpty ? "" : yamlNeedsQuotes(value) ? " " + yamlQuoted(value) : " \(value)"), at: end)
+            lines.insertClamped("\(key):" + (value.isEmpty ? "" : yamlNeedsQuotes(value) ? " " + yamlQuoted(value) : " \(value)"), at: end)
         }
         return lines.joined(separator: "\n")
     }
@@ -255,7 +255,7 @@ extension Edit {
             while j < end, lines[j].trimmingCharacters(in: .whitespaces).hasPrefix("- ") { j += 1 }
             lines.replaceSubrange(i..<j, with: new)
         } else {
-            lines.insert(contentsOf: new, at: end)
+            lines.insertClamped(contentsOf: new, at: end)
         }
         return lines.joined(separator: "\n")
     }
@@ -286,7 +286,7 @@ extension Edit {
             if MD.fold(MD.cells(lines[j])[0]) == MD.fold(name) { return text }
             j += 1
         }
-        lines.insert("| \(name) |  |  |  |  |  |  |  |", at: j)
+        lines.insertClamped("| \(name) |  |  |  |  |  |  |  |", at: j)
         return lines.joined(separator: "\n")
     }
 
@@ -311,7 +311,7 @@ extension Edit {
             lines[empty] = line
         } else {
             let last = r.last(where: { lines[$0].hasPrefix("- ") }) ?? (r.lowerBound - 1)
-            lines.insert(line, at: last + 1)
+            lines.insertClamped(line, at: last + 1)
         }
         return lines.joined(separator: "\n")
     }
@@ -513,12 +513,12 @@ extension Edit {
         if let r = MD.section(lines, containing: section) {
             var last = r.last(where: { !lines[$0].trimmingCharacters(in: .whitespaces).isEmpty && lines[$0] != "---" }) ?? (r.lowerBound - 1)
             if last < r.lowerBound - 1 { last = r.lowerBound - 1 }
-            lines.insert(contentsOf: new, at: last + 1)
+            lines.insertClamped(contentsOf: new, at: last + 1)
         } else {
             var at = lines.count
             while at > 0, lines[at - 1].trimmingCharacters(in: .whitespaces).isEmpty { at -= 1 }
             if let hr = lines.lastIndex(of: "---"), hr > 0, hr >= at - 3 { at = hr }
-            lines.insert(contentsOf: ["## \(section)"] + new + [""], at: at)
+            lines.insertClamped(contentsOf: ["## \(section)"] + new + [""], at: at)
         }
         return lines.joined(separator: "\n")
     }

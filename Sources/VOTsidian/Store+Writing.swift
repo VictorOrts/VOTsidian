@@ -211,3 +211,27 @@ extension Store {
 
     func dismissChange(_ id: UUID) { if lastChange?.id == id { lastChange = nil } }
 }
+
+extension Store {
+    /// Copia un archivo elegido (foto, análisis) a la carpeta de su nota, sin pisar nada: si ya hay uno con ese nombre y es el
+    /// mismo, se reutiliza; si es otro, el nuevo se numera («análisis 2.pdf»). Devuelve dónde quedó, o `nil` si no se pudo
+    /// (el motivo queda en `message`).
+    @discardableResult
+    func importFile(_ src: URL, to dir: URL, as name: String? = nil) -> URL? {
+        let fm = FileManager.default
+        let base = name ?? src.lastPathComponent
+        do { try fm.createDirectory(at: dir, withIntermediateDirectories: true) }
+        catch { message = "No se pudo crear la carpeta \(dir.lastPathComponent): \(error.localizedDescription)"; return nil }
+        let (stem, ext) = ((base as NSString).deletingPathExtension, (base as NSString).pathExtension)
+        var dest = dir.appendingPathComponent(base)
+        var n = 2
+        while fm.fileExists(atPath: dest.path) {
+            if fm.contentsEqual(atPath: src.path, andPath: dest.path) { return dest }
+            dest = dir.appendingPathComponent(ext.isEmpty ? "\(stem) \(n)" : "\(stem) \(n).\(ext)")
+            n += 1
+        }
+        do { try fm.copyItem(at: src, to: dest) }
+        catch { message = "No se pudo copiar \(base): \(error.localizedDescription)"; return nil }
+        return dest
+    }
+}

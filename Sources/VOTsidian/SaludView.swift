@@ -139,15 +139,12 @@ struct SaludView: View {
         panel.allowedContentTypes = [.pdf, .image]
         panel.message = "Elige el PDF o la imagen del análisis"
         guard panel.runModal() == .OK, let src = panel.url else { return }
-        let dir = store.url(VaultPath.beside("medico", "Análisis"))
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let dest = dir.appendingPathComponent(src.lastPathComponent)
-        if !FileManager.default.fileExists(atPath: dest.path) { try? FileManager.default.copyItem(at: src, to: dest) }
+        guard let dest = store.importFile(src, to: store.url(VaultPath.beside("medico", "Análisis"))) else { return }
         store.reload()
         var cells = [String](repeating: "", count: table.header.count)
         if cells.count > 0 { cells[0] = DayKey.dmy(Date()) }
         if cells.count > 1 { cells[1] = "Análisis" }
-        if cells.count > 2 { cells[2] = "[[\(src.lastPathComponent)]]" }
+        if cells.count > 2 { cells[2] = "[[\(dest.lastPathComponent)]]" }
         spec = RowSpec(file: file, mode: .add(afterLine: table.lastLine, headerLine: table.headerLine), title: "análisis", prefill: cells)
     }
 }

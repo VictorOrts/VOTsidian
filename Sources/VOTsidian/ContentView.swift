@@ -4,6 +4,7 @@ enum Screen: String, CaseIterable, Identifiable {
     case inicio = "Inicio", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
     case peso = "Peso", nutricion = "Plan nutricional", medicacion = "Medicación", salud = "Salud y médicos", correlaciones = "Correlaciones"
     case casa = "Casa", compra = "Compra", moda = "Moda", mascota = "Mascota", vehiculo = "Vehículo", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas", gastos = "Gastos"
+    case suscripciones = "Suscripciones", prestamos = "Préstamos", lecturas = "Lecturas", viajes = "Viajes"
     case notas = "Notas", bases = "Bases", grafo = "Grafo", enlaces = "Enlaces rotos", avisos = "Avisos", ajustes = "Ajustes"
     var id: String { rawValue }
     var icon: String {
@@ -27,6 +28,10 @@ enum Screen: String, CaseIterable, Identifiable {
         case .moda: "tshirt"
         case .mascota: "pawprint"
         case .vehiculo: "car"
+        case .suscripciones: "repeat"
+        case .prestamos: "creditcard.and.123"
+        case .lecturas: "book"
+        case .viajes: "airplane"
         case .personas: "person.2"
         case .documentos: "doc.on.doc"
         case .finanzas: "eurosign.circle"
@@ -50,7 +55,9 @@ struct ContentView: View {
     private static let sections = [
         SidebarSection(title: "Día a día", color: Brand.accent, screens: [.tareas, .calendario, .planificar, .semana, .mes, .proyectos, .objetivos]),
         SidebarSection(title: "Cuerpo", color: Brand.violet, screens: [.peso, .nutricion, .medicacion, .salud, .correlaciones]),
-        SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .mascota, .vehiculo, .personas, .documentos, .finanzas, .gastos]),
+        SidebarSection(title: "Dinero", color: Brand.sky, screens: [.finanzas, .gastos, .suscripciones, .prestamos]),
+        SidebarSection(title: "Hogar y vida", color: Brand.amber, screens: [.casa, .compra, .moda, .mascota, .vehiculo, .personas, .documentos]),
+        SidebarSection(title: "Ocio", color: Brand.rose, screens: [.viajes, .lecturas]),
         SidebarSection(title: "Conocimiento", color: Brand.info, screens: [.notas, .bases, .grafo, .enlaces]),
         SidebarSection(title: "Sistema", color: Brand.slate, screens: [.avisos, .ajustes]),
     ]
@@ -111,6 +118,10 @@ struct ContentView: View {
         case .moda: ModaView()
         case .mascota: MascotaView()
         case .vehiculo: VehiculoView()
+        case .suscripciones: SuscripcionesView()
+        case .prestamos: PrestamosView()
+        case .lecturas: LecturasView()
+        case .viajes: ViajesView()
         case .personas: PersonasView()
         case .documentos: DocumentosView()
         case .finanzas: FinanzasView()

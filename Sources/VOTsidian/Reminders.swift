@@ -20,6 +20,10 @@ struct ReminderPlan: Equatable {
     var monthlyReviewMinutes = 19 * 60
     /// ITV, seguro… (30 días antes) y mantenimientos con fecha (7 días antes).
     var vehiculo = true
+    /// Renovaciones y fin de prueba (el día antes), cuotas de préstamos y viajes (7 días antes).
+    var suscripciones = true
+    var prestamos = true
+    var viajes = true
 
     /// El plan guardado en Avisos (mismas claves y valores por defecto que `RemindersView`).
     static var stored: ReminderPlan {
@@ -34,6 +38,9 @@ struct ReminderPlan: Equatable {
         plan.monthlyReview = flag("remMonthReview")
         plan.monthlyReviewMinutes = int("remMonthReviewMin", 1140)
         plan.vehiculo = flag("remVehiculo")
+        plan.suscripciones = flag("remSuscripciones")
+        plan.prestamos = flag("remPrestamos")
+        plan.viajes = flag("remViajes")
         return plan
     }
 }
@@ -43,6 +50,9 @@ struct ReminderSources {
     var tasks: [TaskItem] = []
     var mascota = MascotaData()
     var vehiculo = VehiculoData()
+    var suscripciones = SuscripcionesData()
+    var prestamos = PrestamosData()
+    var viajes = ViajesData()
     var people: [Person] = []
     var documents: [(name: String, date: Date)] = []
     var events: [(name: String, date: Date)] = []
@@ -145,6 +155,34 @@ enum ICS {
                 guard let d = s.date, d >= today else { continue }
                 out.append(ICSEvent(uid: "vehiculo-mant-" + stableID(MD.fold(s.what)), title: "\(v.name): \(s.what)",
                                     notes: "Mantenimiento en la nota \(VaultPath.vehiculo).", start: d, minutes: nil, rule: nil, extraTriggers: ["-P7D"]))
+            }
+        }
+        let year = DayKey.adding(days: 365, to: today)
+        if plan.suscripciones {
+            for i in src.suscripciones.items {
+                if i.status == .trial, i.anchor >= today {
+                    out.append(ICSEvent(uid: "susc-prueba-" + stableID(i.name + DayKey.string(i.anchor)), title: "Acaba la prueba: \(i.name) (\(Money.exact(i.amount)))",
+                                        notes: "Cancela antes si no la quieres.", start: i.anchor, minutes: nil, rule: nil, extraTriggers: ["-P2D"]))
+                }
+                for d in i.occurrences(from: today, to: year).prefix(12) {
+                    out.append(ICSEvent(uid: "susc-" + stableID(i.name + DayKey.string(d)), title: "Renueva: \(i.name) (\(Money.exact(i.amount)))",
+                                        notes: "Suscripción en la nota Suscripciones.", start: d, minutes: nil, rule: nil, extraTriggers: ["-P1D"]))
+                }
+            }
+        }
+        if plan.prestamos {
+            for s in src.prestamos.statuses(today: today) {
+                for d in src.prestamos.dueDates(s, upTo: year, limit: 12) {
+                    out.append(ICSEvent(uid: "prestamo-" + stableID(s.loan.name + DayKey.string(d)), title: "Cuota: \(s.loan.name) (\(Money.exact(s.loan.installment)))",
+                                        notes: "Quedan \(Money.exact(s.remaining)) por pagar. Apúntala en VOTsidian.", start: d, minutes: nil, rule: nil, extraTriggers: ["-P1D"]))
+                }
+            }
+        }
+        if plan.viajes {
+            for t in src.viajes.upcoming(today: today) {
+                guard let s = t.start, s >= today else { continue }
+                out.append(ICSEvent(uid: "viaje-" + stableID(t.name + DayKey.string(s)), title: "Viaje: \(t.name)",
+                                    notes: "Viaje en la nota Viajes.", start: s, minutes: nil, rule: nil, extraTriggers: ["-P7D"]))
             }
         }
         if plan.birthdays {

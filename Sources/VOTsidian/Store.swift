@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Dónde está cada archivo en la carpeta. Si la tuya se organiza distinto, cambia la ruta en Ajustes → Módulos → Rutas de
 /// las notas, o desde la terminal: `defaults write <id de la app> vaultPathOverrides -dict peso "Mis notas/Báscula.md"`
-/// (claves: peso, medicacion, plan, proyecto, mascota, vehiculo, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
+/// (claves: peso, medicacion, plan, proyecto, mascota, vehiculo, suscripciones, prestamos, lecturas, viajes, casa, moda, medico, inbox, documentos, personas, objetivos, finanzas, gastos, revisiones, compra, medidas).
 enum VaultPath {
     static let defaults: [String: String] = [
         "peso": "Salud/Peso.md",
@@ -16,6 +16,10 @@ enum VaultPath {
         "proyecto": "Proyectos/Objetivo de peso.md",
         "mascota": "Mascota/Mascota.md",
         "vehiculo": "Vehículo/Vehículo.md",
+        "suscripciones": "Finanzas/Suscripciones.md",
+        "prestamos": "Finanzas/Préstamos.md",
+        "lecturas": "Lecturas/Lecturas.md",
+        "viajes": "Viajes/Viajes.md",
         "casa": "Casa/Casa.md",
         "compra": "Casa/Lista de la compra.md",
         "moda": "Moda/Armario.md",
@@ -52,6 +56,10 @@ enum VaultPath {
     static var proyecto: String { path("proyecto") }
     static var mascota: String { path("mascota") }
     static var vehiculo: String { path("vehiculo") }
+    static var suscripciones: String { path("suscripciones") }
+    static var prestamos: String { path("prestamos") }
+    static var lecturas: String { path("lecturas") }
+    static var viajes: String { path("viajes") }
     static var casa: String { path("casa") }
     static var moda: String { path("moda") }
     static var medico: String { path("medico") }
@@ -86,6 +94,10 @@ final class Store {
     private(set) var medicacion = MedicacionData()
     private(set) var mascota = MascotaData()
     private(set) var vehiculo = VehiculoData()
+    private(set) var suscripciones = SuscripcionesData()
+    private(set) var prestamos = PrestamosData()
+    private(set) var lecturas = LecturasData()
+    private(set) var viajes = ViajesData()
     private(set) var plan = PlanData()
     private(set) var milestones: [Milestone] = []
     private(set) var habitDefs: [HabitDef] = []
@@ -110,7 +122,10 @@ final class Store {
     @ObservationIgnored private(set) var persistsModules = true
     /// Módulos que no se usan: sus pantallas, tarjetas y avisos no salen.
     var hiddenModules: Set<Module> = Set((UserDefaults.standard.stringArray(forKey: "hiddenModules") ?? []).compactMap(Module.init)) {
-        didSet { if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") } }
+        didSet {
+            agendaCache = [:]
+            if persistsModules { UserDefaults.standard.set(hiddenModules.map(\.rawValue).sorted(), forKey: "hiddenModules") }
+        }
     }
     /// Ya se pasó por el asistente del principio.
     var modulesConfigured = UserDefaults.standard.bool(forKey: "modulesConfigured") {
@@ -172,6 +187,8 @@ final class Store {
     @ObservationIgnored var watcher: VaultWatcher?
     /// Día en que se programaron por última vez los avisos del sistema.
     @ObservationIgnored var notificationsDay: String?
+    /// Sincronización en curso con el calendario «VOTsidian» (EventKit).
+    @ObservationIgnored var calendarSyncTask: Task<Void, Never>?
     @ObservationIgnored var generation = 0
     @ObservationIgnored var scanning = false
     @ObservationIgnored var rescanRequested = false
@@ -179,6 +196,9 @@ final class Store {
     private(set) var people: [Person] = []
     private(set) var documents: [(name: String, date: Date, section: String)] = []
     private(set) var events: [(name: String, date: Date, path: String)] = []
+
+    /// Notas con casillas que no son tareas: la lista de la compra y el equipaje de los viajes.
+    nonisolated static let notTaskTypes: Set<String> = ["compra", "viajes"]
 
     struct Change: Equatable { var id = UUID(); var file: String; var undoable: Bool }
 
@@ -210,10 +230,11 @@ final class Store {
         reload()
         if root == nil {
             removeStaleStaging()
+            registerNewModules()
             startWatching()
             startDailyBackup()
             Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications() }
+                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true) }
             }
         }
         pendingNote = ProcessInfo.processInfo.environment["VOT_NOTE"]
@@ -274,7 +295,7 @@ final class Store {
             let v = try? u.resourceValues(forKeys: keys)
             let e = Store.makeEntry(text: text, rel: rel, mtime: v?.contentModificationDate ?? .distantPast, size: v?.fileSize ?? 0)
             cache[rel] = e
-            replaced[rel] = e.parsed.meta["tipo"] == "compra" ? [] : e.parsed.tasks
+            replaced[rel] = Store.notTaskTypes.contains(e.parsed.meta["tipo"] ?? "") ? [] : e.parsed.tasks
         }
         var scan = Scan()
         scan.files = notes
@@ -336,6 +357,7 @@ final class Store {
 
     private func apply(_ scan: Scan) {
         revision += 1
+        refreshCalendarSync()
         agendaCache = [:]
         budgetCache = [:]
         budgetYearCache = [:]
@@ -363,6 +385,10 @@ final class Store {
         derive(VaultPath.medicacion) { medicacion = Parse.medicacion($0) }
         derive(VaultPath.mascota) { mascota = Parse.mascota($0) }
         derive(VaultPath.vehiculo) { vehiculo = Parse.vehiculo($0) }
+        derive(VaultPath.suscripciones) { suscripciones = Parse.suscripciones($0) }
+        derive(VaultPath.prestamos) { prestamos = Parse.prestamos($0) }
+        derive(VaultPath.lecturas) { lecturas = Parse.lecturas($0) }
+        derive(VaultPath.viajes) { viajes = Parse.viajes($0) }
         derive(VaultPath.plan) { plan = Parse.plan($0) }
         derive(VaultPath.proyecto) { milestones = Parse.milestones($0) }
         tasks = allTasks

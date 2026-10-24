@@ -7,7 +7,7 @@ import Foundation
 // que empieza de cero elige lo que quiere y la app le crea esas notas con el formato correcto.
 
 enum Module: String, CaseIterable, Identifiable {
-    case peso, nutricion, medicacion, salud, finanzas, casa, compra, moda, mascota, vehiculo, personas, documentos, objetivos
+    case peso, nutricion, medicacion, salud, finanzas, suscripciones, prestamos, casa, compra, moda, mascota, vehiculo, viajes, lecturas, personas, documentos, objetivos
 
     var id: String { rawValue }
 
@@ -23,6 +23,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .moda: "Ropa"
         case .mascota: "Mascota"
         case .vehiculo: "Vehículo"
+        case .suscripciones: "Suscripciones"
+        case .prestamos: "Préstamos y deudas"
+        case .viajes: "Viajes"
+        case .lecturas: "Lecturas"
         case .personas: "Personas"
         case .documentos: "Documentos"
         case .objetivos: "Objetivos"
@@ -41,6 +45,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .moda: "Lo que quieres comprar de ropa, con precio, prioridad y estado."
         case .mascota: "Ficha, visitas al veterinario, vacunas y avisos de la próxima."
         case .vehiculo: "ITV, seguro e impuesto con aviso, mantenimiento por km o meses, repostajes y consumo."
+        case .suscripciones: "Qué se renueva y cuándo, avisos antes del cobro y de que acabe una prueba, y lo que cuestan al año."
+        case .prestamos: "Lo que debes, la cuota de cada mes, cuántas quedan y cuándo acabas. Los pagos pueden ir también a Gastos."
+        case .viajes: "Fechas, presupuesto y gastos de cada viaje, lista de equipaje y aviso si el pasaporte caduca pronto."
+        case .lecturas: "Libros pendientes, leyendo y terminados, con un objetivo anual y tu ritmo de lectura."
         case .personas: "Cumpleaños y cuándo hablaste por última vez con cada persona."
         case .documentos: "DNI, pasaporte, seguros… con avisos antes de que caduquen."
         case .objetivos: "Objetivos por área y una revisión cada trimestre."
@@ -59,6 +67,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .moda: "tshirt"
         case .mascota: "pawprint"
         case .vehiculo: "car"
+        case .suscripciones: "repeat"
+        case .prestamos: "creditcard.and.123"
+        case .viajes: "airplane"
+        case .lecturas: "book"
         case .personas: "person.2"
         case .documentos: "doc.on.doc"
         case .objetivos: "target"
@@ -77,6 +89,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .moda: [.moda]
         case .mascota: [.mascota]
         case .vehiculo: [.vehiculo]
+        case .suscripciones: [.suscripciones]
+        case .prestamos: [.prestamos]
+        case .viajes: [.viajes]
+        case .lecturas: [.lecturas]
         case .personas: [.personas]
         case .documentos: [.documentos]
         case .objetivos: [.objetivos]
@@ -96,6 +112,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .moda: ["moda"]
         case .mascota: ["mascota"]
         case .vehiculo: ["vehiculo"]
+        case .suscripciones: ["suscripciones"]
+        case .prestamos: ["prestamos"]
+        case .viajes: ["viajes"]
+        case .lecturas: ["lecturas"]
         case .personas: ["personas"]
         case .documentos: ["documentos"]
         case .objetivos: ["objetivos"]
@@ -104,6 +124,16 @@ enum Module: String, CaseIterable, Identifiable {
 
     /// Lo que se marca de entrada en el asistente: lo que sirve a casi cualquiera.
     static let suggested: Set<Module> = [.finanzas, .compra, .salud, .personas, .documentos, .objetivos]
+
+    /// Los módulos que ya existían antes de que la app recordara cuáles conocía.
+    static let original: Set<Module> = [.peso, .nutricion, .medicacion, .salud, .finanzas, .casa, .compra, .moda, .mascota, .personas, .documentos, .objetivos]
+
+    /// Módulos que han llegado a la app desde la última vez y que no tienen nota todavía: en una carpeta ya configurada se
+    /// ocultan hasta que se activen a propósito. `known` son los que la app ya conocía (`nil` antes de que los recordara).
+    static func arrivals(known: [String]?, hasNotes: (Module) -> Bool) -> [Module] {
+        let before = known.map { Set($0.compactMap(Module.init)) } ?? original
+        return allCases.filter { !before.contains($0) && !hasNotes($0) }
+    }
 
     /// Módulo al que pertenece una pantalla; `nil` para las de la base, que no se pueden ocultar.
     static func of(_ screen: Screen) -> Module? { allCases.first { $0.screens.contains(screen) } }
@@ -115,7 +145,7 @@ enum Starter {
     /// Nombre de cada ruta configurable, para Ajustes.
     static let labels: [String: String] = [
         "peso": "Peso", "medidas": "Medidas", "plan": "Plan nutricional", "proyecto": "Proyecto con hitos de peso",
-        "medicacion": "Medicación", "medico": "Salud y médicos", "mascota": "Mascota", "vehiculo": "Vehículo", "casa": "Casa", "moda": "Ropa",
+        "medicacion": "Medicación", "medico": "Salud y médicos", "mascota": "Mascota", "vehiculo": "Vehículo", "suscripciones": "Suscripciones", "prestamos": "Préstamos y deudas", "lecturas": "Lecturas", "viajes": "Viajes", "casa": "Casa", "moda": "Ropa",
         "inbox": "Bandeja de tareas", "documentos": "Documentos", "personas": "Personas", "objetivos": "Objetivos",
         "finanzas": "Finanzas", "gastos": "Carpeta de gastos (una nota por mes)", "revisiones": "Carpeta de revisiones", "compra": "Lista de la compra",
     ]
@@ -225,6 +255,85 @@ enum Starter {
 
             | Fecha | Km | Litros | Importe |
             | :---- | -: | -----: | ------: |
+
+            """
+        case "suscripciones":
+            return """
+            ---
+            tipo: suscripciones
+            ---
+
+            # Suscripciones
+
+            > Pon en «Próximo cobro» un cobro cualquiera de la serie (el último o el próximo): la app calcula los siguientes. «Cada»: mensual, trimestral, anual, «cada 2 semanas»… «Estado»: Activa, Prueba (con la fecha en que acaba) o Cancelada. «Partida» es la de Gastos a la que va cada cobro.
+
+            ## Servicios
+
+            | Servicio | Importe | Cada | Próximo cobro | Partida | Estado | Notas |
+            | :------- | ------: | :--- | :------------ | :------ | :----- | :---- |
+
+            """
+        case "prestamos":
+            return """
+            ---
+            tipo: prestamos
+            ---
+
+            # Préstamos y deudas
+
+            > «Pendiente» es lo que debes hoy, al empezar a apuntar aquí; los pagos de abajo lo van bajando. «Cuota» y «Día» (del mes) son opcionales: sin ellos, es una deuda que pagas cuando puedes. «Partida» es la de Gastos a la que va cada cuota.
+
+            ## Lo que debo
+
+            | Préstamo | Pendiente | Cuota | Día | Hasta | Partida | Notas |
+            | :------- | --------: | ----: | :-: | :---- | :------ | :---- |
+
+            ## Pagos
+
+            | Fecha | Préstamo | Importe | Notas |
+            | :---- | :------- | ------: | :---- |
+
+            """
+        case "lecturas":
+            return """
+            ---
+            tipo: lecturas
+            objetivo_anual:
+            ---
+
+            # Lecturas
+
+            > «Estado»: Pendiente, Leyendo, Terminado o Abandonado. «Nota» de 1 a 5 (o con ⭐). Fechas en AAAA-MM-DD. «objetivo_anual» son los libros que quieres terminar este año.
+
+            ## Libros
+
+            | Título | Autor | Estado | Empezado | Terminado | Nota | Páginas |
+            | :----- | :---- | :----- | :------- | :-------- | :--- | ------: |
+
+            """
+        case "viajes":
+            return """
+            ---
+            tipo: viajes
+            ---
+
+            # Viajes
+
+            > «Estado»: Idea, Planeando, Reservado, Hecho o Cancelado. Fechas en AAAA-MM-DD. Los gastos se apuntan con el nombre exacto del destino.
+
+            ## Destinos
+
+            | Destino | Salida | Vuelta | Presupuesto | Estado | Notas |
+            | :------ | :----- | :----- | ----------: | :----- | :---- |
+
+            ## Gastos del viaje
+
+            | Fecha | Viaje | Concepto | Importe |
+            | :---- | :---- | :------- | ------: |
+
+            ## Equipaje
+
+            > Tu lista de siempre: se marca al hacer la maleta y «Desmarcar todo» la deja lista para el próximo viaje.
 
             """
         case "plan":
@@ -437,6 +546,19 @@ extension Store {
         modulesConfigured = true
         undoStack.removeAll()   // lo recién creado no es un cambio que deshacer
         lastChange = nil
+    }
+
+    /// Oculta los módulos nuevos de una carpeta que ya estaba configurada (y avisa), para que no salgan solos en la barra lateral.
+    /// Una carpeta nueva pasa por el asistente, que ya deja elegir.
+    func registerNewModules(defaults: UserDefaults = .standard) {
+        defer { defaults.set(Module.allCases.map(\.rawValue), forKey: "knownModules") }
+        guard modulesConfigured || !looksNew else { return }
+        let new = Module.arrivals(known: defaults.stringArray(forKey: "knownModules")) { m in
+            m.files.contains { exists(VaultPath.path($0)) || pendingDownloads.contains(VaultPath.path($0)) }
+        }
+        guard !new.isEmpty else { return }
+        hiddenModules.formUnion(new)
+        message = "Módulos nuevos: \(new.map(\.title).joined(separator: ", ")). Actívalos en Ajustes → Módulos si los quieres."
     }
 
     func isVisible(_ s: Screen) -> Bool { Module.of(s).map { !hiddenModules.contains($0) } ?? true }

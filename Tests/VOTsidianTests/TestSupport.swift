@@ -162,9 +162,104 @@ km:
 
 """
 
+/// Día relativo a hoy, como AAAA-MM-DD.
+func isoDay(_ offset: Int) -> String { DayKey.string(DayKey.adding(days: offset, to: DayKey.today())) }
+
+/// Netflix con ancla antigua, Spotify que se renueva en 3 días, una prueba que acaba en 2, un servicio anual y uno cancelado.
+let suscripcionesFixture = """
+---
+tipo: suscripciones
+---
+
+# Suscripciones
+
+## Servicios
+
+| Servicio | Importe | Cada | Próximo cobro | Partida | Estado | Notas |
+| :------- | ------: | :--- | :------------ | :------ | :----- | :---- |
+| Netflix | 12,99 € | Mensual | 2026-01-15 | Suscripciones (música y nube) | Activa | |
+| Spotify | 10,99 € | mensual | \(isoDay(3)) | | Activa | |
+| Cloud | 99 € | Anual | 2025-12-01 | | Activa | |
+| Curso | 29 € | Mensual | \(isoDay(2)) | | Prueba | |
+| Gimnasio | 40 € | Mensual | 2025-05-01 | | Cancelada | |
+
+"""
+
+/// Un préstamo con cuota el día 15 (dos pagos hechos) y una deuda sin cuota.
+let prestamosFixture = """
+---
+tipo: prestamos
+---
+
+# Préstamos y deudas
+
+## Lo que debo
+
+| Préstamo | Pendiente | Cuota | Día | Hasta | Partida | Notas |
+| :------- | --------: | ----: | :-: | :---- | :------ | :---- |
+| Coche | 6.000 € | 500 € | 15 | | Préstamo personal | |
+| Ana | 200 € | | | | | |
+
+## Pagos
+
+| Fecha | Préstamo | Importe | Notas |
+| :---- | :------- | ------: | :---- |
+| 2026-08-15 | Coche | 500 | |
+| 2026-09-15 | Coche | 500 | |
+
+"""
+
+/// Un libro terminado este año, uno en marcha y uno pendiente, con objetivo de 12.
+let lecturasFixture = """
+---
+tipo: lecturas
+objetivo_anual: 12
+---
+
+# Lecturas
+
+## Libros
+
+| Título | Autor | Estado | Empezado | Terminado | Nota | Páginas |
+| :----- | :---- | :----- | :------- | :-------- | :--- | ------: |
+| Dune | Frank Herbert | Terminado | \(DayKey.calendar().component(.year, from: DayKey.today()))-01-01 | \(DayKey.calendar().component(.year, from: DayKey.today()))-01-02 | ⭐⭐⭐⭐ | 600 |
+| Hábitos atómicos | James Clear | Leyendo | \(isoDay(-10)) | | | 320 |
+| Sapiens | Yuval Harari | Pendiente | | | | |
+
+"""
+
+/// Lisboa dentro de 20 días con 800 € de presupuesto, Roma ya hecho y equipaje con una cosa metida.
+let viajesFixture = """
+---
+tipo: viajes
+---
+
+# Viajes
+
+## Destinos
+
+| Destino | Salida | Vuelta | Presupuesto | Estado | Notas |
+| :------ | :----- | :----- | ----------: | :----- | :---- |
+| Lisboa | \(isoDay(20)) | \(isoDay(25)) | 800 € | Reservado | |
+| Roma | \(isoDay(-400)) | \(isoDay(-395)) | 600 € | Hecho | |
+
+## Gastos del viaje
+
+| Fecha | Viaje | Concepto | Importe |
+| :---- | :---- | :------- | ------: |
+| \(isoDay(0)) | Lisboa | Vuelo | 120 € |
+
+## Equipaje
+
+- [ ] Cargador
+- [x] DNI
+
+"""
+
 func syntheticVault() throws -> URL {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("vault-\(UUID().uuidString)/V")
-    let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture,
+    let files = [VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture, VaultPath.suscripciones: suscripcionesFixture,
+                 VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture,
                  "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture,
                  "Notas/A.md": "# A\nver [[B]]\n", "Notas/B.md": "# B\ntexto\n",
                  "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),

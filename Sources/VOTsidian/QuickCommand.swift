@@ -13,6 +13,9 @@ enum QuickCommand: Equatable {
     case measure(String, Double, Date)
     case shopping([String])
     case expense(ExpenseParser.Result)
+    case book(String, String)                    // título, autor
+    case finishBook(String)
+    case loanPayment(String)
 
     /// Lo que va a hacer, para enseñarlo antes de ejecutarlo.
     var summary: String {
@@ -29,6 +32,9 @@ enum QuickCommand: Equatable {
         case .appointment(let t, let d): return "Cita «\(t)» el \(day(d))"
         case .measure(let f, let v, let d): return "Medida de \(f.lowercased()): \(MD.formatNumber(v, comma: true)) (\(day(d)))"
         case .shopping(let items): return "Añadir a la compra: \(items.joined(separator: ", "))"
+        case .book(let t, let a): return "Añadir a Lecturas: «\(t)»" + (a.isEmpty ? "" : " de \(a)")
+        case .finishBook(let t): return "Terminar «\(t)» hoy"
+        case .loanPayment(let t): return "Apuntar la cuota de «\(t)»"
         case .expense(let p):
             return (p.amount < 0 ? "Devolución de \(Money.exact(-p.amount))" : "Gasto de \(Money.exact(p.amount))") + (p.category.map { " en \($0)" } ?? "") + (p.note.isEmpty ? "" : " · \(p.note)") + " (\(day(p.date)))"
         }
@@ -65,7 +71,7 @@ enum QuickCommand: Equatable {
             guard let (kg, d) = numberAndDate(), (30...400).contains(kg) else { return nil }
             return .weight(kg, d)
         case "animo", "humor":
-            guard let (n, d) = numberAndDate(), n == n.rounded(), (1...5).contains(Int(n)) else { return nil }
+            guard let (n, d) = numberAndDate(), n == n.rounded(), (1...5).contains(n) else { return nil }
             return .mood(Int(n), d)
         case "sueno", "dormi", "dormido":
             guard let (h, d) = numberAndDate(), h > 0, h <= 16 else { return nil }
@@ -93,6 +99,12 @@ enum QuickCommand: Equatable {
             let items = arg.replacingOccurrences(of: " y ", with: ",").split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             return items.isEmpty ? nil : .shopping(items)
+        case "libro":
+            let parts = arg.components(separatedBy: " - ").map { $0.trimmingCharacters(in: .whitespaces) }
+            guard let title = parts.first, !title.isEmpty else { return nil }
+            return .book(title, parts.dropFirst().joined(separator: " - "))
+        case "termine", "terminado", "acabe", "lei": return .finishBook(arg)
+        case "cuota": return .loanPayment(arg)
         default:
             if let field = measureFields[verb], let (v, d) = numberAndDate(), v > 0 { return .measure(field, v, d) }
             return nil
@@ -149,13 +161,13 @@ enum Shopping {
         let new = fresh.map { "- [ ] \($0)" }
         if let r = MD.section(lines, containing: category), let head = (0..<lines.count).first(where: { lines[$0].hasPrefix("## ") && MD.fold(lines[$0]).contains(MD.fold(category)) }) {
             let last = r.last(where: { lines[$0].hasPrefix("- [") }) ?? head
-            lines.insert(contentsOf: new, at: last + 1)
+            lines.insertClamped(contentsOf: new, at: last + 1)
         } else {
             // sección nueva antes del pie (no antes del cierre del encabezado YAML, que también es «---»)
             var at = lines.count
             let header = lines.first == "---" ? lines.dropFirst().firstIndex(of: "---") ?? 0 : 0
             if let hr = lines.lastIndex(of: "---"), hr > header { at = hr }
-            lines.insert(contentsOf: ["## \(category)"] + new + [""], at: at)
+            lines.insertClamped(contentsOf: ["## \(category)"] + new + [""], at: at)
         }
         return (lines.joined(separator: "\n"), fresh.count)
     }
