@@ -440,7 +440,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | Escribe | Hace |
 |---|---|
 | `peso 105,5` | Apunta el peso (también «ayer» o una fecha detrás). |
-| `ánimo 4`, `dormí 7,5` | Apunta el ánimo (1 a 5) o las horas de sueño del día. |
+| `dormí 7,5` | Apunta las horas de sueño del día (también «ayer» o una fecha detrás). |
 | `pinchazo hoy` | Apunta la toma del medicamento principal. |
 | `tarea llamar al dentista el viernes` | Crea una tarea con fecha, prioridad o repetición. |
 | `cita dentista el 29/10 a las 17:30` | Añade una cita a Salud, con hora si la dices. |
@@ -457,7 +457,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | Nota | Dónde | Qué guarda |
 |---|---|---|
 | Revisión semanal | `Revisiones/AAAA-Wnn.md` | Los hábitos de la semana, logros y objetivos. |
-| Nota del día | `Diario/AAAA-MM-DD.md` | El ánimo, el sueño y lo que escribas. |
+| Nota del día | `Diario/AAAA-MM-DD.md` | Las horas de sueño (`sueno_h:`) y lo que escribas. |
 | Gastos del mes | `Finanzas/Gastos/AAAA-MM.md` | El presupuesto y los movimientos del mes. |
 | Plantillas | `Plantillas/` | Las 10 de ejemplo, si las pides en el asistente o en «Nueva nota». |
 
