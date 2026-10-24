@@ -91,6 +91,8 @@ struct TaskSheet: View {
     @State private var hasDue = false
     @State private var due = Date()
     @State private var priority = 0
+    @State private var hasTime = false
+    @State private var time = TimeOfDay.date(10 * 60)
     @State private var confirmDelete = false
 
     var body: some View {
@@ -101,6 +103,8 @@ struct TaskSheet: View {
             HStack {
                 Toggle("Fecha límite", isOn: $hasDue).toggleStyle(.checkbox)
                 DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue)
+                Toggle("A las", isOn: $hasTime).toggleStyle(.checkbox).disabled(!hasDue)
+                DatePicker("Hora", selection: $time, displayedComponents: .hourAndMinute).labelsHidden().disabled(!hasDue || !hasTime).fixedSize()
             }
             Text("Está en la nota \(task.noteName).").font(.caption).foregroundStyle(.secondary)
             HStack {
@@ -109,13 +113,17 @@ struct TaskSheet: View {
                 Spacer()
                 Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("Guardar") {
-                    store.updateTask(task, text: text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : nil, priority: priority)
+                    store.updateTask(task, text: text, due: hasDue ? DayKey.calendar().startOfDay(for: due) : nil, priority: priority,
+                                     time: .some(hasDue && hasTime ? TimeOfDay.minutes(of: time) : nil))
                     dismiss()
                 }.keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding(22)
-        .onAppear { text = task.text; hasDue = task.due != nil; due = task.due ?? Date(); priority = task.priority }
+        .onAppear {
+            text = task.text; hasDue = task.due != nil; due = task.due ?? Date(); priority = task.priority
+            hasTime = task.time != nil; if let t = task.time { time = TimeOfDay.date(t) }
+        }
     }
 }
 

@@ -31,7 +31,7 @@ private let fragments: [String] = [
     "| :--- | :---: | ---: |", "|---|", "| --- |", "| 2026-10-01 | 80 | x |", "| 01/10/2026 | 80,5 |", "| 2026-10-01 | Coche | 500 | |", "|", "||", "| a | b", "a | b |", "| \\| | x |", "| | | |",
     "| 31/02/2026 | 1e999 | |", "| Netflix | 12,99 € | Mensual | 2026-01-15 | | Activa | |", "| Dune | Herbert | Terminado | 2026-01-01 | 2026-01-20 | ⭐⭐⭐ | 600 |", "| Lisboa | 2026-12-01 | 2026-12-05 | 800 € | Reservado | |",
     "| 2026-10-01 | 114.100 | 30 | 47,40 € |", "| 2026-01-10 | 100.000 | Aceite | Taller | 180 € | 15.000 | 12 |", "| Coche | 6.000 € | 500 € | 15 | | Préstamo | |",
-    "- [ ] tarea 📅 2026-10-01", "- [x] hecha ✅ 2026-10-01 [completion:: 2026-10-02]", "- [ ] 🔁 every 0 days", "- [ ] ⏫ 📅 9999-99-99", "* [ ] x", "1. [ ] y", "- [ ]", "- [x]x", "- [ ] 📅 2026-02-30", "- [ ] 🔁 every month when done 📅 2026-01-31",
+    "- [ ] tarea 📅 2026-10-01", "- [x] hecha ✅ 2026-10-01 [completion:: 2026-10-02]", "- [ ] 🔁 every 0 days", "- [ ] ⏫ 📅 9999-99-99", "* [ ] x", "1. [ ] y", "- [ ]", "- [x]x", "- [ ] 📅 2026-02-30", "- [ ] 🔁 every month when done 📅 2026-01-31", "- [ ] cita 📅 2026-11-02 ⏰ 17:30", "- [ ] mal ⏰ 99:99 📅 2026-11-02", "- [ ] ⏰ 9:05",
     "```", "```grafica\ntabla: X\ny: A,B\ntipo: tarta\n```", "```dataviewjs\nconst x = '| 1 | 2 |';\n```", "~~~", "> cita", "> [!note] aviso",
     "[[A]]", "![[B#C]]", "![[x.png]]", "[[", "]]", "[[a|b]]", "[[#]]", "[[A]] [[A]] [[A]]", "![[]]", "#etiqueta #otra/sub #123",
     "ñandú ✅ 🎉", "\u{200B}\u{202E}rtl", "e\u{0301}e\u{0301}", String(repeating: "a", count: 5000), String(repeating: "| x ", count: 400) + "|", "     ", "\t\t|\t|", "",
@@ -141,10 +141,10 @@ private func editEverything(_ t: String, _ r: inout Rng) {
 @Test func randomLinesNeverCrashTheLineParsers() {
     var r = Rng(state: 99 &+ seed)
     let words = ["peso", "animo", "dormi", "gasto", "cuota", "libro", "tarea", "cita", "compra", "pinchazo", "cintura", "devolucion", "termine", "hoy", "mañana", "ayer", "el viernes", "el 29/10", "cada mes",
-                 "cada 2 semanas", "25/11", "2026-02-30", "99999999999999999999", "el ٢٩", "en ٣ días", "٢٢ € cena", "２９/１０", "1,5", "-3", "€", "22 € cena con Ana", "0,0", "NaN", "inf", "⏫", "🔁", "📅", "#etiqueta", "carpeta:casa", "tipo:evento", "[[", "]]", "\u{202E}"]
+                 "cada 2 semanas", "25/11", "2026-02-30", "99999999999999999999", "el ٢٩", "en ٣ días", "٢٢ € cena", "２９/１０", "1,5", "-3", "€", "22 € cena con Ana", "0,0", "NaN", "inf", "⏫", "🔁", "📅", "#etiqueta", "carpeta:casa", "tipo:evento", "[[", "]]", "\u{202E}", "a las 17:30", "a las 5 de la tarde", "a las 9 y media", "sobre las 25:61", "a mediodía", "⏰ 17:30", "17:30", "a la 1", "menos cuarto"]
     for _ in 0..<(4000 * scale) {
         let s = (0..<Int.random(in: 1...7, using: &r)).map { _ in words.randomElement(using: &r)! }.joined(separator: Bool.random(using: &r) ? " " : "")
-        _ = (QuickCommand.parse(s), NaturalDate.extract(s), NaturalDate.extractTask(s), ExpenseParser.parse(s, categories: ["Alimentación", "Transporte"], people: ["Ana"], learned: ["cena": "Alimentación"]))
+        _ = (QuickCommand.parse(s), NaturalDate.extract(s), NaturalDate.extractTask(s), NaturalDate.extractTime(s), NaturalDate.extractDateTime(s), ExpenseParser.parse(s, categories: ["Alimentación", "Transporte"], people: ["Ana"], learned: ["cena": "Alimentación"]))
         let q = SearchQuery.parse(s)
         _ = (q, SearchEngine.matches(MD.fold(s), q), SearchEngine.bestLine(in: s, q), SearchEngine.highlight(s, q), SuscripcionesData.Period.parse(s), CalendarEventSpec.Recurrence.parse(s), CalendarEventSpec.seconds(s), Recurrence.describe(s), Money.parse(s), MD.number(s), Vehiculo.km(s))
         _ = (MD.fold(s), MD.cells(s), MD.rawCells(s), MD.escapeCell(s), DayKey.date(s), DayKey.dmyDate(s), Medication.every(s), Medication.times(s))

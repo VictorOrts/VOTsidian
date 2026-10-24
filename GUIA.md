@@ -153,11 +153,11 @@ Una nota con una sola tabla `Fecha | Dosis | Zona | Notas` (y `nombre` y `cada_d
 ### Salud y médicos
 
 Tiene tres secciones:
-- **`## Próximas citas`:** una tarea con fecha por cita, por ejemplo `- [ ] Dentista 📅 2026-11-02`.
+- **`## Próximas citas`:** una tarea con fecha por cita, y la hora si la sabes: `- [ ] Dentista 📅 2026-11-02 ⏰ 17:30`. Las citas avisan el día anterior y, con hora, también una hora antes (en Calendar y en las notificaciones).
 - **`## Tratamientos`:** una lista con `- `.
 - **`## Análisis`:** una tabla `Fecha | Prueba | Resultado | Notas`.
 
-Las notas de cada visita se crean desde la pantalla, con «Nueva nota de visita». Los PDF o imágenes de análisis se copian a la carpeta `Análisis`; si ya hay un archivo con el mismo nombre que es otro distinto, el nuevo se numera («análisis 2.pdf») y nunca se pisa nada.
+Las notas de cada visita se crean desde la pantalla, con «Nueva nota de visita»; en su encabezado, `fecha:` y `hora:` (`17:30`) las ponen en el Calendario. Los PDF o imágenes de análisis se copian a la carpeta `Análisis`; si ya hay un archivo con el mismo nombre que es otro distinto, el nuevo se numera («análisis 2.pdf») y nunca se pisa nada.
 
 ### Finanzas y gastos
 
@@ -408,11 +408,14 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 | Escribe | Significa |
 |---|---|
 | `📅 2026-11-02` | Fecha límite |
+| `⏰ 17:30` | Hora, detrás de la fecha (opcional). Sin ella, la tarea es de todo el día. |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
 | `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…) |
 | `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja |
 
-En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes».
+En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30».
+
+La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
 
 ## Órdenes rápidas (⌘K)
 
@@ -424,7 +427,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | `ánimo 4`, `dormí 7,5` | Apunta el ánimo (1 a 5) o las horas de sueño del día. |
 | `pinchazo hoy` | Apunta la toma del medicamento principal. |
 | `tarea llamar al dentista el viernes` | Crea una tarea con fecha, prioridad o repetición. |
-| `cita dentista el 29/10` | Añade una cita a Salud. |
+| `cita dentista el 29/10 a las 17:30` | Añade una cita a Salud, con hora si la dices. |
 | `gasto 22 cena con Ana` | Apunta un gasto en la partida que adivina la app. |
 | `compra leche y pan` | Añade a la lista de la compra. |
 | `cintura 98` | Apunta una medida corporal. |

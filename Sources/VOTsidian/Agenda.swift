@@ -55,6 +55,9 @@ struct AgendaItem: Identifiable {
     var task: TaskItem? = nil
     var screen: Screen? = nil
     var path: String? = nil
+    /// Hora, si la tiene (minutos desde medianoche). Lo de todo el día va primero; lo que tiene hora, después y en orden.
+    var minutes: Int? = nil
+    var timeText: String? { minutes.map(TimeOfDay.text) }
 }
 
 extension Store {
@@ -85,7 +88,7 @@ extension Store {
             if t.done {
                 if let c = t.completed { add(AgendaItem(id: "d\(t.id)", kind: .done, title: t.text, detail: t.noteName, date: c, task: t)) }
             } else if let d = t.due {
-                add(AgendaItem(id: "t\(t.id)", kind: isMedical ? .appointment : .task, title: t.text, detail: t.noteName, date: d, task: t, screen: isMedical ? .salud : nil))
+                add(AgendaItem(id: "t\(t.id)", kind: isMedical ? .appointment : .task, title: t.text, detail: t.noteName, date: d, task: t, screen: isMedical ? .salud : nil, minutes: t.time))
             } else if let s = t.scheduled {
                 add(AgendaItem(id: "s\(t.id)", kind: .task, title: t.text, detail: "planeada · \(t.noteName)", date: s, task: t))
             }
@@ -158,7 +161,8 @@ extension Store {
         for e in events { add(AgendaItem(id: "e\(e.path)", kind: .event, title: e.name, date: e.date, path: e.path)) }
         for (path, m) in noteMeta where m["tipo"] == "cita_medica" {
             if let d = m["fecha"].flatMap(DayKey.date) {
-                add(AgendaItem(id: "c\(path)", kind: .appointment, title: ((path as NSString).lastPathComponent as NSString).deletingPathExtension, detail: m["especialidad"] ?? "", date: d, path: path))
+                add(AgendaItem(id: "c\(path)", kind: .appointment, title: ((path as NSString).lastPathComponent as NSString).deletingPathExtension, detail: m["especialidad"] ?? "", date: d, path: path,
+                               minutes: m["hora"].flatMap(TimeOfDay.parse)))
             }
         }
         for t in Parse.tables(read(VaultPath.moda)) where MD.fold(t.title).contains("por comprar") {
@@ -180,7 +184,11 @@ extension Store {
             if let d = DayKey.date(n.name) { add(AgendaItem(id: "n\(n.path)", kind: .diary, title: "Nota del día", date: d, path: n.path)) }
         }
         // Como los avisos: lo de los módulos ocultos no sale en el calendario ni en «Hoy».
-        return out.mapValues { $0.filter { $0.screen.map(isVisible) ?? true } }.filter { !$0.value.isEmpty }
+        // Orden estable: primero lo de todo el día (como se añadió) y después lo que tiene hora, de más temprano a más tarde.
+        return out.mapValues { items in
+            items.filter { $0.screen.map(isVisible) ?? true }.enumerated()
+                .sorted { ($0.element.minutes ?? -1, $0.offset) < ($1.element.minutes ?? -1, $1.offset) }.map(\.element)
+        }.filter { !$0.value.isEmpty }
     }
 
     /// Añade un punto a la nota del día (`Diario/AAAA-MM-DD.md`), que se crea con la fecha ya puesta.

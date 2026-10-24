@@ -16,6 +16,28 @@ extension MD {
     }
 }
 
+/// Hora del día en minutos desde medianoche, como se escribe en las notas («17:30»).
+enum TimeOfDay {
+    static func text(_ minutes: Int) -> String { String(format: "%02d:%02d", minutes / 60, minutes % 60) }
+
+    static func parse(_ s: String) -> Int? {
+        guard let m = s.trimmingCharacters(in: .whitespaces).firstMatch(of: /^([0-9]{1,2})[:.]([0-9]{2})$/),
+              let h = Int(m.1), let mi = Int(m.2), h < 24, mi < 60 else { return nil }
+        return h * 60 + mi
+    }
+
+    /// La hora de una fecha (de un selector de hora).
+    static func minutes(of date: Date) -> Int {
+        let c = DayKey.calendar().dateComponents([.hour, .minute], from: date)
+        return (c.hour ?? 0) * 60 + (c.minute ?? 0)
+    }
+
+    /// Una fecha con esa hora, para enseñarla en un selector.
+    static func date(_ minutes: Int, on day: Date = Date()) -> Date {
+        DayKey.calendar().date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day) ?? day
+    }
+}
+
 enum DayKey {
     /// Se crea una vez: se pide en cada fecha que se analiza o se pinta. La zona horaria sigue a la del sistema.
     private static let shared: Calendar = {

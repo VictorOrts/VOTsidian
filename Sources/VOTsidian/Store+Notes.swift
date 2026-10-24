@@ -205,8 +205,8 @@ extension Store {
         edit(file) { Edit.insertTableRow($0, afterLine: afterLine, cells: cells) }
     }
 
-    func updateTask(_ t: TaskItem, text: String, due: Date?, priority: Int = -1) {
-        edit(t.file) { Edit.updateTask($0, task: t, newText: text, due: due, priority: priority) }
+    func updateTask(_ t: TaskItem, text: String, due: Date?, priority: Int = -1, time: Int?? = nil) {
+        edit(t.file) { Edit.updateTask($0, task: t, newText: text, due: due, priority: priority, time: time) }
     }
 
     func deleteTask(_ t: TaskItem) {

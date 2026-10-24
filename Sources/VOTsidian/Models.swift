@@ -189,6 +189,8 @@ struct TaskItem: Identifiable, Equatable {
     var completed: Date? = nil
     var recurrence: String? = nil
     var priority = 0   // 3 alta ⏫ · 2 media 🔼 · 1 baja 🔽
+    /// Hora (minutos desde medianoche), escrita como `⏰ 17:30` detrás de la fecha. Sin ella, es de día completo.
+    var time: Int? = nil
     var id: String { "\(file):\(line)" }
     var noteName: String { (file as NSString).lastPathComponent.replacingOccurrences(of: ".md", with: "") }
 }

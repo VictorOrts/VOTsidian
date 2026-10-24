@@ -6,10 +6,10 @@ enum QuickCommand: Equatable {
     case mood(Int, Date)
     case sleep(Double, Date)
     case injection(Date)
-    case task(String, Date?, String?, Int)       // texto, fecha, repetición, prioridad
+    case task(String, Date?, String?, Int, Int?)       // texto, fecha, repetición, prioridad, hora
     case idea(String)
     case diary(String)
-    case appointment(String, Date)
+    case appointment(String, Date, Int?)               // texto, fecha, hora
     case measure(String, Double, Date)
     case shopping([String])
     case expense(ExpenseParser.Result)
@@ -25,11 +25,11 @@ enum QuickCommand: Equatable {
         case .mood(let n, let d): return "Anotar ánimo \(n) de 5 (\(day(d)))"
         case .sleep(let h, let d): return "Anotar sueño \(MD.formatNumber(h, comma: true)) h (\(day(d)))"
         case .injection(let d): return "Registrar pinchazo o toma (\(day(d)))"
-        case .task(let t, let d, let r, let p):
-            return "Tarea «\(t)»" + (d.map { " para \(day($0))" } ?? "") + (r.map { " · \(Recurrence.describe($0))" } ?? "") + (p == 3 ? " · urgente" : "")
+        case .task(let t, let d, let r, let p, let h):
+            return "Tarea «\(t)»" + (d.map { " para \(day($0))" } ?? "") + (h.map { " a las \(TimeOfDay.text($0))" } ?? "") + (r.map { " · \(Recurrence.describe($0))" } ?? "") + (p == 3 ? " · urgente" : "")
         case .idea(let t): return "Guardar idea «\(t)»"
         case .diary(let t): return "Añadir a la nota de hoy: «\(t)»"
-        case .appointment(let t, let d): return "Cita «\(t)» el \(day(d))"
+        case .appointment(let t, let d, let h): return "Cita «\(t)» el \(day(d))" + (h.map { " a las \(TimeOfDay.text($0))" } ?? "")
         case .measure(let f, let v, let d): return "Medida de \(f.lowercased()): \(MD.formatNumber(v, comma: true)) (\(day(d)))"
         case .shopping(let items): return "Añadir a la compra: \(items.joined(separator: ", "))"
         case .book(let t, let a): return "Añadir a Lecturas: «\(t)»" + (a.isEmpty ? "" : " de \(a)")
@@ -83,13 +83,13 @@ enum QuickCommand: Equatable {
         case "tarea", "t", "todo", "recordar", "recuerdame":
             let p = NaturalDate.extractTask(arg, today: today)
             guard !p.text.isEmpty else { return nil }
-            return .task(p.text, p.date, p.recurrence, p.priority)
+            return .task(p.text, p.date, p.recurrence, p.priority, p.time)
         case "idea": return .idea(arg)
         case "nota", "diario", "apunta", "apunte": return .diary(arg)
         case "cita", "medico":
-            let p = NaturalDate.extract(arg, today: today)
+            let p = NaturalDate.extractDateTime(arg, today: today)
             guard !p.text.isEmpty else { return nil }
-            return .appointment(p.text, p.date ?? today)
+            return .appointment(p.text, p.date ?? today, p.time)
         case "gasto", "gaste", "pague", "pago":
             return ExpenseParser.parse(arg, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
         case "devolucion", "devuelto", "reembolso":

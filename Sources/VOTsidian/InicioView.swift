@@ -200,6 +200,7 @@ struct InicioView: View {
                 else {
                     HStack(spacing: 9) {
                         Image(systemName: it.kind.icon).foregroundStyle(it.kind.color).frame(width: 18)
+                        if let h = it.timeText { Text(h).monospacedDigit().foregroundStyle(.secondary) }
                         Text(MDParser.inline(it.title))
                         if !it.detail.isEmpty { Text(it.detail).font(.caption).foregroundStyle(.secondary) }
                         Spacer()

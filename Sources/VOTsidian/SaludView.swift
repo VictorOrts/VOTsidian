@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 struct SaludView: View {
     @Environment(Store.self) private var store
     @State private var reason = ""
+    @State private var hasTime = false
+    @State private var time = TimeOfDay.date(10 * 60)
     @State private var date = Date().addingTimeInterval(7 * 86400)
     @State private var medication = ""
     @State private var showNewVisit = false
@@ -19,7 +21,7 @@ struct SaludView: View {
     }
 
     private var appointments: [TaskItem] {
-        store.tasks.filter { $0.file == file && !$0.done }.sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
+        store.tasks.filter { $0.file == file && !$0.done }.sorted { ($0.due ?? .distantFuture, $0.time ?? -1) < ($1.due ?? .distantFuture, $1.time ?? -1) }
     }
 
     var body: some View {
@@ -38,7 +40,7 @@ struct SaludView: View {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .salud)
                 HStack(spacing: 12) {
-                    Tile(title: "Próxima cita", value: next?.due.map { dayLabel($0) } ?? "–",
+                    Tile(title: "Próxima cita", value: next?.due.map { dayLabel($0) + (next?.time.map { " · \(TimeOfDay.text($0))" } ?? "") } ?? "–",
                          note: next.map { "\($0.text) · \(relativeDays(DayKey.days(from: today, to: $0.due!)))" }, tint: (next?.due.map { DayKey.days(from: today, to: $0) <= 7 } ?? false) ? Brand.warn : nil)
                     Tile(title: "Citas pendientes", value: "\(appointments.count)")
                     Tile(title: "Último análisis", value: lastAnalysis.map { dayLabel($0.0) } ?? "–", note: lastAnalysis?.1)
@@ -53,6 +55,8 @@ struct SaludView: View {
                     HStack {
                         TextField("Nueva cita (médico, motivo)", text: $reason).onSubmit(addAppointment)
                         DatePicker("", selection: $date, displayedComponents: .date).labelsHidden()
+                        Toggle("A las", isOn: $hasTime).toggleStyle(.checkbox)
+                        DatePicker("Hora", selection: $time, displayedComponents: .hourAndMinute).labelsHidden().disabled(!hasTime).fixedSize()
                         Button("Añadir cita", action: addAppointment).buttonStyle(.borderedProminent).disabled(reason.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
@@ -124,7 +128,7 @@ struct SaludView: View {
         let t = reason.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
         let d = DayKey.calendar().startOfDay(for: date)
-        store.edit(file) { Edit.appendToSection($0, section: "Próximas citas", line: "- [ ] \(t) 📅 \(DayKey.string(d))") }
+        store.addAppointment(t, date: d, time: hasTime ? TimeOfDay.minutes(of: time) : nil)
         reason = ""
     }
 

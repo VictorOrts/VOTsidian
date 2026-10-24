@@ -109,7 +109,49 @@ enum NaturalDate {
         return (input.trimmingCharacters(in: .whitespaces), nil, .none)
     }
 
-    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0 }
+    struct ParsedTask { var text: String; var date: Date?; var recurrence: String?; var priority = 0; var time: Int? = nil }
+
+    /// La hora escrita en una frase: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «sobre las 10», «a mediodía» o
+    /// «17:30» suelto. Devuelve la frase sin ella y la hora en minutos. «A las 1» a «a las 6» sin «de la mañana» son de la tarde,
+    /// que es como se dice una cita.
+    static func extractTime(_ input: String) -> (text: String, minutes: Int?) {
+        let input = input.precomposedStringWithCanonicalMapping
+        let folded = aligned(input)
+        let ns = folded as NSString
+        let full = NSRange(location: 0, length: ns.length)
+        func group(_ m: NSTextCheckingResult, _ i: Int) -> String? { m.range(at: i).location == NSNotFound ? nil : ns.substring(with: m.range(at: i)) }
+        func cut(_ m: NSTextCheckingResult) -> String {
+            (input as NSString).replacingCharacters(in: m.range, with: "").replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+        }
+        if let re = try? NSRegularExpression(pattern: #"\b(?:a|sobre)\s+las?\s+([0-9]{1,2})(?:[:.h]([0-9]{2}))?(?:\s*h\b)?(?:\s+(y media|y cuarto|menos cuarto))?(?:\s+de la (manana|tarde|noche|madrugada)|\s+(del mediodia))?\b"#),
+           let m = re.firstMatch(in: folded, range: full), var h = group(m, 1).flatMap({ Int($0) }) {
+            var mi = group(m, 2).flatMap { Int($0) } ?? 0
+            switch group(m, 3) {
+            case "y media": mi += 30
+            case "y cuarto": mi += 15
+            case "menos cuarto": h -= 1; mi = 45
+            default: break
+            }
+            let part = group(m, 4)
+            if part == "tarde" || part == "noche" || group(m, 5) != nil { if h < 12 { h += 12 } }
+            else if part == nil, (1...6).contains(h) { h += 12 }
+            if (0..<24).contains(h), (0..<60).contains(mi) { return (cut(m), h * 60 + mi) }
+        }
+        if let re = try? NSRegularExpression(pattern: #"\ba mediodia\b"#), let m = re.firstMatch(in: folded, range: full) { return (cut(m), 12 * 60) }
+        if let re = try? NSRegularExpression(pattern: #"(?<![0-9/])([0-9]{1,2}):([0-9]{2})(?![0-9])(?:\s*h\b)?"#), let m = re.firstMatch(in: folded, range: full),
+           let h = group(m, 1).flatMap({ Int($0) }), let mi = group(m, 2).flatMap({ Int($0) }), h < 24, mi < 60 {
+            return (cut(m), h * 60 + mi)
+        }
+        return (input, nil)
+    }
+
+    /// Fecha y hora de una frase («cita dentista el 29/10 a las 17:30»): primero la hora, luego la fecha con lo que queda.
+    static func extractDateTime(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?, time: Int?) {
+        let t = extractTime(input)
+        let d = extract(t.text, today: today)
+        return (d.text, d.date, t.minutes)
+    }
 
     /// Como `extract`, pero entiende también "cada semana", "cada 15 días", "cada lunes", "todos los meses".
     static func extractTask(_ input: String, today: Date = DayKey.today()) -> ParsedTask {
@@ -124,8 +166,11 @@ enum NaturalDate {
                 base = base.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
             }
         }
-        if priority > 0 { var r = extractTask(base, today: today, noPriority: true); r.priority = priority; return r }
-        return extractTask(base, today: today, noPriority: true)
+        let timed = extractTime(base)
+        var r = extractTask(timed.text, today: today, noPriority: true)
+        r.priority = priority
+        r.time = timed.minutes
+        return r
     }
 
     private static func extractTask(_ input: String, today: Date, noPriority: Bool) -> ParsedTask {
