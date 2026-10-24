@@ -64,6 +64,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   con regex ni un literal `/⏱/`: buscar con `NSString` (ver `TaskDuration.find`).
 - Mi día (`MiDia.swift`, `MiDiaView.swift`): `DayPlan.build` (puro) reparte las tareas en bloques con hora y «sin hora»;
   `TimelineColumn` se comparte con la semana por horas del Calendario. Arrastrar usa el `id` de la tarea como `String`.
+  La selección es el `id` del bloque o del `AgendaItem` (estado de la vista); `EventRef.find` la resuelve y `EventPanel` pinta la
+  ficha. El formulario de una tarea es `TaskEditor` (con `TaskDraft`, puro), compartido con la hoja `TaskSheet`.
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - Registro: `Log.notes/icloud/backups/calendar/notifications` (`Log.swift`). Errores y cuentas `.public`; rutas `.private`;
