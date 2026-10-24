@@ -2,7 +2,6 @@
 
 **Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa, vehículo, trámites, viajes y lecturas en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
 
-[![tests](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml/badge.svg)](https://github.com/VictorOrts/VOTsidian/actions/workflows/test.yml)
 ![macOS 26+](https://img.shields.io/badge/macOS-26%2B-black)
 ![Swift 6.3](https://img.shields.io/badge/Swift-6.3-orange)
 
@@ -149,7 +148,5 @@ VOT_BENCH=1 swift test -c release --filter heavyUserBenchmark          # tiempos
 Los tests nunca tocan tus notas: trabajan sobre copias temporales. Además de los tests por función, hay un fuzz con semilla fija: notas deformadas (tablas rotas, cifras absurdas, dígitos de otros alfabetos, emojis compuestos, bytes inválidos) pasan por todos los lectores y editores y por todas las pantallas, y cada operación de la app se deshace y se repite comprobando la carpeta byte a byte.
 
 **Firma.** `build-app.sh` firma con el primer certificado «Apple Development» del llavero, o ad hoc si no hay ninguno. Para distribuir, `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh` firma con runtime endurecido, sello de tiempo y el permiso de Calendarios ([VOTsidian.entitlements](scripts/VOTsidian.entitlements)), listo para notarizar.
-
-**Integración continua.** Cada push y cada pull request pasan los tests y empaquetan la app ([test.yml](.github/workflows/test.yml)).
 
 **Publicar una versión.** `git tag v1.2 && git push origin v1.2`. GitHub pasa los tests, crea `VOTsidian-1.2.dmg` y lo adjunta a una release ([release.yml](.github/workflows/release.yml)). Si el repositorio tiene los secretos de firma y notarización que lista ese archivo, el `.dmg` sale firmado y notarizado.
