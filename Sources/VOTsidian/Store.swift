@@ -192,6 +192,9 @@ final class Store {
     @ObservationIgnored var notificationsDay: String?
     /// Sincronización en curso con el calendario «VOTsidian» (EventKit).
     @ObservationIgnored var calendarSyncTask: Task<Void, Never>?
+    /// Los avisos calculados por última vez y de qué dependían (ver `alerts()`).
+    @ObservationIgnored var alertsCache: (key: String, alerts: [Alert])?
+    @ObservationIgnored var brokenCountCache: (revision: Int, count: Int)?
     @ObservationIgnored var generation = 0
     @ObservationIgnored var scanning = false
     @ObservationIgnored var rescanRequested = false

@@ -16,6 +16,7 @@ enum Parse {
         d.records.sort { $0.date < $1.date }
         // Sin `peso_inicial_kg`, el punto de partida es el primer pesaje.
         if d.initialKg == 0, let first = d.records.first { d.initialKg = first.kg }
+        d.trendCache = d.smoothed()
         return d
     }
 

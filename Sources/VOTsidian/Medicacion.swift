@@ -95,9 +95,14 @@ struct MedicacionData: Equatable {
 
     func active(on day: Date = DayKey.today()) -> [Medication] { meds.filter { $0.isActive(on: day) } }
 
+    /// Tomas por medicamento (nombre plegado), agrupadas al leer la nota: «próxima toma», «tomadas hoy» o «última dosis» se
+    /// piden muchas veces en cada pintado, y antes recorrían todo el registro cada vez.
+    var intakeIndex: [String: [Dose]] = [:]
+
     func intakes(of m: Medication) -> [Dose] {
         let k = MD.fold(m.name)
-        return intakes.filter { MD.fold($0.med) == k }
+        if intakeIndex.isEmpty && !intakes.isEmpty { return intakes.filter { MD.fold($0.med) == k } }
+        return intakeIndex[k] ?? []
     }
     func last(of m: Medication) -> Dose? { intakes(of: m).last }
 
@@ -208,6 +213,7 @@ extension Parse {
             d.meds = [Medication(name: singleName, dose: d.intakes.last?.dose ?? "", form: "Inyección",
                                  every: fm["cada_dias"].flatMap { Int($0) } ?? 9)]
         }
+        for i in d.intakes { d.intakeIndex[MD.fold(i.med), default: []].append(i) }
         return d
     }
 }

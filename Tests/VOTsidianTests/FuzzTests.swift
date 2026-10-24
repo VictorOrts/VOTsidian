@@ -378,3 +378,16 @@ private func referenceNumber(_ s: String) -> Double? {
     }
     for s in ["105,5", "1.234,5", "1.234.567", "1,234.5", "-3", "a-5", "5-3", "12,99 €", "", "abc", "1e5"] { #expect(MD.number(s) == referenceNumber(s), "\(s)") }
 }
+
+// MARK: El atajo de MDParser.inline da lo mismo que el analizador
+
+@Test func inlineMarkdownShortcutMatchesTheParser() {
+    var r = Rng(state: 777 &+ seed)
+    let pieces = ["texto", " ", "12,99 €", "2026-10-01", "**negrita**", "_cursiva_", "`código`", "[[Nota]]", "![[Foto.png]]", "[[Nota|alias]]", "[web](https://x.es)", "<b>", "~~tachado~~",
+                  "\\*", "&amp;", "a*b", "snake_case", "ñandú", "🎉", "#etiqueta", "100%", "(nota)", "x > y", "- guion", "1. uno", "|", "https://x.es", "www.x.es", "ana@x.es", "mailto:a@b.c", "12:30", "x.es"]
+    for _ in 0..<(3000 * scale) {
+        let s = (0..<Int.random(in: 0...5, using: &r)).map { _ in pieces.randomElement(using: &r)! }.joined()
+        #expect(MDParser.inline(s) == MDParser.parseInline(s), "«\(s)»")
+        #expect(MDParser.inline(s) == MDParser.parseInline(s), "«\(s)» en caché")
+    }
+}

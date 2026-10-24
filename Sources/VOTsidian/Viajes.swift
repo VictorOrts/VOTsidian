@@ -39,7 +39,14 @@ struct ViajesData: Equatable {
     var expenses: [Expense] = []
     var packing: [PackingItem] = []
 
-    func spent(_ t: Trip) -> Double { expenses.filter { MD.fold($0.trip) == MD.fold(t.name) }.reduce(0) { $0 + $1.amount } }
+    /// Lo gastado por viaje (nombre plegado), calculado al leer la nota.
+    var spentIndex: [String: Double] = [:]
+
+    func spent(_ t: Trip) -> Double {
+        spentIndex.isEmpty && !expenses.isEmpty
+            ? expenses.filter { MD.fold($0.trip) == MD.fold(t.name) }.reduce(0) { $0 + $1.amount }
+            : spentIndex[MD.fold(t.name)] ?? 0
+    }
 
     /// Viajes en curso o por venir, el más cercano primero. Los que no tienen fecha van al final.
     func upcoming(today: Date = DayKey.today()) -> [Trip] {
@@ -72,6 +79,7 @@ extension Parse {
                 }
             }
         }
+        for e in d.expenses { d.spentIndex[MD.fold(e.trip), default: 0] += e.amount }
         let lines = MD.lines(text)
         if let range = MD.section(lines, containing: "Equipaje") {
             for i in range {

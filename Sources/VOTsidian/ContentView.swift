@@ -51,6 +51,10 @@ struct ContentView: View {
     /// Secciones plegadas de la barra lateral, separadas por «|». Se recuerdan al reabrir.
     @AppStorage("sidebarCollapsed") private var collapsedRaw = ""
     @State private var counts: [Screen: Int] = [:]
+    /// Lo que enseñan los indicadores de Medicación y Tareas, calculado con los contadores (una vez por cambio de las notas)
+    /// y no en cada pintado de cada fila.
+    @State private var medicationDays: Int?
+    @State private var tasksOverdue = false
 
     private struct SidebarSection { let title: String; let color: Color; let screens: [Screen] }
     private static let sections = [
@@ -78,7 +82,11 @@ struct ContentView: View {
                     }
                 }
                 .navigationSplitViewColumnWidth(min: 190, ideal: 210)
-                .task(id: store.revision) { counts = store.sidebarCounts() }
+                .task(id: store.revision) {
+                    counts = store.sidebarCounts()
+                    medicationDays = store.medicacion.daysUntilNext
+                    tasksOverdue = store.tasks.contains { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }
+                }
                 .safeAreaInset(edge: .bottom) { footer.padding(10) }
             } detail: {
                 VStack(spacing: 0) {
@@ -183,10 +191,9 @@ struct ContentView: View {
 
     /// Tareas en rojo si hay vencidas; Medicación dice «hoy» o «tarde» en vez de un número.
     private func badge(_ s: Screen) -> Text? {
-        if s == .medicacion, let d = store.medicacion.daysUntilNext, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
+        if s == .medicacion, let d = medicationDays, d <= 0 { return Text(d == 0 ? "hoy" : "tarde").foregroundStyle(d == 0 ? Brand.warn : Brand.bad) }
         guard let n = counts[s] else { return nil }
-        let overdue = s == .tareas && store.tasks.contains { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }
-        return Text("\(n)").foregroundStyle(overdue ? Brand.bad : .secondary)
+        return Text("\(n)").foregroundStyle(s == .tareas && tasksOverdue ? Brand.bad : .secondary)
     }
 
     private var footer: some View {

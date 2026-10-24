@@ -46,9 +46,14 @@ struct PrestamosData: Equatable {
     var loans: [Loan] = []
     var payments: [Payment] = []
 
-    func paid(_ l: Loan) -> Double {
-        payments.filter { MD.fold($0.loan) == MD.fold(l.name) }.reduce(0) { $0 + $1.amount }
+    /// Pagos por préstamo (nombre plegado), agrupados al leer la nota.
+    var paymentIndex: [String: [Payment]] = [:]
+
+    private func payments(of l: Loan) -> [Payment] {
+        paymentIndex.isEmpty && !payments.isEmpty ? payments.filter { MD.fold($0.loan) == MD.fold(l.name) } : paymentIndex[MD.fold(l.name)] ?? []
     }
+
+    func paid(_ l: Loan) -> Double { payments(of: l).reduce(0) { $0 + $1.amount } }
 
     func statuses(today: Date = DayKey.today()) -> [Status] {
         let cal = DayKey.calendar()
@@ -56,13 +61,14 @@ struct PrestamosData: Equatable {
         return loans.map { l in
             let paid = paid(l)
             let remaining = max(0, l.initial - paid)
-            let thisMonth = payments.contains {
-                MD.fold($0.loan) == MD.fold(l.name) && cal.component(.year, from: $0.date) == year && cal.component(.month, from: $0.date) == month
+            let thisMonth = payments(of: l).contains {
+                cal.component(.year, from: $0.date) == year && cal.component(.month, from: $0.date) == month
             }
             // «Sin apuntar» solo si el mes pasado sí se apuntó: quien nunca apunta las cuotas no quiere ese aviso.
             let previous = Self.dueDate(day: 1, monthOf: today, plus: -1).map { cal.dateComponents([.year, .month], from: $0) }
-            let previousLogged = payments.contains { p in
-                MD.fold(p.loan) == MD.fold(l.name) && previous.map { cal.component(.year, from: p.date) == $0.year && cal.component(.month, from: p.date) == $0.month } ?? false
+            let mine = payments(of: l)
+            let previousLogged = mine.contains { p in
+                previous.map { cal.component(.year, from: p.date) == $0.year && cal.component(.month, from: p.date) == $0.month } ?? false
             }
             var next: Date?
             var missed = false
@@ -128,6 +134,7 @@ extension Parse {
             }
         }
         d.payments.sort { $0.date < $1.date }
+        for p in d.payments { d.paymentIndex[MD.fold(p.loan), default: []].append(p) }
         return d
     }
 }

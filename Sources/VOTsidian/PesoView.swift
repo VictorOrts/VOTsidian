@@ -128,9 +128,11 @@ struct PesoView: View {
     private func chartMin(_ w: WeightData) -> Double { (w.records.map(\.kg).min().map { w.hasGoal ? min($0, w.goalKg) : $0 } ?? w.goalKg) - 2 }
 
     private func mainChart(_ w: WeightData) -> some View {
-        Chart {
-            ForEach(w.records) { r in
-                AreaMark(x: .value("Día", r.date), yStart: .value("Base", chartMin(w)), yEnd: .value("kg", r.kg))
+        let base = chartMin(w)
+        let points = thinned(w.records, to: 400)
+        return Chart {
+            ForEach(points) { r in
+                AreaMark(x: .value("Día", r.date), yStart: .value("Base", base), yEnd: .value("kg", r.kg))
                     .foregroundStyle(LinearGradient(colors: [Brand.accent.opacity(0.35), Brand.accent.opacity(0.02)], startPoint: .top, endPoint: .bottom))
                     .interpolationMethod(.monotone)
                 LineMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent)
@@ -138,7 +140,7 @@ struct PesoView: View {
                 PointMark(x: .value("Día", r.date), y: .value("kg", r.kg)).foregroundStyle(Brand.accent).symbolSize(28)
             }
             if smooth && w.records.count > 1 {
-                ForEach(w.smoothed()) { r in
+                ForEach(thinned(w.smoothed(), to: 400)) { r in
                     LineMark(x: .value("Día", r.date), y: .value("kg", r.kg), series: .value("s", "tendencia"))
                         .foregroundStyle(Brand.amber).lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3])).interpolationMethod(.monotone)
                 }
