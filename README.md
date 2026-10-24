@@ -8,7 +8,7 @@
 
 - **Tus datos, en texto plano.** No hay base de datos ni formato propio. Cada pantalla lee y escribe notas Markdown que puedes abrir con cualquier editor.
 - **Compatible con Obsidian.** Usa los mismos enlaces (`[[Nota]]`), propiedades YAML y tareas del plugin Tasks. Puedes usar las dos apps a la vez sobre la misma carpeta.
-- **Privada.** No hay cuentas, servidores ni analítica, y la app no hace peticiones de red. La sincronización, si la quieres, la pone iCloud Drive o la carpeta que elijas.
+- **Privada.** No hay cuentas, servidores ni analítica, y la app no hace peticiones de red. La sincronización de las notas, si la quieres, la pone iCloud Drive o la carpeta que elijas. Solo pide acceso a Calendarios si activas la sincronización con Calendar, y entonces solo toca su propio calendario.
 - **Modular.** Activa solo lo que vas a usar. Cada módulo crea su nota con un formato documentado en la [guía](GUIA.md).
 
 ![Las 10 plantillas de ejemplo; las que llevan gráfica, con datos de ejemplo](docs/plantillas.jpg)
@@ -50,6 +50,8 @@ Para probar sin empaquetar, `swift run VOTsidian`. Las notificaciones de macOS s
 2. Elige la carpeta de notas: por defecto `iCloud Drive/VOTsidian`, o una que ya tengas, como tu vault de Obsidian.
 3. Marca los módulos que quieres. La app crea una nota por módulo y no toca las que ya existen.
 
+Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada, y la app avisa: los activas cuando quieras en **Ajustes → Módulos**.
+
 Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica el formato de cada nota, por si prefieres escribirlas a mano.
 
 ## Funciones
@@ -66,7 +68,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
 | **Captura rápida** (⇧⌘N) | Tarea, gasto, peso, toma de medicación o idea, desde cualquier pantalla. |
 | **Barra de menús** | Tareas, hábitos y tomas de hoy, ánimo y añadir tareas sin abrir la ventana. |
-| **Avisos** | Lista por urgencia con botón para resolver cada aviso. También como eventos de Calendar y notificaciones de macOS. |
+| **Avisos** | Lista por urgencia con botón para resolver cada aviso. También en un calendario propio «VOTsidian» de Calendar que la app mantiene al día sola (opcional y sin duplicados), como archivo `.ics` o como notificaciones de macOS. |
 
 ### Notas
 
@@ -77,7 +79,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Plantillas** | 10 de ejemplo (Reunión, Idea, Lectura, Viaje, Receta, Película o serie, Entrenamiento, Comparar opciones, Curso y Meta de ahorro). Pueden hacer preguntas al crear la nota y sugerir carpeta. |
 | **Gráficas** | Un bloque `grafica` dibuja una tabla de la nota en línea, barras, área, puntos o tarta. |
 | **Búsqueda** (⌘K) | Notas, tareas y pantallas, con sinónimos y filtros (`#etiqueta`, `carpeta:casa`, `tipo:evento`, «el viernes»). |
-| **Órdenes rápidas** (⌘K) | `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10`, `cintura 98`, `compra leche y pan`. |
+| **Órdenes rápidas** (⌘K) | `peso 105,5`, `ánimo 4`, `dormí 7,5`, `pinchazo hoy`, `tarea … el viernes`, `cita dentista el 29/10`, `cintura 98`, `compra leche y pan`, `libro Dune - Frank Herbert`, `terminé Dune`, `cuota Coche`. |
 | **Bases, Grafo y Enlaces rotos** | Tabla de propiedades por tipo de nota con vistas guardadas, mapa de enlaces y sugerencias para arreglar enlaces que no llevan a nada. |
 
 ## Módulos
@@ -121,7 +123,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 - **Deshacer.** Cualquier cambio hecho desde la app se deshace con ⌥⌘Z, también los que tocan varias notas a la vez.
 - **Recuperar.** El historial de una nota restaura versiones anteriores. También se puede restaurar una copia entera; antes, la app guarda el estado actual.
 - **iCloud.** Avisa de notas duplicadas por conflicto y de archivos que aún no se han descargado.
-- **Exportar.** Resumen del año en PDF, datos en CSV y todas las notas en `.zip`.
+- **Exportar.** Resumen del año en PDF, datos en CSV (un archivo por módulo, incluidos vehículo, suscripciones, préstamos, viajes y lecturas) y todas las notas en `.zip`.
 
 ## Desarrollo
 
@@ -141,7 +143,7 @@ VOT_SHOTS=/carpeta VAULT_COPY=/ruta swift test --filter screenshots   # capturas
 
 Los tests nunca tocan tus notas: trabajan sobre copias temporales.
 
-**Firma.** `build-app.sh` firma con el primer certificado «Apple Development» del llavero, o ad hoc si no hay ninguno. Para distribuir, `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh` firma con runtime endurecido y sello de tiempo, listo para notarizar.
+**Firma.** `build-app.sh` firma con el primer certificado «Apple Development» del llavero, o ad hoc si no hay ninguno. Para distribuir, `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh` firma con runtime endurecido, sello de tiempo y el permiso de Calendarios ([VOTsidian.entitlements](scripts/VOTsidian.entitlements)), listo para notarizar.
 
 **Integración continua.** Cada push y cada pull request pasan los tests y empaquetan la app ([test.yml](.github/workflows/test.yml)).
 

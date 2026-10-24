@@ -14,9 +14,10 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
   - [Finanzas y gastos](#finanzas-y-gastos) · [Suscripciones](#suscripciones) · [Préstamos y deudas](#préstamos-y-deudas)
   - [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo) · [Viajes](#viajes) · [Lecturas](#lecturas)
   - [Personas](#personas) · [Documentos](#documentos) · [Objetivos](#objetivos)
-- [Tareas](#tareas)
+- [Tareas](#tareas) · [Órdenes rápidas](#órdenes-rápidas-k)
 - [Notas que crea la app](#notas-que-crea-la-app)
 - [Gráficas en una nota](#gráficas-en-una-nota)
+- [Calendar y avisos](#calendar-y-avisos)
 - [Copias y deshacer](#copias-y-deshacer)
 
 ## Empezar
@@ -29,7 +30,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 
 Si la carpeta ya tiene notas, no se cambia ninguna: solo se crean las que faltan.
 
-Siempre están **Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota.
+Siempre están **Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
 
 ## Módulos y sus notas
 
@@ -382,6 +383,25 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 
 En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes».
 
+## Órdenes rápidas (⌘K)
+
+En el buscador, una frase corta que empieza por una palabra clave hace una acción. Antes de ejecutarla, la app enseña lo que va a hacer.
+
+| Escribe | Hace |
+|---|---|
+| `peso 105,5` | Apunta el peso (también «ayer» o una fecha detrás). |
+| `ánimo 4`, `dormí 7,5` | Apunta el ánimo (1 a 5) o las horas de sueño del día. |
+| `pinchazo hoy` | Apunta la toma del medicamento principal. |
+| `tarea llamar al dentista el viernes` | Crea una tarea con fecha, prioridad o repetición. |
+| `cita dentista el 29/10` | Añade una cita a Salud. |
+| `gasto 22 cena con Ana` | Apunta un gasto en la partida que adivina la app. |
+| `compra leche y pan` | Añade a la lista de la compra. |
+| `cintura 98` | Apunta una medida corporal. |
+| `idea …`, `nota …` | Guarda una idea o añade a la nota de hoy. |
+| `libro Dune - Frank Herbert` | Añade un libro pendiente a Lecturas (el autor es opcional). |
+| `terminé Dune` | Termina hoy un libro que lees o tienes pendiente (basta parte del título). |
+| `cuota Coche` | Apunta la cuota de un préstamo, en la nota y en Gastos. |
+
 ## Notas que crea la app
 
 | Nota | Dónde | Qué guarda |
@@ -422,9 +442,20 @@ Todas las líneas son opcionales:
 - La tarta usa una sola columna y junta en «Otros» lo que pase de 7 porciones.
 - Si falta la tabla o una columna, la nota lo dice en lugar de la gráfica.
 
+## Calendar y avisos
+
+Los avisos (citas, pagos, caducidades, cuotas, renovaciones, viajes…) se pueden recibir de tres formas en **Avisos → Cómo recibirlos**, y se pueden combinar:
+
+- **Calendario «VOTsidian» (opcional).** Al activarlo, macOS pide permiso para usar Calendarios y la app crea un calendario propio con ese nombre, en la cuenta de tu calendario por defecto (normalmente iCloud, así sale también en el iPhone) o, si esa cuenta no lo permite, en tu Mac. Lo mantiene al día sola: lo crea al abrir la app y cuando cambian tus notas, actualiza lo que cambia y quita lo que ya no toca, sin duplicados. Solo lee y cambia ese calendario, nunca los demás. Un evento que cambies a mano se queda como lo dejaste hasta que cambie el aviso en la app; uno que borres a mano, la app lo vuelve a crear. Si apagas el interruptor, deja de sincronizar pero los eventos se quedan; «Borrar el calendario…» los quita todos.
+- **Archivo `.ics`.** «Añadir a Calendar» importa los avisos una sola vez, sin permisos. Si vuelves a importar, Calendar actualiza en vez de duplicar.
+- **Notificaciones de macOS.** Para los próximos 30 días, hasta 60 avisos.
+
+La sincronización con Calendar y las notificaciones solo funcionan en la app empaquetada (`build-app.sh`), no con `swift run`. Lo que avisa cada módulo está en su sección de «Formato de cada nota».
+
 ## Copias y deshacer
 
 - La app copia toda la carpeta antes del primer cambio de cada día y guarda las últimas 14 copias automáticas. Se pueden cifrar con contraseña en Ajustes.
 - Cada cambio hecho desde la app se deshace con ⌥⌘Z.
 - Para recuperar una versión antigua de una nota: Notas → ⋯ → Historial.
 - Para volver a una copia entera: Ajustes → Copias de seguridad. Antes de restaurar, la app guarda el estado actual.
+- Para sacar tus datos: Ajustes → Exportar escribe un CSV por cada cosa que lleves (peso, medicación, gastos, vehículo, suscripciones, préstamos, viajes, lecturas…) y un resumen.
