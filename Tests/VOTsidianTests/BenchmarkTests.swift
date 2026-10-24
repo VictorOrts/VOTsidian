@@ -65,6 +65,14 @@ import Testing
     t("recarga de medicación") { store.reload(changed: [VaultPath.medicacion]) }
     t("recarga de una nota normal") { store.reload(changed: ["Carpeta 0/Nota 0-0.md"]) }
     t("alerts()") { _ = store.alerts() }
+    t("· budgetAlerts") { _ = store.budgetAlerts() }
+    t("· upcomingPayments") { _ = store.upcomingPayments() }
+    t("· conflictCopies") { _ = store.conflictCopies }
+    t("· daysSinceLastBackup") { _ = store.daysSinceLastBackup() }
+    t("· budgetMonths") { _ = store.budgetMonths }
+    t("· medicación") { _ = (store.medicacion.active(on: today), store.medicacion.pending(today: today)) }
+    t("· módulos") { _ = (store.vehiculoAlerts(), store.suscripcionAlerts(), store.prestamoAlerts(), store.viajeAlerts(), store.tramiteAlerts()) }
+    t("· revisión mensual") { _ = store.monthReview(Budget.monthKey(today)) }
     t("alerts() x10") { for _ in 0..<10 { _ = store.alerts() } }
     t("sidebarCounts()") { _ = store.sidebarCounts() }
     t("agenda mes frío") { _ = store.agenda(from: today, to: DayKey.adding(days: 42, to: today)) }
@@ -77,7 +85,23 @@ import Testing
     func paint<V: View>(_ name: String, _ view: V) {
         t("pintar \(name)") { let r = ImageRenderer(content: view.environment(store).frame(width: 1100, height: 900)); r.scale = 1; _ = r.cgImage }
     }
+    // `VOT_BENCH_SCREEN=viajes`: pinta esa pantalla una y otra vez durante 20 s, para perfilarla con `sample`.
+    if let only = ProcessInfo.processInfo.environment["VOT_BENCH_SCREEN"], let screen = Screen.allCases.first(where: { String(describing: $0) == only }) {
+        store.screen = screen
+        let end = Date().addingTimeInterval(20)
+        var n = 0
+        while Date() < end { let r = ImageRenderer(content: ContentView().environment(store).frame(width: 1280, height: 900)); r.scale = 1; _ = r.cgImage; n += 1 }
+        print("BENCH \(only): \(n) pintados en 20 s")
+        return
+    }
     paint("Inicio", InicioView(go: { _ in })); paint("Inicio otra vez", InicioView(go: { _ in }))
+    for c in HomeCard.allCases {
+        UserDefaults.standard.set(HomeCard.allCases.map { "\($0.rawValue):\($0 == c ? 1 : 0)" }.joined(separator: ","), forKey: "inicioLayout")
+        paint("Inicio solo \(c.rawValue)", InicioView(go: { _ in }))
+    }
+    UserDefaults.standard.set(HomeCard.allCases.map { "\($0.rawValue):0" }.joined(separator: ","), forKey: "inicioLayout")
+    paint("Inicio sin tarjetas", InicioView(go: { _ in }))
+    UserDefaults.standard.removeObject(forKey: "inicioLayout")
     paint("Avisos", RemindersView()); paint("Calendario", CalendarioView()); paint("Peso", PesoView()); paint("Correlaciones", CorrelacionesView())
     paint("Medicación", MedicacionView()); paint("Gastos", GastosView()); paint("Finanzas", FinanzasView()); paint("Semana", SemanaView()); paint("Mes", MesView())
     paint("Vehículo", VehiculoView()); paint("Suscripciones", SuscripcionesView()); paint("Préstamos", PrestamosView()); paint("Lecturas", LecturasView()); paint("Viajes", ViajesView())

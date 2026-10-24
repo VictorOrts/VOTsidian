@@ -2,6 +2,14 @@ import Foundation
 
 // MARK: - Peso
 
+/// Como mucho `limit` puntos repartidos por igual, siempre con el primero y el último: una gráfica de mil pesajes se ve igual
+/// con unos cientos, y se dibuja mucho más deprisa.
+func thinned<T>(_ items: [T], to limit: Int) -> [T] {
+    guard items.count > limit, limit > 1 else { return items }
+    let step = Double(items.count - 1) / Double(limit - 1)
+    return (0..<limit).map { items[Int((Double($0) * step).rounded())] }
+}
+
 struct WeightRecord: Identifiable, Equatable {
     var date: Date
     var kg: Double
@@ -51,9 +59,13 @@ struct WeightData: Equatable {
         return span > 0 ? (l.kg - f.kg) / span * 30.4 : nil
     }
 
+    /// La tendencia (media de 30 días) calculada una vez al leer la nota: la pantalla la pide varias veces al pintarse.
+    var trendCache: [WeightRecord]?
+
     /// Media móvil exponencial por tiempo: cada registro pesa según los días desde el anterior.
     /// Con pesajes espaciados (mensuales) un solo valor atípico no mueve tanto la tendencia.
     func smoothed(halfLifeDays: Double = 30) -> [WeightRecord] {
+        if halfLifeDays == 30, let c = trendCache, c.count == records.count { return c }
         guard var cur = records.first?.kg else { return [] }
         var out: [WeightRecord] = []
         for (i, r) in records.enumerated() {

@@ -30,7 +30,19 @@ struct Alert: Identifiable {
 
 extension Store {
     /// Cosas que piden atención, de más a menos urgente.
+    /// Lo mismo que `computeAlerts`, guardado hasta que cambie algo que lo afecte: la barra lateral, Inicio, Avisos y la barra de
+    /// menús lo piden en cada cambio, y entre dos cambios de las notas el resultado es el mismo.
     func alerts(today: Date = DayKey.today()) -> [Alert] {
+        let backupReady = dailyBackupDay == nil || backupJob.wait(timeout: .now()) == .success
+        let key = "\(revision)|\(DayKey.string(today))|\(hiddenModules.map(\.rawValue).sorted())|\(backupFailure ?? "")|\(dailyBackupDay ?? "")|\(backupReady)|\(daysSinceLastBackup(today: today) ?? -1)"
+        if let c = alertsCache, c.key == key { return c.alerts }
+        let result = computeAlerts(today: today)
+        alertsCache = (key, result)
+        return result
+    }
+
+    /// Cosas que piden atención, de más a menos urgente.
+    func computeAlerts(today: Date = DayKey.today()) -> [Alert] {
         var out: [Alert] = []
 
         // Lo periódico avisa antes y al ir tarde; lo diario, si hoy falta alguna toma.
@@ -169,6 +181,13 @@ extension Store {
 
     /// Cuántos enlaces no llevan a nada. Versión barata de `brokenLinks()`: usa los enlaces ya analizados y no busca sugerencias.
     var brokenLinkCount: Int {
+        if let c = brokenCountCache, c.revision == revision { return c.count }
+        let n = countBrokenLinks()
+        brokenCountCache = (revision, n)
+        return n
+    }
+
+    private func countBrokenLinks() -> Int {
         var n = 0
         for note in notes {
             let names = fileCache[note.path]?.parsed.links ?? Links.extract(noteTexts[note.path] ?? "")

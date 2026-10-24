@@ -82,7 +82,22 @@ enum MDParser {
     }
 
     /// Texto con `[[enlaces]]` convertidos a enlaces pulsables `votsidian://note/...`.
+    /// Caracteres que Markdown interpreta dentro de una línea (con «:» y «@» por las direcciones web y de correo, que se
+    /// convierten en enlaces). Sin ninguno, el texto se queda como está.
+    private static let markdownBytes: Set<UInt8> = Set("*_`[<~\\&:@".utf8)
+    private static let inlineCache = InlineCache()
+
+    /// Texto con formato de una línea (negrita, enlaces, `[[Nota]]`…). Se pinta en cada celda de cada tabla en cada cambio:
+    /// lo que no tiene formato no pasa por el analizador de Markdown, y lo que sí se guarda.
     static func inline(_ raw: String) -> AttributedString {
+        guard raw.utf8.contains(where: markdownBytes.contains) || raw.contains("www.") else { return AttributedString(raw) }
+        if let hit = inlineCache.get(raw) { return hit }
+        let value = parseInline(raw)
+        inlineCache.set(raw, value)
+        return value
+    }
+
+    static func parseInline(_ raw: String) -> AttributedString {
         var s = raw.replacingOccurrences(of: "![[", with: "[[")
         let regex = /\[\[([^\]]+)\]\]/
         s = s.replacing(regex) { m in
@@ -96,6 +111,21 @@ enum MDParser {
             return "[\(label)](votsidian://note/\(enc))"
         }
         return (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(raw)
+    }
+}
+
+/// Caché de `MDParser.inline` con candado: se usa desde cualquier hilo. Se vacía entera al llegar al límite, que es raro.
+final class InlineCache: @unchecked Sendable {
+    private var items: [String: AttributedString] = [:]
+    private let lock = NSLock()
+
+    func get(_ key: String) -> AttributedString? { lock.withLock { items[key] } }
+
+    func set(_ key: String, _ value: AttributedString) {
+        lock.withLock {
+            if items.count > 5000 { items.removeAll(keepingCapacity: true) }
+            items[key] = value
+        }
     }
 }
 
