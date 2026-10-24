@@ -13,6 +13,7 @@ struct NutricionView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("NutricionView")
         let p = store.plan
         let w = store.weight
         ScrollView {

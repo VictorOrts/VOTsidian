@@ -15,6 +15,7 @@ struct VehiculoView: View {
     @State private var toGastos = true
 
     var body: some View {
+        let _ = BodyCounter.hit("VehiculoView")
         let v = store.vehiculo
         let today = DayKey.today()
         let year = DayKey.calendar().component(.year, from: today)

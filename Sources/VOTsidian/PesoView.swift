@@ -12,6 +12,7 @@ struct PesoView: View {
     @AppStorage("weightSmoothing") private var smooth = true
 
     var body: some View {
+        let _ = BodyCounter.hit("PesoView")
         let w = store.weight
         let rate = w.ratePerMonth(window: 120)
         // Con un estancamiento, el ritmo de 4 meses tarda en notarlo: se enseña también el de los 2 últimos.

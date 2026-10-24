@@ -19,6 +19,7 @@ struct MedicacionView: View {
     @State private var newTimes = ""
 
     var body: some View {
+        let _ = BodyCounter.hit("MedicacionView")
         let m = store.medicacion
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {

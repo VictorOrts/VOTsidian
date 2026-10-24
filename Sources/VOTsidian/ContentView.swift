@@ -68,6 +68,7 @@ struct ContentView: View {
     ]
 
     var body: some View {
+        let _ = BodyCounter.hit("ContentView")
         @Bindable var store = store
         if !store.isValid || (!store.modulesConfigured && store.looksNew) {
             WelcomeView()

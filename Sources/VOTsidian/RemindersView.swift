@@ -59,6 +59,7 @@ struct RemindersView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("RemindersView")
         let events = ICS.events(store.reminderSources(), plan: store.reminderPlan(plan))
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {

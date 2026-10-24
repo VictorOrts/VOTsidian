@@ -134,6 +134,7 @@ struct InicioView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("InicioView")
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
@@ -570,6 +571,7 @@ struct Sparkline: View {
     let goal: Double?
 
     var body: some View {
+        let _ = BodyCounter.hit("Sparkline")
         let kgs = records.map(\.kg)
         let lo = (kgs + (goal.map { [$0] } ?? [])).min().map { $0 - 1 } ?? 0
         Chart {

@@ -12,6 +12,7 @@ struct EnlacesView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("EnlacesView")
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Card(title: "Enlaces rotos", icon: "link", info: "Los enlaces a pantallas de la app (Tareas, Calendario, Hábitos…) funcionan y no cuentan como rotos.") {

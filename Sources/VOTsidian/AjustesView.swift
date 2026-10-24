@@ -32,6 +32,7 @@ struct AjustesView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("AjustesView")
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Card(title: "Apariencia", icon: "paintbrush", info: "Sistema sigue el modo claro u oscuro de macOS.") {

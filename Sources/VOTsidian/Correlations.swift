@@ -113,6 +113,7 @@ struct CorrelacionesView: View {
     @Environment(Store.self) private var store
 
     var body: some View {
+        let _ = BodyCounter.hit("CorrelacionesView")
         let points = store.weekPoints()
         let pairs = Correlations.pairs(points)
         let doses = store.medicacion.doses.sorted { $0.date < $1.date }

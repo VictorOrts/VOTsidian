@@ -29,6 +29,7 @@ struct TareasView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("TareasView")
         let open = store.tasks.filter { !$0.done && matches($0) }
         let done = store.tasks.filter(\.done).sorted { ($0.completed ?? .distantPast) > ($1.completed ?? .distantPast) }
         let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }.count

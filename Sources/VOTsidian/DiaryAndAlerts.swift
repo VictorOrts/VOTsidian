@@ -8,6 +8,7 @@ struct MoodPicker: View {
     private let colors: [Color] = [Brand.bad, Brand.warn, Brand.amber, Brand.lime, Brand.accent]
 
     var body: some View {
+        let _ = BodyCounter.hit("MoodPicker")
         HStack(spacing: 6) {
             ForEach(1...5, id: \.self) { n in
                 let on = value.map { $0 == Double(n) } ?? false
@@ -38,6 +39,7 @@ struct DiaryNumberField: View {
     private var current: String { store.diaryValue(day, key).map { MD.formatNumber($0) } ?? "" }
 
     var body: some View {
+        let _ = BodyCounter.hit("DiaryNumberField")
         TextField(placeholder, text: $text).frame(width: 60)
             .onAppear { text = current; seen = current }
             .onChange(of: day) { old, _ in
@@ -71,6 +73,7 @@ struct AlertList: View {
     private func color(_ l: Alert.Level) -> Color { l == .urgent ? Brand.bad : l == .soon ? Brand.warn : Brand.info }
 
     var body: some View {
+        let _ = BodyCounter.hit("AlertList")
         let shown = limit.map { Array(alerts.prefix($0)) } ?? alerts
         if alerts.isEmpty { EmptyNote(emptyText, icon: "checkmark.circle") }
         VStack(alignment: .leading, spacing: 12) {

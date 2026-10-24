@@ -44,6 +44,7 @@ struct FinanzasView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("FinanzasView")
         // Los cancelados no cuentan ni en el total ni en lo que falta por pagar.
         let vivos = eventos.filter { $0.meta["estado"] != "cancelado" }
         let total = vivos.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }

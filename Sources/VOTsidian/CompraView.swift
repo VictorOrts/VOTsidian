@@ -7,6 +7,7 @@ struct CompraView: View {
     @State private var message = ""
 
     var body: some View {
+        let _ = BodyCounter.hit("CompraView")
         let items = store.shoppingItems
         let pending = items.filter { !$0.done }.count
         var order: [String] = []

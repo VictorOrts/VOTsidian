@@ -204,6 +204,7 @@ struct NoteBody: View {
     var depth = 0
 
     var body: some View {
+        let _ = BodyCounter.hit("NoteBody")
         let blocks = MDParser.blocks(text)
         VStack(alignment: .leading, spacing: 10) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, b in render(b) }

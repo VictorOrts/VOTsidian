@@ -137,6 +137,7 @@ struct NotasView: View {
     // MARK: Cuerpo
 
     var body: some View {
+        let _ = BodyCounter.hit("NotasView")
         HStack(spacing: 0) {
             if !focusMode {
                 listPanel.frame(width: 290)

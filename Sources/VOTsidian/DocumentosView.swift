@@ -5,6 +5,7 @@ struct DocumentosView: View {
     private let file = VaultPath.documentos
 
     var body: some View {
+        let _ = BodyCounter.hit("DocumentosView")
         let docs = store.documents.sorted { $0.date < $1.date }
         let today = DayKey.today()
         ScrollView {

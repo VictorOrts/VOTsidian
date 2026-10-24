@@ -21,6 +21,7 @@ struct CalendarioView: View {
     private var monthStart: Date { cal.date(byAdding: .month, value: monthOffset, to: cal.dateInterval(of: .month, for: DayKey.today())!.start)! }
 
     var body: some View {
+        let _ = BodyCounter.hit("CalendarioView")
         let first = monthStart
         let lead = (cal.component(.weekday, from: first) + 5) % 7
         let days = cal.range(of: .day, in: .month, for: first)!.count

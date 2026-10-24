@@ -23,6 +23,7 @@ struct SaludView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("SaludView")
         let today = DayKey.today()
         let text = store.read(file)
         let meds = Parse.listItems(text, section: "Tratamientos")

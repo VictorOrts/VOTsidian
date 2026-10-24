@@ -197,6 +197,7 @@ struct TaskRow: View {
     @State private var hover = false
 
     var body: some View {
+        let _ = BodyCounter.hit("TaskRow")
         HStack(spacing: 8) {
             Button { store.setTask(task, done: !task.done) } label: {
                 Image(systemName: task.done ? "checkmark.circle.fill" : "circle")

@@ -14,6 +14,7 @@ struct MesView: View {
     private var key: String { String(DayKey.string(start).prefix(7)) }
 
     var body: some View {
+        let _ = BodyCounter.hit("MesView")
         let inMonth = { (d: Date) in d >= start && d <= end }
         let weights = store.weight.records.filter { inMonth($0.date) }
         let before = store.weight.records.last { $0.date < start }

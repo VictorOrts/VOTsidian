@@ -5,6 +5,7 @@ struct ObjetivosView: View {
     private let file = VaultPath.objetivos
 
     var body: some View {
+        let _ = BodyCounter.hit("ObjetivosView")
         let w = store.weight
         let text = store.read(file)
         ScrollView {

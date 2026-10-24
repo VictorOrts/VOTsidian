@@ -26,6 +26,7 @@ struct BasesView: View {
     }
 
     var body: some View {
+        let _ = BodyCounter.hit("BasesView")
         let all = types
         let current = all.contains { $0.name == type } ? type : (all.first?.name ?? "")
         var freq: [String: Int] = [:]

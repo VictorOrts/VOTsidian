@@ -15,6 +15,7 @@ struct NoteTables: View {
     static let rowLimit = 40
 
     var body: some View {
+        let _ = BodyCounter.hit("NoteTables")
         let tables = Parse.tables(store.read(file)).filter(include)
         VStack(alignment: .leading, spacing: 16) {
             ForEach(tables) { t in
@@ -63,6 +64,7 @@ struct PropertyDateField: View {
     private var current: Date? { store.noteMeta[file]?[key].flatMap(DayKey.date) }
 
     var body: some View {
+        let _ = BodyCounter.hit("PropertyDateField")
         HStack(spacing: 4) {
             if let d = current {
                 // Cada clic del selector guarda en silencio: los cambios seguidos se deshacen de una vez.
@@ -90,6 +92,7 @@ struct PropertyField: View {
     private var current: String { MD.frontmatter(store.read(file))[key] ?? "" }
 
     var body: some View {
+        let _ = BodyCounter.hit("PropertyField")
         HStack {
             if let label { Text(label).foregroundStyle(.secondary) }
             TextField("", text: $text).frame(width: width)

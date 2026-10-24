@@ -14,6 +14,7 @@ struct SemanaView: View {
     private var key: String { DayKey.weekKey(monday) }
 
     var body: some View {
+        let _ = BodyCounter.hit("SemanaView")
         let review = store.reviews[key]
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
