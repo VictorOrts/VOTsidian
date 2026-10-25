@@ -15,7 +15,8 @@ extension Store {
     func createMonthReview(key: String, monthStart: Date) {
         let rel = monthReviewFile(key)
         guard !FileManager.default.fileExists(atPath: url(rel).path) else { return }
-        writeNote(rel, text: Template.month(key: key, monthStart: monthStart))
+        // Se crea sola al abrir la pantalla: sin el aviso de «Guardado», que parecía un cambio hecho por el usuario.
+        writeNote(rel, text: Template.month(key: key, monthStart: monthStart), quiet: true)
     }
 
     func saveMonthText(key: String, _ r: WeekReview, quiet: Bool = false) {

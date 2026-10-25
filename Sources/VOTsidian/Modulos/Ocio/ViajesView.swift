@@ -19,7 +19,7 @@ struct ViajesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .viajes)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Próximo viaje", value: next?.name ?? "–",
                          note: next.flatMap { t in t.start.map { s in v.isOngoing(t, today: today) ? "en curso" : relativeDays(DayKey.days(from: today, to: s)) + " · " + dayLabel(s) } })
                     Tile(title: "Presupuesto", value: Money.format(upcoming.reduce(0) { $0 + $1.budget }), note: "de los viajes por venir")

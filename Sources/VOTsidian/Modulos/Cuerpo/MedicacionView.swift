@@ -105,9 +105,9 @@ struct MedicacionView: View {
     @ViewBuilder private func mainSection(_ m: MedicacionData, _ main: Medication) -> some View {
         let d = m.daysUntilNext
         let doses = m.doses
-        HStack(spacing: 12) {
+        TileRow {
             Tile(title: "Último", value: m.last.map { dayLabel($0.date) } ?? "–", note: m.last?.dose)
-            Tile(title: "Próximo", value: m.next.map { dayLabel($0) } ?? "–", note: d.map(relativeDays), tint: (d ?? 0) < 0 ? Brand.bad : nil)
+            Tile(title: (d ?? 0) < 0 ? "Tocaba" : "Próximo", value: m.next.map { dayLabel($0) } ?? "–", note: d.map(dueDays), tint: (d ?? 0) < 0 ? Brand.bad : nil)
             Tile(title: "Intervalo", value: "\(main.every) días", note: main.name)
             Tile(title: main.isInjection ? "Pinchazos" : "Tomas", value: "\(doses.count)", note: doses.first.map { "desde \(dayLabel($0.date))" })
         }

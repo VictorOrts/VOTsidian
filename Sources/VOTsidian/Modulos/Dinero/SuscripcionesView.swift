@@ -22,7 +22,7 @@ struct SuscripcionesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .suscripciones)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Al mes", value: Money.format(s.monthlyTotal), note: "\(plural(s.active.count, "suscripción activa", "suscripciones activas"))")
                     Tile(title: "Al año", value: Money.format(s.yearlyTotal), note: s.active.isEmpty ? nil : "la más cara: \(s.active.max { $0.yearlyCost < $1.yearlyCost }!.name)")
                     Tile(title: "En prueba", value: "\(s.trials.count)", note: s.trials.isEmpty ? nil : "cancela antes de que acaben")

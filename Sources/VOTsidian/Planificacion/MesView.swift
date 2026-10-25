@@ -43,7 +43,7 @@ struct MesView: View {
                     if offset != 0 { Button("Este mes") { offset = 0 } }
                 }
 
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Peso", value: (from != nil && to != nil) ? fmtDelta(to! - from!) : "–",
                          note: to.map { "ahora \(fmt($0, unit: " kg"))" + (weights.isEmpty ? "" : " · \(weights.count) \(weights.count == 1 ? "pesaje" : "pesajes")") } ?? "sin pesaje este mes",
                          tint: (from != nil && to != nil && to! < from!) ? Brand.accent : nil)

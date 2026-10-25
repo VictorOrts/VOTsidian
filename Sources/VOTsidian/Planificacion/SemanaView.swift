@@ -113,7 +113,7 @@ struct SemanaView: View {
         let prev = store.reviews[prevKey]
         let prevPct = prev.flatMap { $0.totalPossible > 0 ? Double($0.totalDone) / Double($0.totalPossible) : nil }
         let best = r.habits.max { $0.count < $1.count }
-        return HStack(spacing: 12) {
+        return TileRow {
             Tile(title: "Cumplimiento", value: "\(Int(pct * 100)) %", note: "\(r.totalDone) de \(r.totalPossible) hábitos", tint: pct >= 0.8 ? Brand.accent : nil)
             Tile(title: "Semana anterior", value: prevPct.map { "\(Int($0 * 100)) %" } ?? "–", note: prevPct == nil ? "sin revisión previa" : prevKey)
             Tile(title: "Racha", value: "\(streak) \(streak == 1 ? "semana" : "semanas")", note: "seguidas con 80 % o más", tint: streak >= 3 ? Brand.accent : nil)

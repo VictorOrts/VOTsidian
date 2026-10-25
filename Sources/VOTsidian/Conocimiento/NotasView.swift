@@ -41,6 +41,9 @@ struct NotasView: View {
     @State private var rowSpec: RowSpec?
     @State private var savedFlash = false
     @State private var focusMode = false
+    /// Barra de la nota estrecha (con la lista y el panel Hoy abiertos): sin la ruta (ya está en la pestaña) ni la cuenta de
+    /// palabras, que se partía en cuatro líneas y cortaba «Guardar».
+    @State private var narrowBar = false
     @State private var mentions: [NoteFile] = []
     @State private var textSelection: TextSelection?
     @State private var tabs: [String] = []
@@ -358,11 +361,11 @@ struct NotasView: View {
         return HStack(spacing: 10) {
             Button { if let p = back.popLast(), saveIfDirty() { if let s = selected { forward.append(s) }; open(p) } } label: { Image(systemName: "chevron.left").accessibilityLabel("Anterior") }.disabled(back.isEmpty)
             Button { if let p = forward.popLast(), saveIfDirty() { if let s = selected { back.append(s) }; open(p) } } label: { Image(systemName: "chevron.right").accessibilityLabel("Siguiente / abrir") }.disabled(forward.isEmpty)
-            Text(path).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1)
+            if !narrowBar { Text(path).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle) }
             if dirty { Circle().fill(Brand.warn).frame(width: 8, height: 8).help("Cambios sin guardar: se guardan solos en un momento") }
             else if savedFlash { Label("Guardado", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.accent) }
             Spacer()
-            Text("\(words) palabras · \(max(1, words / 200)) min").font(.caption).foregroundStyle(.tertiary)
+            if !narrowBar { Text("\(words) palabras · \(max(1, words / 200)) min").font(.caption).foregroundStyle(.tertiary).lineLimit(1) }
             Button { store.togglePin(path) } label: { Image(systemName: store.pinned.contains(path) ? "pin.fill" : "pin").accessibilityLabel(store.pinned.contains(path) ? "Desfijar nota" : "Fijar nota") }
                 .buttonStyle(.borderless).foregroundStyle(store.pinned.contains(path) ? Brand.accent : .secondary).help("Fijar arriba")
             Button { focusMode.toggle() } label: { Image(systemName: focusMode ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right").accessibilityLabel(focusMode ? "Salir del modo concentración" : "Modo concentración") }
@@ -370,7 +373,7 @@ struct NotasView: View {
             Picker("", selection: Binding(get: { mode }, set: { new in if new == .leer { _ = saveIfDirty() }; mode = new })) {
                 Text("Leer").tag(Mode.leer); Text("Editar").tag(Mode.editar)
             }.pickerStyle(.segmented).frame(width: 150).labelsHidden()
-            Button("Guardar") { save(path, force: false) }.keyboardShortcut("s", modifiers: .command).disabled(!dirty)
+            Button("Guardar") { save(path, force: false) }.keyboardShortcut("s", modifiers: .command).disabled(!dirty).layoutPriority(1)
             Menu {
                 Button("Renombrar…") { showRename = true }
                 Button("Historial…") { if saveIfDirty() { showHistory = true } }
@@ -384,7 +387,9 @@ struct NotasView: View {
                     Button("Mover a la papelera…", role: .destructive) { confirmDelete = true }
                 }
             } label: { Image(systemName: "ellipsis.circle").accessibilityLabel("Más acciones") }.menuStyle(.borderlessButton).frame(width: 30)
-        }.padding(12)
+        }
+        .padding(12)
+        .onGeometryChange(for: Bool.self) { $0.size.width < 660 } action: { narrowBar = $0 }
     }
 
     // MARK: Barra de formato

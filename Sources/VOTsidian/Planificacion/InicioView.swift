@@ -125,7 +125,10 @@ struct InicioView: View {
     private var summary: String {
         var parts: [String] = []
         if store.isVisible(.peso), let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
-        if store.isVisible(.medicacion), let d = store.medicacion.daysUntilNext, let main = store.medicacion.main { parts.append("\(main.act) de \(main.name) \(relativeDays(d))") }
+        // Atrasado no es «hace N días» (se leía como si ya estuviera hecho).
+        if store.isVisible(.medicacion), let d = store.medicacion.daysUntilNext, let main = store.medicacion.main {
+            parts.append("\(main.act) de \(main.name) " + (d < 0 ? "con \(-d) \(d == -1 ? "día" : "días") de retraso" : relativeDays(d)))
+        }
         let pills = store.medicacion.pending().filter { $0.med.every == 1 }.count
         if store.isVisible(.medicacion), pills > 0 { parts.append(pills == 1 ? "1 toma pendiente hoy" : "\(pills) medicamentos por tomar hoy") }
         let n = upcomingCount
@@ -135,6 +138,7 @@ struct InicioView: View {
 
     var body: some View {
         let _ = BodyCounter.hit("InicioView")
+        let _ = store.today   // se rehace al cambiar de día
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
@@ -311,7 +315,7 @@ struct InicioView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Próximo").font(.caption).foregroundStyle(.secondary)
+                        Text(d < 0 ? "Tocaba" : "Próximo").font(.caption).foregroundStyle(.secondary)
                         Text(capitalizedFirst(longDate(next))).font(.title3.weight(.semibold))
                         Text("Último: \(DayKey.dmy(last.date)) · \(last.dose) · \(last.site)").font(.callout).foregroundStyle(.secondary)
                         Text("\(main.name) · " + plural(m.doses.count, main.act, main.act + "s") + " · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)

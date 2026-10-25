@@ -16,7 +16,7 @@ struct CompraView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Por comprar", value: "\(pending)", tint: pending > 0 ? nil : Brand.accent)
                     Tile(title: "Comprado", value: "\(items.count - pending)", tint: Brand.accent)
                     Tile(title: "Artículos", value: "\(items.count)", note: "\(order.count) \(order.count == 1 ? "sección" : "secciones")")

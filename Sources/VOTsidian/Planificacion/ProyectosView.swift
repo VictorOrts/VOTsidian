@@ -27,7 +27,7 @@ struct ProyectosView: View {
         let items = rows
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
+                TileRow {
                     Tile(title: "Activos", value: "\(items.filter { $0.meta["estado"] == "activo" }.count)")
                     Tile(title: "Pausados", value: "\(items.filter { $0.meta["estado"] == "pausado" }.count)")
                     Tile(title: "Completados", value: "\(items.filter { $0.meta["estado"] == "completado" }.count)", tint: Brand.accent)

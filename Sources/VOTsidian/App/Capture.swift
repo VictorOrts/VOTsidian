@@ -147,6 +147,12 @@ struct CaptureField: View {
             if let guess { CaptureChips(guess: guess) }
             else if !feedback.isEmpty { Label(feedback, systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.accent) }
         }
+        // El «Añadido…» se va solo: si no, seguía en el panel horas después.
+        .task(id: feedback) {
+            guard !feedback.isEmpty else { return }
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled { feedback = "" }
+        }
     }
 
     private func save(_ guess: CaptureGuess?) {

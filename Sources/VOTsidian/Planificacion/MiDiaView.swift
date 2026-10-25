@@ -208,6 +208,7 @@ struct MiDiaView: View {
         .navigationTitle("Mi día")
         .onAppear(perform: takePending)
         .onChange(of: store.pendingPlanDay) { takePending() }
+        .followsToday($day)
     }
 
     // MARK: Panel de la izquierda

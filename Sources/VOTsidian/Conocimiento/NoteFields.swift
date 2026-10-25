@@ -35,7 +35,9 @@ struct NoteTables: View {
                                 // la segunda se cortaba. La última columna (resultado, notas…) suele ser la larga y tiene más sitio.
                                 ForEach(0..<t.header.count, id: \.self) { i in
                                     let cell = i < r.cells.count ? r.cells[i] : ""
-                                    Text(MDParser.inline(cell)).lineLimit(4).fixedSize(horizontal: false, vertical: true)
+                                    // Una fecha, un importe o unas estrellas no se parten («2026-01-0» y «2» debajo).
+                                    let word = cell.count <= 16 && !cell.contains(" ")
+                                    Text(MDParser.inline(cell)).lineLimit(4).fixedSize(horizontal: word, vertical: true)
                                         .frame(maxWidth: i == t.header.count - 1 ? 520 : 340, alignment: .leading).help(cell)
                                 }
                                 EditButton { spec = RowSpec(file: file, mode: .edit(line: r.line), title: "fila") }

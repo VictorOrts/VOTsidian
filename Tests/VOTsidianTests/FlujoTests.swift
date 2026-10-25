@@ -140,3 +140,27 @@ import Testing
     #expect(store.focus?.minutes == 24 * 60)
     store.stopFocus()
 }
+
+@MainActor @Test func dayChangeRebuildsWhatDependsOnToday() throws {
+    let store = Store(root: try syntheticVault())
+    let today = store.today
+    _ = store.agenda(from: today, to: today)
+    #expect(!store.agendaCache.isEmpty)
+    store.checkDayChange(now: today)   // mismo día: nada
+    #expect(!store.agendaCache.isEmpty && store.today == today)
+    let tomorrow = DayKey.adding(days: 1, to: today)
+    store.checkDayChange(now: tomorrow)
+    #expect(store.today == tomorrow && store.agendaCache.isEmpty && store.budgetCache.isEmpty)
+}
+
+@MainActor @Test func overdueDoseShowsTodayAndCountsFromToday() throws {
+    let store = Store(root: try syntheticVault())
+    let today = DayKey.today()
+    let late = try #require(store.medicacion.daysUntilNext)
+    try #require(late < 0)   // en el vault sintético el pinchazo va con retraso
+    let every = try #require(store.medicacion.main?.every)
+    let agenda = store.agenda(from: today, to: DayKey.adding(days: every, to: today))
+    let next = agenda.values.flatMap { $0 }.filter { $0.kind == .doseNext }.sorted { $0.date < $1.date }
+    #expect(next.first?.date == today && next.first?.detail == "\(-late) días tarde")
+    #expect(next.dropFirst().first?.date == DayKey.adding(days: every, to: today))
+}

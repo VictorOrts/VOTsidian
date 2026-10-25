@@ -39,7 +39,7 @@ struct SaludView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .salud)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Próxima cita", value: next?.due.map { dayLabel($0) + (next?.time.map { " · \(TimeOfDay.text($0))" } ?? "") } ?? "–",
                          note: next.map { "\($0.text) · \(relativeDays(DayKey.days(from: today, to: $0.due!)))" }, tint: (next?.due.map { DayKey.days(from: today, to: $0) <= 7 } ?? false) ? Brand.warn : nil)
                     Tile(title: "Citas pendientes", value: "\(appointments.count)")
@@ -71,7 +71,7 @@ struct SaludView: View {
                                 Text([med.name, mc.last(of: med)?.dose ?? med.dose].filter { !$0.isEmpty }.joined(separator: " ")).fontWeight(.medium)
                                 Text(med.frequencyText.lowercased()).foregroundStyle(.secondary)
                                 Spacer()
-                                if med.every > 1, let n = mc.next(of: med), let d = mc.daysUntil(med) { Text("próximo \(shortDate(n)) · \(relativeDays(d))").foregroundStyle(d < 0 ? Brand.bad : .secondary) }
+                                if med.every > 1, let n = mc.next(of: med), let d = mc.daysUntil(med) { Text("\(d < 0 ? "tocaba el" : "próximo") \(shortDate(n)) · \(dueDays(d))").foregroundStyle(d < 0 ? Brand.bad : .secondary) }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                             }.contentShape(Rectangle())
                         }.buttonStyle(.plain)
