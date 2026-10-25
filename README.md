@@ -101,7 +101,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 | **Suscripciones** | Qué se renueva y cuándo, avisos antes del cobro y de que acabe una prueba gratuita, coste al mes y al año. Cada cobro se puede apuntar en Gastos. |
 | **Préstamos y deudas** | Lo que debes, la cuota de cada mes, cuántas quedan y cuándo acabas. Apuntar una cuota baja lo que debes y, si quieres, la añade a Gastos. |
 | **Casa** | Reformas y compras en lista o tablero, electrodomésticos con garantía y mantenimiento sugerido según tus aparatos. |
-| **Lista de la compra** | Lista por secciones con casillas, también desde ⌘K. |
+| **Lista de la compra** | Lista por secciones con casillas, también desde ⌘K. Se completa con el menú de la semana: los ingredientes de cada plato que no estén ya en la lista, con en cuántas comidas salen. |
 | **Ropa** | Lo que quieres comprar, con precio, prioridad y estado. |
 | **Mascota** | Ficha, visitas y vacunas con aviso de la próxima. |
 | **Vehículo** | ITV, seguro e impuesto con aviso 30 días antes, mantenimiento cada tantos km o meses, repostajes, consumo medio y gasto del año. El gasto se puede apuntar también en Gastos. |

@@ -27,14 +27,31 @@ extension Store {
     func clearBought() { edit(Shopping.file) { Shopping.clearDone($0) } }
     func uncheckShopping() { edit(Shopping.file) { Shopping.uncheckAll($0) } }
 
-    /// Añade a la lista lo que falte de la sección «Lista de la compra» de Menú y compra. Devuelve cuántos artículos añadió.
+    /// Lo que pide el menú de la semana (tabla «Menú semanal» de Menú y compra), con si ya está en la lista.
+    var menuNeeds: [MenuNeed] { WeeklyMenu.needs(read(WeeklyMenu.file), list: shoppingItems) }
+
+    /// Completa la lista con Menú y compra: lo que falte de su sección «Lista de la compra» y los ingredientes de los platos del
+    /// menú semanal que no estén ya. Todo se deshace de una vez. Devuelve cuántos artículos añadió.
+    @discardableResult
     func generateShoppingFromMenu() -> Int {
-        let groups = Shopping.fromMenu(read(VaultPath.beside("plan", "Menú y compra.md")))
-        guard !groups.isEmpty else { return 0 }
-        ensureShoppingList()
+        let menu = read(WeeklyMenu.file)
+        let groups = Shopping.fromMenu(menu)
         var total = 0
-        for g in groups { total += addShopping(g.items, category: g.category) }
+        grouped {
+            for g in groups { total += addShopping(g.items, category: g.category) }
+            // Después de los básicos: lo que ya cubren («Pechuga de pollo y pavo» cubre «Pavo») no se repite.
+            let missing = WeeklyMenu.needs(menu, list: shoppingItems).filter { !$0.covered }
+            var sections: [String] = []
+            for n in missing where !sections.contains(n.category) { sections.append(n.category) }
+            for c in sections { total += addShopping(missing.filter { $0.category == c }.map(\.name), category: c) }
+        }
         return total
+    }
+
+    /// Crea la nota Menú y compra con la tabla de la semana vacía.
+    func createMenu() {
+        guard !exists(WeeklyMenu.file) else { return }
+        writeNote(WeeklyMenu.file, text: WeeklyMenu.template)
     }
 
     /// Ejecuta una orden rápida y devuelve el mensaje de confirmación.

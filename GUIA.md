@@ -244,6 +244,27 @@ Una sección `## …` por pasillo (Fruta y verdura, Despensa, Limpieza y hogar�
 
 Desde ⌘K, `compra leche y pan` los añade. «Vaciar comprados» quita lo que ya está marcado.
 
+#### Menú de la semana
+
+La lista se completa con la nota **Menú y compra** (junto al plan nutricional; «Crear el menú» en Compra la crea si falta). Lee dos cosas:
+
+```markdown
+## Menú semanal
+| Día | Comida | Cena |
+| :-- | :----- | :--- |
+| Lunes | Pollo + patata + pepino, tomate y maíz | Salmón fresco + cottage + verduras |
+| Martes | Pavo o pollo + batata + ensalada | 2 huevos + 150 g de claras + tomate |
+
+## Lista de la compra
+- **Proteína:** pechuga de pollo y pavo, salmón fresco y ahumado, huevos.
+- **Verdura y fruta:** tomate, pepino, ensalada.
+```
+
+- **El menú:** una fila por día y una columna por comida (las que quieras: Desayuno, Comida, Cena…). Cada plato se parte en ingredientes por «+», comas, «y», «con» y «o» (con «pollo o pavo» cuentan los dos). Se quitan las cantidades del principio («200 g de»), lo que va entre paréntesis y lo que va con «sin». Las celdas vacías, «—», «libre» o «comer fuera» no cuentan.
+- **`## Lista de la compra`:** los básicos de cada semana, una línea `- **Sección:** artículo, artículo…` por sección.
+
+En Compra, la tarjeta «Menú de la semana» enseña cada ingrediente con en cuántas comidas sale (×3) y si ya está en la lista (✓). «Completar la lista» añade los básicos que falten y después los ingredientes del menú que no estén ya, todo en un solo deshacer (⌥⌘Z). Un ingrediente ya está si un artículo lleva todas sus palabras, en singular o plural y aunque esté comprado: «Pechuga de pollo y pavo» cubre «Pavo», «Patatas» cubre «patata». Lo nuevo va a la sección de los básicos que comparta alguna palabra con él («YoPRO de fresa» a la de «YoPRO»); si no hay, al pasillo que le toca si tu lista va por pasillos, o a «Otros». «Ver la semana» enseña el menú en una rejilla y «Editar el menú» abre la nota.
+
 ### Ropa
 
 - **`## Por comprar`:** una tabla `Prenda | Modelo | Prioridad | Precio | Fecha objetivo | Estado`. Lo que tiene el estado «Comprado» o «Descartado» deja de contar en el presupuesto.
