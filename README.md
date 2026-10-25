@@ -59,14 +59,18 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 
 | Función | Qué hace |
 |---|---|
-| **Inicio** | Lo que pide atención, lo de hoy y una tarjeta por módulo. «Personalizar» reordena y oculta las tarjetas. |
-| **Mi día** | El día por horas: arrastra las tareas sin hora a una franja, estira un bloque para cambiar lo que dura y mira si te pasas de las horas que quieres trabajar. «Repartir» las coloca solas en los huecos, y «Empezar el día» repasa lo de ayer, lo de hoy y lo que viene. |
-| **Tareas** | Fecha, hora, duración, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30», «reunión mañana de 10 a 11:30». |
-| **Planificar semana** | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
+| **Inicio** | Lo que pide atención y una tarjeta por módulo. «Personalizar» reordena y oculta las tarjetas. La tarjeta «Hoy» solo sale si ocultas el panel Hoy. |
+| **Panel Hoy** (⌥⌘0) | A la derecha de todas las pantallas: el mes en pequeño con un punto por tipo de evento, lo del día que elijas (con lo vencido, si es hoy), tareas que se marcan con un clic y un campo para añadir. Los enlaces a notas se abren en su pestaña «Nota», sin salir de la pantalla. En una ventana estrecha y en Calendario (que tiene su propio panel) se esconde solo. |
+| **Agenda** | Mi día, Planificar semana y Tareas en una sola entrada, con «Día · Semana · Lista» arriba. |
+| **Mi día** (Día) | El día por horas: arrastra las tareas sin hora a una franja, estira un bloque para cambiar lo que dura y mira si te pasas de las horas que quieres trabajar. «Repartir» las coloca solas en los huecos, y «Empezar el día» repasa lo de ayer, lo de hoy y lo que viene. |
+| **Planificar semana** (Semana) | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
+| **Tareas** (Lista) | Fecha, hora, duración, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30», «reunión mañana de 10 a 11:30». Arrastra una tarea a «Hoy», «Mañana», «El lunes», «En una semana» o «Sin fecha» para cambiarle la fecha. |
+| **Enfoque** | Con el botón derecho en una tarea, «Empezar enfoque»: una cuenta atrás en la barra de arriba (lo que dura la tarea, o 25 minutos) que suena al acabar. Un clic la para. |
 | **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día. Un clic en un evento abre su ficha en el panel para editarlo; el panel se pliega para ver la rejilla más ancha. |
 | **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual, y «Empezar el día» y «Cerrar el día» para planificar por la mañana y repasar lo pendiente por la noche. |
 | **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
-| **Captura rápida** (⇧⌘N) | Tarea, gasto, peso, toma de medicación o idea, desde cualquier pantalla. |
+| **Captura rápida** (⇧⌘N) | «Cualquier cosa»: escribe una frase («dentista el viernes a las 17:30», «22 € cena con Ana», «peso 101,2», «compra leche y pan») y, antes de guardar, enseña lo que ha entendido y en qué nota irá. Las pestañas Tarea, Gasto, Peso, Toma e Idea siguen para lo concreto. Todos los campos de añadir tareas enseñan igual lo que van a guardar. |
+| **Navegación** | Atrás y adelante (⌘[ y ⌘]), la sección de la pantalla bajo el título, y buscar, añadir y el panel Hoy en la barra de arriba. En la barra lateral, «Fijadas» (botón derecho → «Fijar arriba») y las tres últimas notas abiertas. «Abrir en otra ventana», con el botón derecho en una pantalla, y «Otra ventana» en una nota, para tener dos cosas a la vista. |
 | **Barra de menús** | Tareas, hábitos y tomas de hoy, y añadir tareas sin abrir la ventana. |
 | **Avisos** | Lista por urgencia con botón para resolver cada aviso. También en un calendario propio «VOTsidian» de Calendar que la app mantiene al día sola (opcional y sin duplicados), como archivo `.ics` o como notificaciones de macOS. |
 
@@ -114,7 +118,10 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 |---|---|
 | ⌘K | Buscar y órdenes rápidas |
 | ⇧⌘N | Captura rápida |
-| ⌘1 … ⌘9 | Ir a las nueve primeras pantallas visibles (menú «Ir a») |
+| ⌘1 | Inicio |
+| ⌘2 … ⌘9 | Las pantallas fijadas, en su orden (menú «Ir a»): no cambian al ocultar módulos |
+| ⌘[ / ⌘] | Atrás / adelante |
+| ⌥⌘0 | Mostrar u ocultar el panel Hoy |
 | ⌘S | Guardar la nota o la revisión |
 | ⌥⌘Z | Deshacer el último cambio de la app |
 | ⌘T / ⌘W | Nueva pestaña / cerrar pestaña en Notas |
