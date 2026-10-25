@@ -126,4 +126,6 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 ## Forma de trabajar
 
 - Una rama por tarea (`mejoras`, `novedades`…); `master` es la principal. Commits solo cuando se pidan, en español, separando código y documentación.
-- Cada función nueva actualiza README y GUIA. Antes de dar algo por hecho: `swift test` completo y, si toca pantallas, una captura.
+- Cada función nueva actualiza README y GUIA. Antes de dar algo por hecho: los tests de lo nuevo y de lo que toca (`swift test --filter`)
+  y, si toca pantallas, una captura. `swift test` completo solo si el cambio toca algo compartido (Store, escaneo, agenda, repintados),
+  si aparece un error o si el benchmark mide una ralentización.
