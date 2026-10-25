@@ -4,8 +4,6 @@ import SwiftUI
 struct CierreSheet: View {
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var tomorrow = ""
-    @State private var message = ""
 
     private var pending: [TaskItem] {
         let today = DayKey.today()
@@ -42,11 +40,7 @@ struct CierreSheet: View {
             }
             Divider()
             Text("Preparar mañana").font(.headline)
-            HStack {
-                TextField("Una tarea para mañana (puedes escribir «el viernes», «urgente»…)", text: $tomorrow).onSubmit(add)
-                Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(tomorrow.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            if !message.isEmpty { Label(message, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
+            CaptureField(placeholder: "Una tarea para mañana (puedes escribir «el viernes», «urgente»…)", defaultDay: DayKey.adding(days: 1, to: DayKey.today()))
             HStack {
                 Button { store.openToday(); dismiss() } label: { Label("Escribir la nota de hoy", systemImage: "note.text") }
                 Spacer()
@@ -60,12 +54,5 @@ struct CierreSheet: View {
         let wd = DayKey.calendar().component(.weekday, from: DayKey.today())
         let delta = (9 - wd) % 7
         return DayKey.adding(days: delta == 0 ? 7 : delta, to: DayKey.today())
-    }
-
-    private func add() {
-        let raw = tomorrow.trimmingCharacters(in: .whitespaces)
-        guard !raw.isEmpty else { return }
-        message = store.addTask(NaturalDate.extractTask(raw), defaultDue: DayKey.adding(days: 1, to: DayKey.today()))
-        tomorrow = ""
     }
 }

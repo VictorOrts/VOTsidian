@@ -429,3 +429,37 @@ private func referenceNumber(_ s: String) -> Double? {
         #expect(MDParser.inline(s) == MDParser.parseInline(s), "«\(s)» en caché")
     }
 }
+
+/// Frases cualquiera en la captura (también notas rotas pegadas enteras): nunca falla, y lo que entiende se puede guardar.
+@Test func captureNeverCrashesOnRandomSentences() {
+    var r = Rng(state: seed &+ 41)
+    let words = ["peso", "compra", "cita", "tarea", "gasto", "idea", "nota", "dormí", "pinchazo", "libro", "terminé", "cuota", "cintura", "mañana", "el viernes",
+                 "a las 17:30", "a las 25:99", "de 22 a 2", "durante 1h", "durante 99999 horas", "cada mes", "cada 0 días", "urgente", "🔕", "€", "22 €", "1e999 €",
+                 "-5 euros", "nan €", "inf", "29/02/2027", "31/04", "en 99999 días", "hace 3 días", "ayer", "y", ",", " - ", "  ", "\n", "ñ", "٣", "١٠٠ €"]
+    for _ in 0..<(400 * scale) {
+        let s = Bool.random(using: &r) ? randomNote(&r) : (0..<Int.random(in: 1...8, using: &r)).map { _ in words.randomElement(using: &r)! }.joined(separator: " ")
+        for tasksOnly in [false, true] {
+            guard let g = Capture.interpret(s, defaultDay: Bool.random(using: &r) ? DayKey.today() : nil, tasksOnly: tasksOnly) else { continue }
+            #expect(!g.chips.isEmpty && !g.destination.isEmpty)
+            if tasksOnly, case .task = g.command {} else if tasksOnly { Issue.record("en un campo de tareas salió otra cosa: \(g.command)") }
+            if case .expense(let e) = g.command { #expect(e.amount.isFinite) }
+        }
+    }
+}
+
+/// El trozo de nota que enseña el panel: siempre el principio de la nota, cortado en un salto de línea y dentro de los límites.
+@Test func notePeekHeadIsAlwaysAPrefix() {
+    var r = Rng(state: seed &+ 43)
+    var cases = (0..<(200 * scale)).map { _ in randomNote(&r) }
+    cases += ["", "\n", String(repeating: "x", count: 100_000), String(repeating: "a\n", count: 300), String(repeating: "a\r\n", count: 300), String(repeating: "ñ🎉\n", count: 20_000)]
+    for text in cases {
+        let (head, cut) = NotePeek.head(text, maxLines: 50, maxBytes: 4000)
+        #expect(text.utf8.starts(with: head.utf8))
+        if cut == 0 { #expect(head == text) } else {
+            #expect(head.utf8.count <= 8000 && head.utf8.filter { $0 == 10 }.count < 50)
+            #expect(head.isEmpty || text.utf8.count > head.utf8.count)
+        }
+    }
+    #expect(NotePeek.head("a\nb\nc\n", maxLines: 2).cut == 2 && NotePeek.head("a\nb\nc\n", maxLines: 2).text == "a\nb")
+    #expect(NotePeek.head("a\nb", maxLines: 2).cut == 0)
+}

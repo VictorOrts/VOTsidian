@@ -37,8 +37,9 @@ extension Store {
         return p
     }
 
-    /// Abre un enlace `votsidian://note/Nombre`: salta a la nota o abre el adjunto con su programa.
-    func open(link url: URL) -> OpenURLAction.Result {
+    /// Abre un enlace `votsidian://note/Nombre`: salta a la nota o abre el adjunto con su programa. Con `peek`, una nota sin
+    /// pantalla propia se abre en el panel de la derecha y no se sale de la pantalla en la que se está.
+    func open(link url: URL, peek: Bool = false) -> OpenURLAction.Result {
         guard url.scheme == "votsidian", let target = url.lastPathComponent.removingPercentEncoding else { return .systemAction }
         if let p = fuzzyResolve(target) {
             // Las notas que tienen pantalla propia abren esa pantalla; el resto, el lector de notas.
@@ -47,7 +48,7 @@ extension Store {
                                              VaultPath.lecturas: .lecturas, VaultPath.viajes: .viajes, VaultPath.tramites: .tramites, VaultPath.moda: .moda, VaultPath.medico: .salud, VaultPath.inbox: .tareas,
                                              VaultPath.personas: .personas, VaultPath.documentos: .documentos,
                                              VaultPath.objetivos: .objetivos, VaultPath.finanzas: .finanzas]
-            if let sc = screens[p] { screen = sc } else { pendingNote = p }
+            if let sc = screens[p] { screen = sc } else if peek { peekNote = p } else { pendingNote = p }
         } else if let a = attachmentURL(target) { NSWorkspace.shared.open(a) }
         else if let sc = screenAlias(target) { screen = sc }
         return .handled

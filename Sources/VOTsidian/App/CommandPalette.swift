@@ -45,7 +45,7 @@ struct CommandPalette: View {
         var out: [PaletteItem] = []
         func go(_ s: Screen) -> () -> Void { { store.screen = s; dismiss() } }
         var actions: [PaletteItem] = [
-            PaletteItem(icon: "plus.circle", title: "Captura rápida", subtitle: "Tarea, gasto, peso, toma o idea", tag: "Acción") { dismiss(); store.showQuickAdd = true },
+            PaletteItem(icon: "plus.circle", title: "Captura rápida", subtitle: "Cualquier cosa en una frase: tarea, cita, gasto, peso, compra…", tag: "Acción") { dismiss(); store.showQuickAdd = true },
             PaletteItem(icon: "note.text", title: "Nota de hoy", subtitle: "Abre o crea Diario/hoy.md", tag: "Acción") { store.openToday(); dismiss() },
             PaletteItem(icon: "sunrise", title: "Empezar el día", subtitle: "Lo de ayer, lo de hoy y repartirlo en las horas", tag: "Acción") { dismiss(); store.showEmpezar = true },
             PaletteItem(icon: "moon.stars", title: "Cerrar el día", subtitle: "Revisa lo pendiente y prepara mañana", tag: "Acción") { dismiss(); store.showCierre = true },
@@ -175,11 +175,11 @@ struct CommandPalette: View {
 }
 
 struct QuickAddSheet: View {
-    enum Kind: String, CaseIterable, Identifiable { case tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Toma", idea = "Idea"; var id: String { rawValue } }
+    enum Kind: String, CaseIterable, Identifiable { case auto = "Cualquier cosa", tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Toma", idea = "Idea"; var id: String { rawValue } }
 
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var kind = Kind.tarea
+    @State private var kind = Kind.auto
     @State private var text = ""
     @State private var hasDue = false
     @State private var due = Date()
@@ -198,6 +198,10 @@ struct QuickAddSheet: View {
                 ForEach(Kind.allCases.filter { ($0 != .peso || store.isVisible(.peso)) && ($0 != .pinchazo || store.isVisible(.medicacion)) && ($0 != .gasto || store.isVisible(.gastos)) }) { Text($0.rawValue).tag($0) }
             }.pickerStyle(.segmented).labelsHidden()
             switch kind {
+            case .auto:
+                TextField("Escribe lo que sea", text: $text).font(.title3).focused($focused).onSubmit(save)
+                if let g = guess { CaptureChips(guess: g) }
+                else { Text("«dentista el viernes a las 17:30», «22 € cena con Ana», «peso 101,2», «compra leche y pan», «idea …». Mientras escribes, aquí sale lo que se va a guardar y dónde.").font(.caption).foregroundStyle(.secondary) }
             case .tarea:
                 TextField("Qué hay que hacer (ej: llamar al dentista el viernes)", text: $text).focused($focused).onSubmit(save)
                 HStack { Toggle("Fecha", isOn: $hasDue).toggleStyle(.checkbox); DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue) }
@@ -238,7 +242,7 @@ struct QuickAddSheet: View {
                 Button("Guardar", action: save).keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(!valid)
             }
         }
-        .padding(22).frame(width: 460)
+        .padding(22).frame(width: 520)
         .onAppear {
             focused = true
             let m = store.medicacion
@@ -253,8 +257,13 @@ struct QuickAddSheet: View {
 
     private var selectedMed: Medication? { store.medicacion.meds.first { $0.name == medName } }
 
+    private var guess: CaptureGuess? {
+        Capture.interpret(text, categories: store.expenseCategories, people: store.people.map(\.name), learned: store.expenseLearned)
+    }
+
     private var valid: Bool {
         switch kind {
+        case .auto: guess != nil
         case .tarea, .idea: !text.trimmingCharacters(in: .whitespaces).isEmpty
         case .gasto: store.parseExpense(text) != nil
         case .peso: MD.number(kg) != nil
@@ -267,6 +276,7 @@ struct QuickAddSheet: View {
         let t = text.trimmingCharacters(in: .whitespaces)
         let day = DayKey.calendar().startOfDay(for: date)
         switch kind {
+        case .auto: if let g = guess { store.run(g.command) }
         case .tarea:
             if hasDue { store.addTask(t, due: DayKey.calendar().startOfDay(for: due)) } else { store.addTask(NaturalDate.extractTask(t)) }
         case .idea: store.addIdea(t)

@@ -14,7 +14,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
   - [Finanzas y gastos](#finanzas-y-gastos) · [Suscripciones](#suscripciones) · [Préstamos y deudas](#préstamos-y-deudas)
   - [Casa](#casa) · [Lista de la compra](#lista-de-la-compra) · [Ropa](#ropa) · [Mascota](#mascota) · [Vehículo](#vehículo) · [Viajes](#viajes) · [Lecturas](#lecturas)
   - [Personas](#personas) · [Documentos](#documentos) · [Trámites y seguros](#trámites-y-seguros) · [Objetivos](#objetivos)
-- [Tareas](#tareas) · [Mi día](#mi-día) · [Órdenes rápidas](#órdenes-rápidas-k)
+- [Tareas](#tareas) · [Mi día](#mi-día) · [La ventana](#la-ventana) · [Órdenes rápidas](#órdenes-rápidas-k)
 - [Notas que crea la app](#notas-que-crea-la-app)
 - [Gráficas en una nota](#gráficas-en-una-nota)
 - [Lienzos](#lienzos)
@@ -31,7 +31,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 
 Si la carpeta ya tiene notas, no se cambia ninguna: solo se crean las que faltan.
 
-Siempre están **Mi día, Tareas, Calendario, Planificar semana, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Lienzo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
+Siempre están **la Agenda (Mi día, Planificar semana y Tareas), Calendario, Revisión semanal y mensual, Proyectos, Notas, Bases, Grafo, Lienzo, Enlaces rotos y Avisos**. Todo lo demás se cambia en **Ajustes → Módulos**: mostrar u ocultar módulos, crear la nota que falte o cambiar dónde está cada nota. Los módulos que lleguen en una actualización quedan ocultos en una carpeta ya configurada (la app avisa), salvo que ya tengas su nota: los activas cuando quieras.
 
 ## Módulos y sus notas
 
@@ -431,8 +431,19 @@ El día por horas, de 0 a 24 h. No guarda nada aparte: todo va en la línea de c
 - **Ficha.** Un clic en un bloque (o en una ficha de todo el día) lo selecciona y abre su ficha en el panel, en lugar de «Sin hora». El doble clic, además, pone el cursor en el texto. Una tarea se edita entera: texto, día, hora, duración, prioridad y sin aviso, con «Guardar» (Intro) o «Cancelar» (Esc); también se completa, se elimina o se abre su nota. De una cita guardada como nota de visita se cambian la fecha y la hora (su `fecha:` y `hora:`). Lo que viene de otros módulos (una toma de medicación, un cumpleaños, una renovación) solo se ve, con un botón que lleva a su pantalla, porque se cambia allí. Un clic en un hueco, la ✕ o Esc cierran la ficha.
 - **Jornada.** Arriba, lo planificado frente a las horas que quieres dedicar al día (8 por defecto, se cambia en el menú «de 8 h»). Cuentan las tareas y citas pendientes con hora, y las tareas sin hora que tienen duración; la medicación y lo hecho no. Si te pasas, la barra se pone roja.
 - **Repartir.** Coloca las tareas sin hora en los huecos libres, por orden (primero las vencidas y las de más prioridad), entre las 9:00 y las 20:00, o desde ahora si es hoy. Las que no caben se quedan sin hora. ⌥⌘Z lo deshace de una vez.
-- **Empezar el día.** Desde Inicio, Mi día, la barra de menús o ⌘K. Repasa en tres pasos lo que quedó pendiente (a hoy, a mañana o hecha), lo de hoy (con cuánto dura cada cosa) y lo de los próximos tres días (adelantar a hoy), y termina en Mi día para repartirlo.
+- **Empezar el día.** Desde el panel Hoy, Mi día, la barra de menús o ⌘K. Repasa en tres pasos lo que quedó pendiente (a hoy, a mañana o hecha), lo de hoy (con cuánto dura cada cosa) y lo de los próximos tres días (adelantar a hoy), y termina en Mi día para repartirlo.
 - **Semana por horas.** En Calendario, «Semana» enseña de lunes a domingo con las mismas columnas de horas. Soltar una tarea en una columna le pone ese día y esa hora; en la cabecera de un día, solo el día. «Por horas», en el panel de un día, lo abre en Mi día. Igual que en Mi día, un clic en un bloque, en una ficha de la cabecera o en una fila del panel (también en la vista de mes) abre su ficha arriba del panel derecho. El botón junto a «Mes / Semana» pliega ese panel para que la rejilla gane anchura (se recuerda); al abrir la ficha de un evento, vuelve a salir. Pasar el ratón por un título cortado lo enseña entero.
+
+## La ventana
+
+- **Barra de arriba.** Atrás y adelante (⌘[ y ⌘]) recorren las pantallas que has visitado. Bajo el título sale la sección (Dinero, Cuerpo…). A la derecha: buscar (⌘K), añadir (⇧⌘N) y el panel Hoy (⌥⌘0). Con un enfoque en marcha, su cuenta atrás.
+- **Agenda.** Mi día, Planificar semana y Tareas son una sola entrada de la barra lateral, con «Día · Semana · Lista» arriba. Al volver a la Agenda sale el último modo que usaste. Cambiar de modo no llena el historial de Atrás.
+- **Panel Hoy.** A la derecha de todas las pantallas salvo Calendario, que tiene el suyo. Arriba, el mes con un punto por tipo de evento (los colores del Calendario); un clic en un día enseña lo de ese día y el campo de abajo añade a ese día. Si es hoy, también lo vencido. Las tareas se marcan con un clic; con el botón derecho, enfoque, pasar a mañana o ver su nota. Abajo: la nota de hoy, Empezar el día y Cerrar el día. Si la ventana es estrecha se esconde solo; ⌥⌘0 lo oculta del todo, y entonces Inicio vuelve a enseñar su tarjeta «Hoy».
+- **Notas al lado.** Con el panel visible, un enlace `[[nota]]` pulsado fuera de Notas abre la nota en la pestaña «Nota» del panel: se pueden marcar casillas y cambiar propiedades, y «Editar en Notas» la abre en el editor. «Otra ventana» la deja en una ventana aparte. De una nota muy larga se enseñan las primeras 250 líneas, con un enlace para seguir en Notas. Las notas con pantalla propia (Vehículo, Peso…) siguen abriendo su pantalla.
+- **Fijadas y recientes.** Con el botón derecho en una pantalla de la barra lateral, «Fijar arriba». Las fijadas son también ⌘2…⌘9, en su orden (⌘1 es Inicio), así que no cambian al ocultar un módulo. Debajo, las tres últimas notas abiertas. Al principio están fijadas la Agenda, Calendario y Notas.
+- **Otra ventana.** Botón derecho en una pantalla → «Abrir en otra ventana», por ejemplo para tener Gastos y Notas a la vez.
+- **Enfoque.** Botón derecho en una tarea (en Tareas, Mi día o el panel) → «Empezar enfoque»: dura lo que la tarea (`⏱`) o 25 minutos. Suena al acabar y lo dice arriba. Un clic en la cuenta atrás lo para. No se guarda nada en las notas.
+- **Campos de añadir.** Los de Inicio, Tareas, Mi día, el panel, Cerrar el día y la barra de menús entienden lo mismo que una tarea escrita a mano (fecha, hora, duración, repetición, prioridad, 🔕) y, mientras escribes, enseñan en etiquetas lo que van a guardar y en qué nota. En Mi día y en el panel, sin fecha en la frase, va al día que estás viendo.
 
 ## Órdenes rápidas (⌘K)
 
@@ -452,6 +463,8 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | `libro Dune - Frank Herbert` | Añade un libro pendiente a Lecturas (el autor es opcional). |
 | `terminé Dune` | Termina hoy un libro que lees o tienes pendiente (basta parte del título). |
 | `cuota Coche` | Apunta la cuota de un préstamo, en la nota y en Gastos. |
+
+La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea».
 
 ## Notas que crea la app
 

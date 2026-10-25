@@ -7,9 +7,6 @@ struct TareasView: View {
     }
 
     @Environment(Store.self) private var store
-    @State private var text = ""
-    @State private var hasDue = false
-    @State private var due = Date()
     @State private var filter = Filter.todas
     @State private var search = ""
     @State private var byNote = false
@@ -32,24 +29,17 @@ struct TareasView: View {
         let _ = BodyCounter.hit("TareasView")
         let open = store.tasks.filter { !$0.done && matches($0) }
         let done = store.tasks.filter(\.done).sorted { ($0.completed ?? .distantPast) > ($1.completed ?? .distantPast) }
-        let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }.count
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 18) {
-                Card(title: "Nueva tarea (va al Inbox)", icon: "plus.circle") {
-                    HStack {
-                        TextField("Qué hay que hacer", text: $text).onSubmit(add)
-                        Toggle("Fecha", isOn: $hasDue).toggleStyle(.checkbox)
-                        DatePicker("", selection: $due, displayedComponents: .date).labelsHidden().disabled(!hasDue)
-                        Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
+                Card(title: "Nueva tarea", icon: "plus.circle", info: "Sin fecha en la frase va al Inbox. Entiende “mañana”, “el viernes a las 17:30”, “durante 1h”, “cada lunes”, “urgente” y 🔕.") {
+                    CaptureField(placeholder: "Qué hay que hacer (ej: llamar al dentista el viernes a las 17:30)")
                 }
-                HStack {
-                    Picker("", selection: $filter) { ForEach(Filter.allCases) { Text($0 == .vencidas && overdue > 0 ? "Vencidas (\(overdue))" : $0.rawValue).tag($0) } }
-                        .pickerStyle(.segmented).labelsHidden().frame(width: 420)
-                    TextField("Buscar tarea o nota", text: $search).frame(width: 220)
-                    Toggle("Agrupar por nota", isOn: $byNote).toggleStyle(.checkbox)
-                    InfoButton(text: "Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). Pasa el ratón por una tarea para aplazarla o editarla; el nombre de la nota abre esa nota.")
+                // Con el panel Hoy abierto no siempre cabe en una fila: entonces la búsqueda baja a la segunda.
+                ViewThatFits(in: .horizontal) {
+                    HStack { filterPicker; searchRow }
+                    VStack(alignment: .leading, spacing: 10) { filterPicker; searchRow }
                 }
+                dropTargets
                 if byNote {
                     ForEach(Dictionary(grouping: open, by: \.noteName).keys.sorted(), id: \.self) { n in
                         section(n, open.filter { $0.noteName == n }.sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) })
@@ -71,7 +61,7 @@ struct TareasView: View {
                     ForEach(groups.filter { !$0.1.isEmpty }, id: \.0) { g in
                         section(g.0, g.1.sorted { a, b in a.priority != b.priority ? a.priority > b.priority : (a.due ?? .distantFuture) < (b.due ?? .distantFuture) })
                     }
-                    if open.isEmpty { EmptyNote("Ninguna tarea en este filtro.", icon: "checkmark.circle") }
+                    if open.isEmpty { EmptyNote(emptyText, icon: "checkmark.circle") }
                 }
                 if !done.isEmpty {
                     DisclosureGroup("Completadas (\(done.count))") {
@@ -85,17 +75,67 @@ struct TareasView: View {
         .navigationTitle("Tareas")
     }
 
-    private func add() {
-        let t = text.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
-        store.addTask(t, due: hasDue ? DayKey.calendar().startOfDay(for: due) : nil)
-        text = ""; hasDue = false
-    }
-
     private func section(_ title: String, _ items: [TaskItem]) -> some View {
         LazyVStack(alignment: .leading, spacing: 8) {
             Text("\(title) (\(items.count))").font(.headline).foregroundStyle(title == "Vencidas" ? Brand.bad : .primary)
-            ForEach(items) { TaskRow(task: $0) }
+            ForEach(items) { TaskRow(task: $0).draggable($0.id) }
         }
+    }
+
+    private var filterPicker: some View {
+        let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }.count
+        return Picker("", selection: $filter) { ForEach(Filter.allCases) { Text($0 == .vencidas && overdue > 0 ? "Vencidas (\(overdue))" : $0.rawValue).tag($0) } }
+            .pickerStyle(.segmented).labelsHidden().frame(width: 420)
+    }
+
+    private var searchRow: some View {
+        HStack {
+            TextField("Buscar tarea o nota", text: $search).frame(width: 220)
+            Toggle("Agrupar por nota", isOn: $byNote).toggleStyle(.checkbox).fixedSize()
+            InfoButton(text: "Se leen de todas tus notas (líneas “- [ ] texto 📅 fecha”). Arrastra una tarea a las etiquetas de fecha para cambiársela. Pasa el ratón por una tarea para aplazarla o editarla; el nombre de la nota abre esa nota.")
+        }
+    }
+
+    private var emptyText: String {
+        if !search.isEmpty { return "Ninguna tarea contiene «\(search)»." }
+        switch filter {
+        case .todas: return "No hay tareas pendientes. Escribe una arriba o apúntala en cualquier nota como «- [ ] texto»."
+        case .hoy: return "Nada para hoy. Arrastra aquí arriba, a «Hoy», lo que quieras hacer."
+        case .semana: return "Nada en los próximos 7 días."
+        case .vencidas: return "Nada vencido."
+        case .sinFecha: return "Todas las tareas tienen fecha."
+        }
+    }
+
+    /// Arrastrar una tarea a una de estas etiquetas le cambia la fecha (o se la quita).
+    private var dropTargets: some View {
+        let today = DayKey.today()
+        let wd = DayKey.calendar().component(.weekday, from: today)
+        let monday = DayKey.adding(days: (9 - wd) % 7 == 0 ? 7 : (9 - wd) % 7, to: today)
+        let targets: [(String, Date?)] = [("Hoy", today), ("Mañana", DayKey.adding(days: 1, to: today)), ("El lunes", monday), ("En una semana", DayKey.adding(days: 7, to: today)), ("Sin fecha", nil)]
+        return HStack(spacing: 6) {
+            Text("Arrastra una tarea a:").font(.caption).foregroundStyle(.secondary)
+            ForEach(targets, id: \.0) { DropChip(title: $0.0, day: $0.1) }
+        }
+    }
+}
+
+/// Etiqueta de fecha de Tareas: se ilumina al pasar una tarea por encima y, al soltarla, se la pone (o le quita la fecha).
+private struct DropChip: View {
+    @Environment(Store.self) private var store
+    let title: String
+    let day: Date?
+    @State private var targeted = false
+
+    var body: some View {
+        Text(title).font(.caption.weight(.medium))
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(targeted ? Brand.accent.opacity(0.3) : Color.primary.opacity(0.06), in: Capsule())
+            .overlay(Capsule().strokeBorder(targeted ? Brand.accent : Color.clear))
+            .dropDestination(for: String.self) { ids, _ in
+                guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }) else { return false }
+                if let day { store.reschedule(t, to: day) } else { store.unschedule(t) }
+                return true
+            } isTargeted: { targeted = $0 }
     }
 }

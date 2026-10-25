@@ -165,8 +165,33 @@ final class Store {
     }
     var screen: Screen? = Screen.allCases.first { String(describing: $0) == ProcessInfo.processInfo.environment["VOT_SCREEN"] }
         ?? Screen(rawValue: UserDefaults.standard.string(forKey: "lastScreen") ?? "") ?? .inicio {
-        didSet { if let s = screen { UserDefaults.standard.set(s.rawValue, forKey: "lastScreen") } }
+        didSet {
+            guard screen != oldValue else { return }
+            if let s = screen {
+                UserDefaults.standard.set(s.rawValue, forKey: "lastScreen")
+                if Screen.agendaModes.contains(s) { UserDefaults.standard.set(s.rawValue, forKey: "agendaMode") }
+            }
+            // Cambiar de modo dentro de la Agenda (Día, Semana, Lista) no cuenta como ir a otra pantalla.
+            let sameAgenda = oldValue.map(Screen.agendaModes.contains) == true && screen.map(Screen.agendaModes.contains) == true
+            if !walkingHistory, !sameAgenda, let old = oldValue {
+                backStack.append(old)
+                if backStack.count > 50 { backStack.removeFirst() }
+                forwardStack = []
+            }
+            syncHistoryFlags()
+        }
     }
+    /// Historial de pantallas para Atrás y Adelante (⌘[ y ⌘]). No se observa: la barra solo necesita `canGoBack`/`canGoForward`.
+    @ObservationIgnored var backStack: [Screen] = []
+    @ObservationIgnored var forwardStack: [Screen] = []
+    @ObservationIgnored var walkingHistory = false
+    var canGoBack = false
+    var canGoForward = false
+    /// Nota abierta en la pestaña «Nota» del panel de la derecha: los enlaces se leen ahí sin salir de la pantalla.
+    var peekNote: String?
+    /// Bloque de enfoque en marcha (temporizador de la barra de herramientas).
+    var focus: FocusSession?
+    @ObservationIgnored var focusTask: Task<Void, Never>?
     var showPalette = false
     var showQuickAdd = false
     var showCierre = false

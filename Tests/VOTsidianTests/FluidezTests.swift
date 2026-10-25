@@ -99,7 +99,8 @@ private let edits: [(String, @MainActor (Store) -> Void)] = [
     let other = try repaints(.vehiculo) { $0.edit("Notas/B.md") { $0 + "\nmás" } }
     #expect(!other.visible && other.counts.isEmpty, "Vehículo se repintó con una nota ajena: \(other.counts)")
     let task = try repaints(.vehiculo) { s in if let t = s.tasks.first(where: { $0.text == "previa" }) { s.setTask(t, done: true) } }
-    #expect(task.counts.isEmpty, "Vehículo se repintó al marcar una tarea de otra nota: \(task.counts)")
+    // El panel Hoy sí sigue las tareas (enseña las de hoy); la pantalla de al lado, no.
+    #expect(task.counts.keys.allSatisfy { $0 == "HoyPanel" }, "Vehículo se repintó al marcar una tarea de otra nota: \(task.counts)")
     // Notas: cambiar otra nota no recalcula la pantalla (las menciones las vigila una vista aparte)
     let notes = try repaints(.notas) { $0.addExpense(9, category: "Alimentación", note: "pan", date: DayKey.today()) }
     #expect(notes.counts["NotasView"] == nil, "Notas se recalculó con un cambio en otra nota: \(notes.counts)")
@@ -168,4 +169,11 @@ private let edits: [(String, @MainActor (Store) -> Void)] = [
     #expect(!notifies { if let t = store.tasks.first(where: { $0.text == "previa" }) { store.setTask(t, done: true) } }, "avisó por una tarea de otra nota")
     #expect(notifies { store.edit(VaultPath.vehiculo) { $0 + "\n- [ ] Cambiar escobillas\n" } }, "no avisó por una tarea de su nota")
     #expect(store.tasks(in: VaultPath.vehiculo).contains { $0.text == "Cambiar escobillas" })
+}
+
+@MainActor @Test func theTodayPanelFollowsTasksButNotOtherNotes() throws {
+    let other = try repaints(.vehiculo) { $0.edit("Notas/B.md") { $0 + "\nmás" } }
+    #expect(other.counts["HoyPanel"] == nil, "el panel Hoy se repintó con una nota ajena: \(other.counts)")
+    let added = try repaints(.vehiculo) { $0.addTask("llamar al taller", due: DayKey.today()) }
+    #expect(added.visible && added.counts["HoyPanel"] != nil && added.counts["VehiculoView"] == nil, "el panel no enseñó la tarea nueva: \(added.counts)")
 }

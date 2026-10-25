@@ -97,9 +97,9 @@ struct HomeLayout: Equatable {
 struct InicioView: View {
     @Environment(Store.self) private var store
     let go: (Screen) -> Void
-    @State private var quick = ""
-    @State private var quickMsg = ""
     @AppStorage("inicioLayout") private var layoutRaw = ""
+    /// Con el panel Hoy a la derecha, la tarjeta «Hoy» repetiría lo mismo: no sale (salvo al personalizar).
+    @AppStorage("todayPanel") private var panelOn = true
     @State private var customizing = ProcessInfo.processInfo.environment["VOT_CUSTOMIZE"] != nil
 
     private var upcomingTasks: [TaskItem] {
@@ -149,7 +149,7 @@ struct InicioView: View {
                 }
                 let layout = HomeLayout(raw: layoutRaw)
                 // Se pinta sin las tarjetas de módulos ocultos, pero los cambios se guardan sobre el orden completo.
-                let shown = HomeLayout(items: layout.items.filter { $0.card.module.map { !store.hiddenModules.contains($0) } ?? true })
+                let shown = HomeLayout(items: layout.items.filter { ($0.card.module.map { !store.hiddenModules.contains($0) } ?? true) && (customizing || !panelOn || $0.card != .hoy) })
                 Grid(horizontalSpacing: 16, verticalSpacing: 16) {
                     ForEach(Array(shown.rows.enumerated()), id: \.offset) { _, row in
                         GridRow {
@@ -182,11 +182,7 @@ struct InicioView: View {
         let items = (store.agenda(from: today, to: today)[DayKey.string(today)] ?? []).filter { $0.kind != .done && $0.kind != .diary }
         let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < today } ?? false) }
         return Card(title: "Hoy", icon: "sun.max", actionTitle: "Mi día", action: { go(.dia) }) {
-            HStack {
-                TextField("Añadir tarea… (ej: llamar al dentista el viernes)", text: $quick).onSubmit(addQuick)
-                Button("Añadir", action: addQuick).buttonStyle(.borderedProminent).disabled(quick.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            if !quickMsg.isEmpty { Label(quickMsg, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
+            CaptureField()
             HStack(spacing: 12) {
                 Spacer()
                 Button { store.openToday() } label: { Label("Nota de hoy", systemImage: "note.text") }.controlSize(.small)
@@ -209,13 +205,6 @@ struct InicioView: View {
             }
             if items.isEmpty && overdue.isEmpty { EmptyNote("Nada programado para hoy.", icon: "checkmark.circle") }
         }
-    }
-
-    private func addQuick() {
-        let raw = quick.trimmingCharacters(in: .whitespaces)
-        guard !raw.isEmpty else { return }
-        quickMsg = store.addTask(NaturalDate.extractTask(raw))
-        quick = ""
     }
 
     @ViewBuilder private func homeCard(_ c: HomeCard, _ layout: HomeLayout) -> some View {

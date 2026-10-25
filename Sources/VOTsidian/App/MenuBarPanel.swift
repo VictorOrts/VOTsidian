@@ -4,7 +4,6 @@ import SwiftUI
 struct MenuBarPanel: View {
     @Environment(Store.self) private var store
     @Environment(\.openWindow) private var openWindow
-    @State private var quick = ""
     @State private var message = ""
 
     private var today: Date { DayKey.today() }
@@ -79,7 +78,7 @@ struct MenuBarPanel: View {
 
     private var quickAdd: some View {
         VStack(alignment: .leading, spacing: 4) {
-            TextField("Añadir tarea… (ej: llamar al dentista el viernes)", text: $quick).onSubmit(add)
+            CaptureField(compact: true)
             if !message.isEmpty { Label(message, systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.accent) }
         }
     }
@@ -131,13 +130,6 @@ struct MenuBarPanel: View {
             }
             if list.count > 6 { Text("y \(list.count - 6) más…").font(.caption).foregroundStyle(.secondary) }
         }
-    }
-
-    private func add() {
-        let raw = quick.trimmingCharacters(in: .whitespaces)
-        guard !raw.isEmpty else { return }
-        message = store.addTask(NaturalDate.extractTask(raw))
-        quick = ""
     }
 
     private func show() {

@@ -41,13 +41,20 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Lienzo (`.canvas` de Obsidian): `JSONCanvas` (puro, con `JSONSerialization` para conservar campos desconocidos) y `LienzoView`.
   Los `.canvas` no son notas: no entran en el escaneo, `reload(changed:)` solo sube `canvasStamp` y la lista sale de `canvasFiles()`.
 - Módulos ocultos: `hiddenModules`; los nuevos se ocultan solos en carpetas ya configuradas (`registerNewModules`, `knownModules`).
+- Ventana (`ContentView.swift`): `ScreenView` pinta una pantalla (la usan también las ventanas aparte, `WindowGroup` «pantalla» y
+  «nota» en `VOTsidianApp`). Mi día, Planificar y Tareas son los modos de la Agenda (`Screen.agendaModes`, una fila en la barra;
+  `store.go(_:)` vuelve al último modo). Fijadas: `Pins` (`@AppStorage("pinnedScreens")`, también ⌘2…⌘9). Historial: `backStack`/
+  `forwardStack` en `screen.didSet` (`Store+Navegacion.swift`, con el enfoque `FocusSession`).
+- Panel derecho: `HoyPanel` (`Planificacion/HoyPanel.swift`), con `NotePeek` para `store.peekNote` (enlaces abiertos al lado:
+  `open(link:peek:)`). Captura: `Capture.interpret` (puro, `App/Capture.swift`) → `CaptureGuess` (orden + etiquetas + nota);
+  `CaptureField` es el campo de añadir tareas de todas las pantallas y guarda con `store.run`.
 
 ## Añadir un módulo (todos los puntos)
 
 1. `Sources/VOTsidian/Modulos/<sección>/X.swift` (Cuerpo, Dinero, Hogar u Ocio, como la barra lateral): modelo `XData`, `Parse.x`, `Edit.addX…` (con `Edit.addRow(text, section:)`), acciones en `extension Store`,
    y `xAlerts(today:)` si avisa. `XView.swift`: la pantalla (`MissingNoteBanner`, `Tile`, `Card`, `AlertList(alerts:emptyText:)`, `NoteTables`).
 2. `Store.swift`: `VaultPath.defaults` + `static var x`, comentario de claves, `private(set) var x = XData()`, `derive(VaultPath.x)`.
-3. `ContentView.swift`: `Screen` (case + icono + sección de la barra lateral + vista en `detail`).
+3. `ContentView.swift`: `Screen` (case + icono + sección en `Screen.sections` + vista en `ScreenView`).
 4. `Modules.swift`: `Module` (case, `title`, `detail`, `icon`, `screens`, `files`), `Starter.labels`, plantilla en `Starter.text`.
 5. `Store+Derived.swift`: `reminderSources()` y el mapa de pantallas de `open(link:)`.
 6. `Alerts.swift` (`out += xAlerts…`), `Agenda.swift` (`Kind` con icono y color, elementos, `screenAliases`), `SearchEngine.swift` (sinónimos).
@@ -77,6 +84,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   formulario es `TaskEditor` (con `TaskDraft`, puro), compartido con `TaskSheet`: guarda sobre la tarea con la que empezó
   (`origin`) y, si esa misma tarea se mueve mientras se edita, mezcla campo a campo (`TaskDraft.rebased`).
 - Toda entrada de tareas en lenguaje natural (también `QuickCommand.task`) pasa por `Store.addTask(_ p: ParsedTask)`.
+- Una función pura dentro de una vista (`static func` en un `View`) es `@MainActor`: llamada desde un test que no lo es, sus
+  cierres abortan el proceso al comprobar el aislamiento (señal 5). Márcala `nonisolated` (ver `NotePeek.head`).
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - Registro: `Log.notes/icloud/backups/calendar/notifications` (`Log.swift`). Errores y cuentas `.public`; rutas `.private`;
@@ -92,6 +101,7 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Lo que se pide en cada pintado y solo cambia con las notas se guarda: `alerts()` (`alertsCache`), `brokenLinkCount`,
   índices al leer la nota (`intakeIndex`, `paymentIndex`, `spentIndex`, `trendCache`). La barra lateral calcula sus indicadores en
   `.task(id: store.revision)`, no en cada fila.
+- Fuera de Notas, una nota se pinta recortada (`NotePeek.head`, 250 líneas o 30 KB): `NoteBody` tarda ~0,5 ms por línea con formato.
 - Listas largas: recortar con `ShowAllButton` (tablas de notas 40 filas, Peso 60…). Gráficas: `thinned(_:to:)` (120–400 puntos).
 - `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
 - **Qué repinta cada cambio** (lo mide `VOT_MATRIX=1 swift test --filter fluidezMatrix`; las comprobaciones de `FluidezTests` corren
@@ -104,7 +114,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
     publicados en `refreshPublished()` (aplazado con `refreshPublishedSoon()`); las copias, en `backupsStamp`; los enlaces, en `linksVersion`.
   - Las propiedades publicadas deben ser `Equatable` (la observación de Swift 6.3 no avisa si el valor no cambia); lo que cambia en
     cada edición y no se pinta (`undoStack`, `lastQuietWrite`…) va con `@ObservationIgnored`.
-  - `ContentView` no debe leer nada que cambie en cada edición: el aviso de «guardado» y el banner son vistas aparte. Lo mismo
+  - `ContentView` no debe leer nada que cambie en cada edición: el aviso de «guardado», el banner, el panel Hoy, las notas
+    recientes y la cuenta atrás del enfoque son vistas aparte. El panel sí se repinta con las tareas (lo comprueba `FluidezTests`). Lo mismo
     con un `.task(id:)` que dependa de `textsVersion`: va en una vista invisible aparte (`MentionsWatcher` en Notas).
   - Lo que se recalcula con cada pulsación (el borrador del editor es estado de `NotasView`) se separa en vistas `Equatable`
     (`NoteListPanel`) que comparan solo lo que pintan.
