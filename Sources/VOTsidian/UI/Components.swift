@@ -234,6 +234,14 @@ struct TaskRow: View {
         }
         .contentShape(Rectangle())
         .onHover { hover = $0 }
+        .contextMenu {
+            if !task.done {
+                let m = task.duration ?? 25
+                Button("Empezar enfoque (\(TaskDuration.human(m)))") { store.startFocus(task.text, minutes: m) }
+            }
+            Button("Editar…") { editing = true }
+            Button("Ver la nota «\(task.noteName)» al lado") { store.peekNote = task.file }
+        }
         .sheet(isPresented: $editing) { TaskSheet(task: task) }
     }
 }

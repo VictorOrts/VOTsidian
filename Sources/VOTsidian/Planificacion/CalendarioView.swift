@@ -266,7 +266,8 @@ struct CalendarioView: View {
                     TextField(placeholder, text: $text).focused($focused).onSubmit(add)
                     Button("Añadir", action: add).buttonStyle(.borderedProminent).disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                Text(hint).font(.caption).foregroundStyle(.secondary)
+                if kind == .tarea, let guess = Capture.interpret(text, defaultDay: selected, tasksOnly: true) { CaptureChips(guess: guess) }
+                else { Text(hint).font(.caption).foregroundStyle(.secondary) }
                 if !feedback.isEmpty { Label(feedback, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
 
                 Divider()

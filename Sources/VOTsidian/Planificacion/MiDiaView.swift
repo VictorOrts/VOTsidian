@@ -146,6 +146,8 @@ struct TimelineColumn: View {
     @ViewBuilder private func taskMenu(_ t: TaskItem, block b: TimeBlock) -> some View {
         Button(t.done ? "Marcar como pendiente" : "Completar") { store.setTask(t, done: !t.done) }
         if !t.done {
+            let m = t.duration ?? 25
+            Button("Empezar enfoque (\(TaskDuration.human(m)))") { store.startFocus(t.text, minutes: m) }
             Button("Quitar la hora") { store.schedule(t, on: day, at: nil) }
             Menu("Dura") {
                 ForEach(TaskDuration.presets(including: t.duration ?? 0), id: \.self) { m in
@@ -169,13 +171,11 @@ struct MiDiaView: View {
     /// Desde y hasta qué hora reparte «Repartir en los huecos».
     @AppStorage("dayStart") private var dayStart = 9
     @AppStorage("dayEnd") private var dayEnd = 20
-    @State private var quick = ""
     @State private var feedback = ""
     @State private var targeted = false
     /// Bloque o elemento de todo el día seleccionado: su ficha sustituye a «Sin hora» mientras está abierta.
     @State private var selectedEvent: EventSelection?
     @State private var focusToken = 0
-    @FocusState private var focused: Bool
 
     var body: some View {
         let _ = BodyCounter.hit("MiDiaView")
@@ -261,10 +261,7 @@ struct MiDiaView: View {
             return true
         } isTargeted: { targeted = $0 }
         Text("Arrastra una tarea a una hora. Para quitarle la hora, tráela aquí.").font(.caption).foregroundStyle(.secondary)
-        HStack {
-            TextField("Añadir a este día (ej: llamar a Ana a las 18:00 durante 30 min)", text: $quick).focused($focused).onSubmit(add)
-            Button("Añadir", action: add).disabled(quick.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
+        CaptureField(placeholder: "Añadir a este día (ej: llamar a Ana a las 18:00 durante 30 min)", defaultDay: day)
     }
 
     private func capacityBar(_ plan: DayPlan) -> some View {
@@ -307,9 +304,11 @@ struct MiDiaView: View {
         store.pendingPlanDay = nil
     }
 
-    /// Al abrir, la agenda enseña la hora actual (si es hoy) o el primer bloque.
+    /// Al abrir, la agenda enseña la hora actual (si es hoy y cae en el día de trabajo) o el primer bloque.
     private func scroll(_ proxy: ScrollViewProxy, _ plan: DayPlan) {
-        let hour = day == DayKey.today() ? TimeOfDay.minutes(of: Date()) / 60 - 1 : (plan.blocks.first.map { $0.start / 60 } ?? dayStart) - 1
+        // De noche o de madrugada, la hora actual cae fuera del día de trabajo: se enseña su principio.
+        let now = TimeOfDay.minutes(of: Date()) / 60
+        let hour = day == DayKey.today() && now >= dayStart && now < dayEnd ? now - 1 : (plan.blocks.first.map { $0.start / 60 } ?? dayStart) - 1
         proxy.scrollTo("h\(min(18, max(0, hour)))", anchor: .top)
     }
 
@@ -318,14 +317,6 @@ struct MiDiaView: View {
         let n = store.autoSchedule(plan, from: max(dayStart * 60, now), until: dayEnd * 60)
         let left = plan.unscheduled.count - n
         feedback = n == 0 ? "No queda hueco libre hasta las \(dayEnd):00." : "Repartidas \(n)" + (left > 0 ? "; \(left) no caben" : "") + ". ⌥⌘Z lo deshace."
-    }
-
-    private func add() {
-        let raw = quick.trimmingCharacters(in: .whitespaces)
-        guard !raw.isEmpty else { return }
-        feedback = store.addTask(NaturalDate.extractTask(raw), defaultDue: day)
-        quick = ""
-        focused = true
     }
 }
 

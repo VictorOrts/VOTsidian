@@ -122,6 +122,24 @@ import Testing
         return
     }
     paint("Inicio", InicioView(go: { _ in })); paint("Inicio otra vez", InicioView(go: { _ in }))
+    paint("panel Hoy", HoyPanel()); paint("panel Hoy otra vez", HoyPanel())
+    do {
+        let first = DayKey.calendar().dateInterval(of: .month, for: today)!.start
+        t("panel: agenda del mes (fría)") { _ = store.agenda(from: DayKey.adding(days: -6, to: first), to: DayKey.adding(days: 36, to: first)) }
+        t("panel: 42 fechas largas") { for i in 0..<42 { _ = longDate(DayKey.adding(days: i, to: first)) } }
+        t("panel: vencidas") { _ = store.tasks.filter { !$0.done && ($0.due.map { $0 < today } ?? false) } }
+        if let task = store.tasks.first(where: { !$0.done && $0.due == today }) {
+            store.setTask(task, done: true)
+            paint("panel Hoy tras marcar una tarea", HoyPanel())
+        }
+        t("captura: una pulsación") { _ = Capture.interpret("llamar al dentista el viernes a las 17:30 durante 1h cada mes urgente", tasksOnly: true) }
+        t("captura universal: una pulsación") { _ = Capture.interpret("22 € cena con Ana el viernes", categories: store.expenseCategories, people: store.people.map(\.name), learned: store.expenseLearned) }
+        let long = String(repeating: "revisar el viernes a las 10 y llamar mañana ", count: 120)
+        t("captura: frase de \(long.count) letras") { _ = Capture.interpret(long, tasksOnly: true) }
+        try w("Grande/Enorme.md", (0..<20_000).map { "- [ ] línea \($0) con [[Nota 1-\($0 % 50)]] y **negrita**" }.joined(separator: "\n"))
+        store.reload()
+        paint("nota de 20.000 líneas en el panel", NotePeek(path: "Grande/Enorme.md"))
+    }
     for c in HomeCard.allCases {
         UserDefaults.standard.set(HomeCard.allCases.map { "\($0.rawValue):\($0 == c ? 1 : 0)" }.joined(separator: ","), forKey: "inicioLayout")
         paint("Inicio solo \(c.rawValue)", InicioView(go: { _ in }))
