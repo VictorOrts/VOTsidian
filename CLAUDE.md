@@ -90,6 +90,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - Registro: `Log.notes/icloud/backups/calendar/notifications` (`Log.swift`). Errores y cuentas `.public`; rutas `.private`;
   nunca el texto de una nota.
+- «Charts: Custom UnitPoint values are not supported in AxisValueLabel's anchor property» sale en la consola con cualquier `Chart`
+  (también uno sin ejes propios) en macOS 26, una vez por proceso: es de Charts, no de la app. No tocar los `anchor` por eso.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
   probar contra Calendar real.
 
