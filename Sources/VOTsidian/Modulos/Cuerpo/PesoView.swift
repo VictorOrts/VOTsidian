@@ -20,7 +20,7 @@ struct PesoView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .peso)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Último", value: fmt(w.last?.kg, unit: " kg"), note: w.last.map { dayLabel($0.date) })
                     Tile(title: w.gaining ? "Ganados" : "Perdidos", value: fmt(w.achievedKg, unit: " kg"), note: "desde \(fmt(w.initialKg, 0)) kg", tint: Brand.good)
                     Tile(title: "Faltan", value: fmt(w.remainingKg, unit: " kg"), note: w.hasGoal ? "objetivo \(fmt(w.goalKg, 0)) kg" : "sin objetivo en la nota")

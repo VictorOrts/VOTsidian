@@ -16,7 +16,7 @@ struct LecturasView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .lecturas)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Este año", value: l.goal > 0 ? "\(done.count) de \(l.goal)" : "\(done.count)",
                          note: l.goal > 0 ? l.projection(today: today).map { "al ritmo de ahora, \(plural($0, "libro", "libros")) a fin de año" } : "pon «objetivo_anual» en la nota para fijar uno",
                          tint: l.goal > 0 && done.count >= l.goal ? Brand.accent : nil)

@@ -11,6 +11,8 @@ struct LienzoView: View {
     @State private var files: [String] = []
     @State private var doc = CanvasDoc()
     @State private var broken = false
+    /// Barra estrecha (panel Hoy abierto): los botones solo con su icono.
+    @State private var narrowBar = false
     @State private var scale: CGFloat = 1
     @State private var baseScale: CGFloat?
     @State private var offset: CGSize = .zero
@@ -122,10 +124,11 @@ struct LienzoView: View {
             Button { zoom(by: 1 / 1.25) } label: { Image(systemName: "minus.magnifyingglass").accessibilityLabel("Alejar") }
             Text("\(Int((scale * 100).rounded())) %").font(.caption).monospacedDigit().frame(width: 44)
             Button { zoom(by: 1.25) } label: { Image(systemName: "plus.magnifyingglass").accessibilityLabel("Acercar") }
-            Button("Ajustar") { fit() }.help("Que se vea todo el lienzo")
+            Button("Ajustar") { fit() }.help("Que se vea todo el lienzo").fixedSize()
         }
-        .labelStyle(.titleAndIcon)
+        .labelStyle(CompactLabelStyle(iconOnly: narrowBar))
         .controlSize(.small)
+        .onGeometryChange(for: Bool.self) { $0.size.width < 640 } action: { narrowBar = $0 }
         .disabled(current.isEmpty || broken)
     }
 
@@ -259,7 +262,7 @@ struct LienzoView: View {
         } else if t.hasPrefix("- [ ] ") || t.hasPrefix("- [x] ") {
             Label { Text(MDParser.inline(String(t.dropFirst(6)))) } icon: { Image(systemName: t.hasPrefix("- [x]") ? "checkmark.square" : "square") }
         } else if t.hasPrefix("- ") || t.hasPrefix("* ") {
-            Text("•  ") + Text(MDParser.inline(String(t.dropFirst(2))))
+            Text("•  \(MDParser.inline(String(t.dropFirst(2))))")
         } else if t.isEmpty {
             Spacer().frame(height: 4)
         } else {

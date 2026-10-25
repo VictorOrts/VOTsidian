@@ -43,6 +43,7 @@ struct HoyPanel: View {
         }
         .background(Color.primary.opacity(0.015))
         .onChange(of: store.peekNote, initial: true) { tab = store.peekNote == nil ? .hoy : .nota }
+        .followsToday($day)
     }
 
     // MARK: Mes

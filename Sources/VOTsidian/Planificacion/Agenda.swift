@@ -100,6 +100,14 @@ extension Store {
                 add(AgendaItem(id: "dose\(d.line)", kind: .dose, title: "\(what) \(m.name) \(d.dose)", detail: d.site, date: d.date, screen: .medicacion))
             }
             guard m.isActive(on: DayKey.today()), var next = medicacion.next(of: m) else { continue }
+            // Atrasado: va hoy, y los siguientes se cuentan desde hoy (no desde el día que tocaba, que ya pasó).
+            let today = DayKey.today()
+            if next < today {
+                let late = DayKey.days(from: next, to: today)
+                add(AgendaItem(id: "next\(m.line)|\(DayKey.string(today))", kind: .doseNext, title: "Toca \(m.act) de \(m.name)",
+                               detail: "\(late) \(late == 1 ? "día" : "días") tarde", date: today, screen: .medicacion))
+                next = DayKey.adding(days: m.every, to: today)
+            }
             var guardCount = 0
             while next <= end, guardCount < 80, m.end.map({ next <= $0 }) ?? true {
                 if next >= DayKey.today() {

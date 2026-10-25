@@ -19,7 +19,7 @@ struct PrestamosView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .prestamos)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Debes", value: Money.format(p.totalRemaining(today: today)), note: statuses.isEmpty ? nil : "\(plural(statuses.filter { !$0.isPaidOff }.count, "préstamo o deuda", "préstamos o deudas"))")
                     Tile(title: "Cuotas al mes", value: Money.format(p.monthlyInstallments(today: today)))
                     Tile(title: "Acabas", value: statuses.compactMap(\.estimatedEnd).max().map { DayKey.esLong($0, .dateTime.month(.abbreviated).year()) } ?? "–",

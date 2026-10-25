@@ -25,7 +25,7 @@ struct VehiculoView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .vehiculo)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Km", value: v.currentKm.map(Vehiculo.kmText) ?? "–", note: v.plate.isEmpty ? nil : v.plate)
                     Tile(title: "Consumo", value: v.consumption.map { fmt($0) + " L/100" } ?? "–", note: v.consumption == nil ? "con dos repostajes con km y litros" : "de depósito lleno a lleno")
                     Tile(title: "Gastado en \(year)", value: Money.format(spent.service + spent.fuel),

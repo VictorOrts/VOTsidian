@@ -46,7 +46,7 @@ struct CasaView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .casa)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Reformas", value: Money.format(totalR), note: reformas.count == 1 ? "1 idea" : "\(reformas.count) ideas")
                     Tile(title: "Compras", value: Money.format(totalC), note: compras.count == 1 ? "1 idea" : "\(compras.count) ideas")
                     // «Por gastar» ya dice el total cuando no hay nada cerrado: no se repite la misma cifra en dos tarjetas.

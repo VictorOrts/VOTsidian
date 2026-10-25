@@ -129,7 +129,7 @@ struct ModulesCard: View {
                     GridRow {
                         Toggle(isOn: Binding(get: { !store.hiddenModules.contains(m) },
                                              set: { if $0 { store.hiddenModules.remove(m) } else { store.hiddenModules.insert(m) } })) {
-                            Label(label(m), systemImage: m.icon)
+                            Label { Text(label(m)) } icon: { Image(systemName: m.icon).frame(width: 20) }
                         }
                         let missing = store.missingFiles(m)
                         // Un módulo oculto no necesita su nota: no se avisa de que falta.

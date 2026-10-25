@@ -17,7 +17,7 @@ struct PersonasView: View {
             VStack(alignment: .leading, spacing: 16) {
                 MissingNoteBanner(module: .personas)
                 Card(title: "Próximos cumpleaños", icon: "gift") {
-                    if upcoming.isEmpty { EmptyNote("Añade fechas de cumpleaños en la tabla de abajo.", icon: "gift") }
+                    if upcoming.isEmpty { EmptyNote(people.isEmpty ? "Sin personas. Añádelas en la tabla de la nota Personas, con su cumpleaños." : "Añade fechas de cumpleaños en la tabla de abajo.", icon: "gift") }
                     ForEach(upcoming.prefix(6), id: \.0.id) { p, date, age, days in
                         HStack {
                             Text(p.name).fontWeight(.medium)

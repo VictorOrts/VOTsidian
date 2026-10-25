@@ -64,7 +64,7 @@ struct MenuBarPanel: View {
                     if let n = store.medicacion.next, let d = store.medicacion.daysUntilNext {
                         Text(shortDate(n)).font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundStyle(d < 0 ? Brand.bad : d == 0 ? Brand.warn : Color.primary)
-                        Text(relativeDays(d)).font(.caption).foregroundStyle(.secondary)
+                        Text(dueDays(d)).font(.caption).foregroundStyle(.secondary)
                     } else { Text("–").font(.title2) }
                 }
             }

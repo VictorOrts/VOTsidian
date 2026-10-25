@@ -198,6 +198,9 @@ final class Store {
     var showEmpezar = false
     /// Día que «Mi día» debe enseñar al abrirse (desde la semana del Calendario o «Empezar el día»).
     var pendingPlanDay: Date?
+    /// Día de hoy. Cambia a medianoche o al despertar el Mac (`checkDayChange`): las vistas que guardan un día elegido lo leen
+    /// para seguir a hoy, y la agenda y los avisos se rehacen aunque ninguna nota haya cambiado.
+    private(set) var today = DayKey.today()
     var pendingNote: String?
     /// Mes (AAAA-MM) que Gastos debe enseñar al abrirse: lo ponen Inicio y Finanzas para ir a un mes que no es el actual.
     var pendingGastosMonth: String?
@@ -312,7 +315,14 @@ final class Store {
             startWatching()
             startDailyBackup()
             Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true); self?.refreshPublished() }
+                MainActor.assumeIsolated { self?.checkDayChange(); self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true); self?.refreshPublished() }
+            }
+            // A medianoche y al despertar: sin esto, el panel Hoy y Mi día seguían en el día anterior hasta tocar una nota.
+            for (center, name) in [(NotificationCenter.default, Notification.Name.NSCalendarDayChanged),
+                                   (NSWorkspace.shared.notificationCenter, NSWorkspace.didWakeNotification)] {
+                _ = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.checkDayChange() }
+                }
             }
         }
         pendingNote = ProcessInfo.processInfo.environment["VOT_NOTE"]
@@ -379,6 +389,19 @@ final class Store {
                 self.refreshPublished()
             }
         }
+    }
+
+    /// Si ya es otro día: la agenda y los presupuestos guardados dependen de hoy (lo periódico, el mes en curso), así que se
+    /// rehacen, y se publica `today` para que las vistas que enseñaban hoy pasen al día nuevo.
+    func checkDayChange(now: Date = DayKey.today()) {
+        guard now != today else { return }
+        Log.notes.info("Cambio de día")
+        agendaCache = [:]
+        budgetCache = [:]
+        budgetYearCache = [:]
+        today = now
+        refreshPublished()
+        refreshSystemNotifications()
     }
 
     /// Avisos e indicadores de la barra lateral: se recalculan aquí y solo avisan a la interfaz si cambiaron.

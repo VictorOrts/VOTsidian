@@ -20,7 +20,7 @@ struct NutricionView: View {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .nutricion)
                 if p.kcal > 0 {
-                    HStack(spacing: 12) {
+                    TileRow {
                         Tile(title: "Calorías", value: fmt(p.kcal, 0), note: "kcal al día")
                         Tile(title: "Proteína", value: fmt(p.protein, 0, unit: " g"), note: "\(Int(p.protein * 4 / p.kcal * 100)) % · \(fmt(p.protein * 4, 0)) kcal", tint: Brand.info)
                         Tile(title: "Carbohidratos", value: fmt(p.carbs, 0, unit: " g"), note: "\(Int(p.carbs * 4 / p.kcal * 100)) % · \(fmt(p.carbs * 4, 0)) kcal", tint: Brand.amber)

@@ -72,6 +72,7 @@ struct PlanificarView: View {
 
     var body: some View {
         let _ = BodyCounter.hit("PlanificarView")
+        let _ = store.today   // se rehace al cambiar de día
         let end = DayKey.adding(days: 6, to: weekStart)
         let plan = WeekPlan.build(tasks: store.tasks, agenda: store.agenda(from: weekStart, to: end), weekStart: weekStart)
         let total = plan.days.reduce(0) { $0 + plan.load($1) }

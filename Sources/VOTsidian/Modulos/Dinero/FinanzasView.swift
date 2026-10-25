@@ -17,7 +17,7 @@ struct FinanzasView: View {
         Card(title: "Gastos de \(Budget.title(month).lowercased())", icon: "creditcard", actionTitle: "Abrir Gastos", action: { store.screen = .gastos }) {
             if let b = store.budget(month) {
                 let s = BudgetStatus(b)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos")
                     Tile(title: "Puedes gastar hoy", value: Money.format(s.leftToday), tint: s.leftToday > 0 ? Brand.accent : Brand.bad)
                     Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), tint: s.endLeft < 0 ? Brand.bad : nil)
@@ -52,7 +52,7 @@ struct FinanzasView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 MissingNoteBanner(module: .finanzas)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Eventos", value: "\(eventos.count)")
                     Tile(title: "Aportaciones", value: Money.format(total))
                     // Un evento pendiente sin importe no está «resuelto»: 0 € en verde lo daría a entender.

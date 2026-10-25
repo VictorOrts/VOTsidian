@@ -32,7 +32,7 @@ struct ModaView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .moda)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Por comprar", value: "\(open.count)", note: "de \(rows.count) en la lista")
                     Tile(title: "Presupuesto", value: Money.format(budget), note: "sin comprado ni descartado")
                     Tile(title: "Comprado", value: "\(rows.count - open.count - rows.filter { MD.fold(buy?.value($0, "estado") ?? "").contains("descartado") }.count)", tint: Brand.accent)

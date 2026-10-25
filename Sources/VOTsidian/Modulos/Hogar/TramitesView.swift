@@ -16,9 +16,9 @@ struct TramitesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .tramites)
-                HStack(spacing: 12) {
+                TileRow {
                     Tile(title: "Próximo plazo", value: pending.first?.procedure.name ?? "–",
-                         note: pending.first.map { "\(relativeDays(DayKey.days(from: today, to: $0.due))) · \(DayKey.dmy($0.due))" },
+                         note: pending.first.map { "\(dueDays(DayKey.days(from: today, to: $0.due))) · \(DayKey.dmy($0.due))" },
                          tint: pending.first.map { $0.due < today ? Brand.bad : nil } ?? nil)
                     Tile(title: "Seguros al año", value: Money.format(d.yearlyInsurance), note: d.insurances.isEmpty ? nil : plural(d.insurances.count, "póliza", "pólizas"))
                     Tile(title: "Pendientes", value: "\(pending.filter { DayKey.days(from: today, to: $0.due) <= 60 }.count)", note: "en los próximos 60 días")

@@ -46,6 +46,8 @@ struct CalendarioView: View {
         .onDisappear { saveNote() }
         .autosave(on: noteDraft) { saveNote(quiet: true) }
         .onChange(of: store.read(Store.diaryPath(selected))) { if noteDraft == noteBase { loadNote() } }
+        // Pasada la medianoche, si se miraba hoy, pasa al día nuevo (guardando antes la nota del día).
+        .onChange(of: store.today) { old, new in if selected == old { select(new) } }
     }
 
     private var modePicker: some View {

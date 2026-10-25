@@ -32,6 +32,11 @@ func relativeDays(_ n: Int) -> String {
     }
 }
 
+/// Para lo que ya tocaba: «3 días tarde» en vez de «hace 3 días», que se lee como si ya estuviera hecho.
+func dueDays(_ n: Int) -> String {
+    n < 0 ? "\(-n) \(n == -1 ? "día" : "días") tarde" : relativeDays(n)
+}
+
 struct Tile: View {
     let title: String
     let value: String
@@ -47,10 +52,28 @@ struct Tile: View {
                 .foregroundStyle(empty ? AnyShapeStyle(.tertiary) : AnyShapeStyle(tint ?? .primary)).lineLimit(1).minimumScaleFactor(0.7)
             if let note { Text(note).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
         }
-        .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 64, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 14).padding(.vertical, 12)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Brand.radiusLarge, style: .continuous).stroke(.quaternary.opacity(0.6), lineWidth: 0.5))
+    }
+}
+
+/// Solo el icono cuando no cabe el texto (barras de botones con el panel Hoy abierto); el texto sigue en la ayuda.
+struct CompactLabelStyle: LabelStyle {
+    var iconOnly: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if iconOnly { Label(configuration).labelStyle(.iconOnly) } else { Label(configuration).labelStyle(.titleAndIcon) }
+    }
+}
+
+/// Fila de `Tile`: todas con la altura de la más alta (una nota de dos líneas descolocaba los valores de las demás).
+struct TileRow<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) { content }.fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -249,6 +272,18 @@ struct TaskRow: View {
 extension View {
     /// Limita el contenido a `Brand.contentWidth` y lo centra en ventanas grandes.
     func readableWidth() -> some View { frame(maxWidth: Brand.contentWidth).frame(maxWidth: .infinity) }
+
+    /// Si `day` enseñaba hoy cuando cambia el día (medianoche, el Mac despierta), pasa al día nuevo.
+    func followsToday(_ day: Binding<Date>) -> some View { modifier(FollowsToday(day: day)) }
+}
+
+private struct FollowsToday: ViewModifier {
+    @Environment(Store.self) private var store
+    @Binding var day: Date
+
+    func body(content: Content) -> some View {
+        content.onChange(of: store.today) { old, new in if day == old { day = new } }
+    }
 }
 
 /// Enlace con el color de la app: el `.link` del sistema siempre es azul. Se subraya al pasar el ratón.
