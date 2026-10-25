@@ -66,6 +66,7 @@ private func mutate(_ text: String, _ r: inout Rng) -> String {
 private func readEverything(_ t: String) {
     if let c = JSONCanvas.parse(t) { _ = (c.bounds, c.nodes.map { c.moving($0.id) }, JSONCanvas.moveNodes(t, to: ["x": CGPoint(x: 1e300, y: -.infinity)])) }
     _ = (Parse.weight(t), Parse.mascota(t), Parse.tasks(t, file: "x.md"), Parse.week(t, key: "2026-W01"), Parse.plan(t), Parse.milestones(t))
+    _ = (WeeklyMenu.needs(t, list: Shopping.parse(t)), WeeklyMenu.dishes(t).map { WeeklyMenu.ingredients(of: $0.dish) }, Shopping.fromMenu(t))
     _ = (Parse.tables(t), Parse.people(t), Parse.listItems(t, section: "Fechas"), Parse.listItems(t, section: ""), Parse.medicationTables(t), Parse.casa(t), Measures.parse(t))
     let med = Parse.medicacion(t)
     _ = (med.main, med.active(), med.pending(), med.daysUntilNext, med.meds.map { (med.next(of: $0), med.daysUntil($0), med.taken($0, on: DayKey.today()), $0.frequencyText) })
