@@ -8,12 +8,28 @@ VERSION="${VERSION:-1.0}"
 # app: empieza con sus propias preferencias.
 BUNDLE_ID="${BUNDLE_ID:-com.votsidian.app}"
 BUILD="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
-swift build -c release
+# Siri y Atajos: el compilador saca los valores constantes de las acciones (App Intents) y `appintentsmetadataprocessor`
+# escribe con ellos Metadata.appintents, lo que lee el sistema. Xcode lo hace solo; SwiftPM no.
+INTENTS="$(mktemp -d)"
+echo '["AppIntent","AppEntity","TransientEntity","AppEnum","EntityQuery","AppShortcutsProvider","AppShortcutProviding","AnyResolverProviding","DynamicOptionsProvider","IntentValueQuery","AppIntentsPackage","_IntentValueRepresentable","_AssistantIntentsProvider"]' > "$INTENTS/protocols.json"
+swift build -c release -Xswiftc -emit-const-values-path -Xswiftc "$INTENTS/VOTsidian.swiftconstvalues" \
+  -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$INTENTS/protocols.json"
 BIN="$(swift build -c release --show-bin-path)/VOTsidian"
 APP="build/VOTsidian.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/VOTsidian"
+
+find "$PWD/Sources/VOTsidian" -name '*.swift' > "$INTENTS/sources.txt"
+echo "$INTENTS/VOTsidian.swiftconstvalues" > "$INTENTS/constvalues.txt"
+xcrun appintentsmetadataprocessor --force --quiet-warnings --no-app-shortcuts-localization \
+  --output "$APP/Contents/Resources" --module-name VOTsidian --binary-file "$BIN" \
+  --toolchain-dir "$(dirname "$(dirname "$(dirname "$(xcrun --find swiftc)")")")" \
+  --sdk-root "$(xcrun --sdk macosx --show-sdk-path)" --xcode-version "$(xcodebuild -version | sed -n 's/Build version //p')" \
+  --platform-family macOS --deployment-target 27.0 --target-triple "$(uname -m)-apple-macos27.0" \
+  --source-file-list "$INTENTS/sources.txt" --swift-const-vals-list "$INTENTS/constvalues.txt" >/dev/null
+rm -rf "$INTENTS"
+[ -f "$APP/Contents/Resources/Metadata.appintents/extract.actionsdata" ] || { echo "Falta Metadata.appintents: Siri no verá las acciones" >&2; exit 1; }
 
 # Icono
 TMP="$(mktemp -d)"
@@ -33,6 +49,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleName</key><string>VOTsidian</string>
+  <key>CFBundleDevelopmentRegion</key><string>es</string>
   <key>CFBundleDisplayName</key><string>VOTsidian</string>
   <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleExecutable</key><string>VOTsidian</string>
@@ -40,7 +57,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$BUILD</string>
-  <key>LSMinimumSystemVersion</key><string>26.0</string>
+  <key>LSMinimumSystemVersion</key><string>27.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSCalendarsFullAccessUsageDescription</key><string>VOTsidian crea un calendario propio, «VOTsidian», con tus avisos (citas, pagos, caducidades…) y lo mantiene al día. Nunca cambia tus otros calendarios.</string>
   <key>NSCalendarsUsageDescription</key><string>VOTsidian crea un calendario propio, «VOTsidian», con tus avisos (citas, pagos, caducidades…) y lo mantiene al día. Nunca cambia tus otros calendarios.</string>

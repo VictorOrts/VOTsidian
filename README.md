@@ -2,8 +2,8 @@
 
 **Agenda personal para macOS sobre notas Markdown.** Tareas, hábitos, revisiones, notas, salud, dinero, casa, vehículo, trámites, viajes y lecturas en una sola app nativa. Todo se guarda como archivos `.md` en una carpeta tuya.
 
-![macOS 26+](https://img.shields.io/badge/macOS-26%2B-black)
-![Swift 6.3](https://img.shields.io/badge/Swift-6.3-orange)
+![macOS 27+](https://img.shields.io/badge/macOS-27%2B-black)
+![Swift 6.4](https://img.shields.io/badge/Swift-6.4-orange)
 
 - **Tus datos, en texto plano.** No hay base de datos ni formato propio. Cada pantalla lee y escribe notas Markdown que puedes abrir con cualquier editor.
 - **Compatible con Obsidian.** Usa los mismos enlaces (`[[Nota]]`), propiedades YAML y tareas del plugin Tasks. Puedes usar las dos apps a la vez sobre la misma carpeta.
@@ -25,8 +25,8 @@
 
 ## Requisitos
 
-- macOS 26 o posterior.
-- Para compilar: Xcode 26.6 o las herramientas de línea de comandos con Swift 6.3.
+- macOS 27 o posterior.
+- Para compilar: Xcode 27.1 o las herramientas de línea de comandos con Swift 6.4.
 
 ## Instalación
 
@@ -72,6 +72,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Captura rápida** (⇧⌘N) | «Cualquier cosa»: escribe una frase («dentista el viernes a las 17:30», «22 € cena con Ana», «peso 101,2», «compra leche y pan») y, antes de guardar, enseña lo que ha entendido y en qué nota irá. Las pestañas Tarea, Gasto, Peso, Toma e Idea siguen para lo concreto. Todos los campos de añadir tareas enseñan igual lo que van a guardar. |
 | **Navegación** | Atrás y adelante (⌘[ y ⌘]), la sección de la pantalla bajo el título, y buscar, añadir y el panel Hoy en la barra de arriba. En la barra lateral, «Fijadas» (botón derecho → «Fijar arriba») y las tres últimas notas abiertas. «Abrir en otra ventana», con el botón derecho en una pantalla, y «Otra ventana» en una nota, para tener dos cosas a la vista. |
 | **Barra de menús** | Tareas, hábitos y tomas de hoy, y añadir tareas sin abrir la ventana. |
+| **Siri y Atajos** | «Añade una tarea en VOTsidian», «Apunta en VOTsidian» (lo mismo que la captura rápida), «Qué tengo hoy en VOTsidian», «Avisos de VOTsidian» y «Abre Gastos en VOTsidian». Las mismas acciones, en la app Atajos. |
 | **Avisos** | Lista por urgencia con botón para resolver cada aviso. También en un calendario propio «VOTsidian» de Calendar que la app mantiene al día sola (opcional y sin duplicados), como archivo `.ics` o como notificaciones de macOS. |
 
 ### Notas
@@ -162,6 +163,8 @@ VOT_BENCH=1 swift test -c release --filter heavyUserBenchmark          # tiempos
 ```
 
 Los tests nunca tocan tus notas: trabajan sobre copias temporales. Además de los tests por función, hay un fuzz con semilla fija: notas deformadas (tablas rotas, cifras absurdas, dígitos de otros alfabetos, emojis compuestos, bytes inválidos) pasan por todos los lectores y editores y por todas las pantallas, y cada operación de la app se deshace y se repite comprobando la carpeta byte a byte.
+
+**Siri.** SwiftPM no genera los metadatos de las acciones (`Metadata.appintents`) que lee macOS: `build-app.sh` compila con `-emit-const-values-path` y los crea con `appintentsmetadataprocessor`, como haría Xcode. Las acciones están en [Siri.swift](Sources/VOTsidian/App/Siri.swift).
 
 **Firma.** `build-app.sh` firma con el primer certificado «Apple Development» del llavero, o ad hoc si no hay ninguno. Para distribuir, `SIGN_ID="Developer ID Application: …" ./scripts/build-app.sh` firma con runtime endurecido, sello de tiempo y el permiso de Calendarios ([VOTsidian.entitlements](scripts/VOTsidian.entitlements)), listo para notarizar.
 
