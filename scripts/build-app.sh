@@ -65,6 +65,15 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict></plist>
 PLIST
 
+# Modelo de frases para Siri (root.ssu.yaml y nlu/): sin él, Siri no reconoce las frases de VOTsidianShortcuts y usa su
+# orden genérica (abrir la app en Inicio). Necesita el Info.plist, por eso va aquí.
+NLU="$(mktemp -d)"
+xcrun appintentsnltrainingprocessor --infoplist-path "$APP/Contents/Info.plist" --temp-dir-path "$NLU" \
+  --bundle-id "$BUNDLE_ID" --product-path "$APP/Contents/Resources" \
+  --extracted-metadata-path "$APP/Contents/Resources/Metadata.appintents" --archive-ssu-assets >/dev/null 2>&1
+rm -rf "$NLU"
+[ -f "$APP/Contents/Resources/Metadata.appintents/nlu/nlu.lzfse" ] || { echo "Falta el modelo de frases de Siri (nlu)" >&2; exit 1; }
+
 # Firma: SIGN_ID="Developer ID Application: ..." para firmar de verdad (y luego notarizar con notarytool).
 # Sin SIGN_ID usa el primer certificado «Apple Development» válido del llavero (firma estable entre builds); si no hay, firma ad hoc.
 if [ -n "${SIGN_ID:-}" ]; then

@@ -67,3 +67,13 @@ private func item(_ title: String, _ kind: AgendaItem.Kind = .task, at minutes: 
     _ = try await captura.perform()
     #expect(store.read(VaultPath.compra).localizedCaseInsensitiveContains("mostaza"))
 }
+
+/// «Ve a Calendario en VOTsidian» deja la app en esa pantalla.
+@Test @MainActor func siriOpensAScreen() async throws {
+    let store = Store(root: try syntheticVault())
+    var abrir = AbrirPantallaIntent()
+    abrir.store = store
+    abrir.target = .calendario
+    _ = try await abrir.perform()
+    #expect(store.screen == .calendario)
+}

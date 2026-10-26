@@ -81,24 +81,31 @@ struct AvisosIntent: AppIntent {
     }
 }
 
-/// Abre la app en una pantalla.
-struct AbrirPantallaIntent: AppIntent {
+/// Abre la app en una pantalla. Es un `OpenIntent` para que Siri lo tome por «abrir la app en un sitio» y no use su orden
+/// genérica de abrir apps, que la dejaba en Inicio.
+struct AbrirPantallaIntent: OpenIntent {
     static let title: LocalizedStringResource = "Abrir pantalla"
     static let description = IntentDescription("Abre VOTsidian en una pantalla: Mi día, Calendario, Gastos, Peso…")
-    static let openAppWhenRun = true
 
     @Parameter(title: "Pantalla")
-    var pantalla: Screen
+    var target: Screen
 
     @Dependency var store: Store
 
+    /// Sin diálogo: la pantalla abierta ya es la respuesta (con diálogo, Atajos dejaba una ventana «Calendario · Aceptar» encima).
     @MainActor
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard store.isVisible(pantalla) else { return .result(dialog: "«\(store.title(pantalla))» está oculto en Ajustes → Módulos.") }
-        store.go(pantalla)
+    func perform() async throws -> some IntentResult {
+        guard store.isVisible(target) else { throw SiriError("«\(store.title(target))» está oculto en Ajustes → Módulos.") }
+        store.go(target)
         NSApplication.shared.activate()
-        return .result(dialog: "\(store.title(pantalla))")
+        return .result()
     }
+}
+
+/// Un error que Siri y Atajos enseñan con este texto.
+struct SiriError: Error, CustomLocalizedStringResourceConvertible {
+    let localizedStringResource: LocalizedStringResource
+    init(_ text: String) { localizedStringResource = LocalizedStringResource(stringLiteral: text) }
 }
 
 extension Screen: AppEnum {
@@ -132,7 +139,9 @@ struct VOTsidianShortcuts: AppShortcutsProvider {
             "Avisos de \(.applicationName)", "Qué está pendiente en \(.applicationName)",
         ], shortTitle: "Avisos", systemImageName: "bell")
         AppShortcut(intent: AbrirPantallaIntent(), phrases: [
-            "Abre \(\.$pantalla) en \(.applicationName)", "Abre \(.applicationName) en \(\.$pantalla)",
+            // Nada que empiece por «Abre VOTsidian»: eso lo coge la orden de Siri de abrir apps y se queda en Inicio.
+            "Abre \(\.$target) en \(.applicationName)", "Ve a \(\.$target) en \(.applicationName)",
+            "Muestra \(\.$target) en \(.applicationName)", "\(\.$target) de \(.applicationName)",
         ], shortTitle: "Abrir pantalla", systemImageName: "macwindow")
     }
 }
