@@ -22,8 +22,10 @@ enum Notifier {
         // «UNTIL=AAAAMMDD»: un tratamiento que acaba deja de avisar ese día.
         if let m = rule.firstMatch(of: /UNTIL=([0-9]{4})([0-9]{2})([0-9]{2})/), let until = DayKey.date("\(m.1)-\(m.2)-\(m.3)") { end = min(end, until) }
         if rule.hasPrefix("FREQ=DAILY") || rule.hasPrefix("FREQ=WEEKLY") {
-            var step = rule.hasPrefix("FREQ=WEEKLY") ? 7 : 1
-            if let r = rule.range(of: "INTERVAL="), let n = Int(rule[r.upperBound...].prefix { $0.isNumber }), n > 0 { step = n }
+            // «INTERVAL» cuenta semanas en FREQ=WEEKLY y días en FREQ=DAILY.
+            let unit = rule.hasPrefix("FREQ=WEEKLY") ? 7 : 1
+            var step = unit
+            if let r = rule.range(of: "INTERVAL="), let n = Int(rule[r.upperBound...].prefix { ("0"..."9").contains($0) }), n > 0, n <= 3660 { step = n * unit }
             var d = e.start
             while d < today { d = DayKey.adding(days: step, to: d) }
             while d <= end { days.append(d); d = DayKey.adding(days: step, to: d) }

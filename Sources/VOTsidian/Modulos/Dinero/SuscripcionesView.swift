@@ -100,5 +100,6 @@ struct SuscripcionesView: View {
             .readableWidth()
         }
         .navigationTitle("Suscripciones")
+        .followsToday($date)
     }
 }

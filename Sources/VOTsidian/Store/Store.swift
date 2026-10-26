@@ -318,10 +318,11 @@ final class Store {
                 MainActor.assumeIsolated { self?.checkDayChange(); self?.startDailyBackup(); self?.refreshSystemNotifications(); self?.refreshCalendarSync(force: true); self?.refreshPublished() }
             }
             // A medianoche y al despertar: sin esto, el panel Hoy y Mi día seguían en el día anterior hasta tocar una nota.
+            // La copia del día nuevo sale ya en segundo plano: si no, la hacía la primera edición en el hilo principal.
             for (center, name) in [(NotificationCenter.default, Notification.Name.NSCalendarDayChanged),
                                    (NSWorkspace.shared.notificationCenter, NSWorkspace.didWakeNotification)] {
                 _ = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.checkDayChange() }
+                    MainActor.assumeIsolated { self?.checkDayChange(); self?.startDailyBackup() }
                 }
             }
         }

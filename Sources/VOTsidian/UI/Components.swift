@@ -273,7 +273,8 @@ extension View {
     /// Limita el contenido a `Brand.contentWidth` y lo centra en ventanas grandes.
     func readableWidth() -> some View { frame(maxWidth: Brand.contentWidth).frame(maxWidth: .infinity) }
 
-    /// Si `day` enseñaba hoy cuando cambia el día (medianoche, el Mac despierta), pasa al día nuevo.
+    /// Si `day` enseñaba hoy cuando cambia el día (medianoche, el Mac despierta), pasa al día nuevo. Vale también para la fecha
+    /// de un formulario (`Date()`, con hora): si no, con la app abierta toda la noche, el peso de la mañana se apuntaba ayer.
     func followsToday(_ day: Binding<Date>) -> some View { modifier(FollowsToday(day: day)) }
 }
 
@@ -282,7 +283,9 @@ private struct FollowsToday: ViewModifier {
     @Binding var day: Date
 
     func body(content: Content) -> some View {
-        content.onChange(of: store.today) { old, new in if day == old { day = new } }
+        content.onChange(of: store.today) { old, new in
+            if let moved = DayKey.following(day, from: old, to: new) { day = moved }
+        }
     }
 }
 

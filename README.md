@@ -128,7 +128,7 @@ Cada módulo es opcional y se activa o desactiva en **Ajustes → Módulos**. Lo
 
 ## Tus datos
 
-- **Copias automáticas.** Antes del primer cambio de cada día se copia la carpeta entera. Se guardan las últimas 14, fuera de iCloud, y se pueden cifrar con una contraseña guardada en el Llavero. La app avisa si una copia falla o la última es antigua.
+- **Copias automáticas.** Antes del primer cambio de cada día se copia la carpeta entera (un clon APFS: unos milisegundos y sin ocupar espacio hasta que algo cambia). Se guardan las últimas 14, fuera de iCloud, y se pueden cifrar con una contraseña guardada en el Llavero. La app avisa si una copia falla o la última es antigua.
 - **Deshacer.** Cualquier cambio hecho desde la app se deshace con ⌥⌘Z, también los que tocan varias notas a la vez.
 - **Recuperar.** El historial de una nota restaura versiones anteriores. También se puede restaurar una copia entera; antes, la app guarda el estado actual.
 - **iCloud.** Avisa de notas duplicadas por conflicto y de archivos que aún no se han descargado.

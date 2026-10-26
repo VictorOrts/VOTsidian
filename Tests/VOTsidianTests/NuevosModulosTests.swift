@@ -341,7 +341,9 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
 }
 
 @MainActor @Test func registeringNewModulesHidesAndAnnouncesThemOnce() throws {
-    let suite = "VOTsidianTests-\(UUID().uuidString)"
+    // Nombres fijos: macOS deja el .plist vacío en Preferencias aunque se borre el dominio, y con un UUID se acumulaba uno nuevo en cada pasada.
+    let suite = "VOTsidianTests-modulos"
+    for s in [suite, suite + "-2", suite + "-3"] { UserDefaults(suiteName: s)?.removePersistentDomain(forName: s) }
     let defaults = try #require(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite) }
     func vault(_ files: [String: String]) throws -> Store {

@@ -49,6 +49,13 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     let w = try #require(Parse.tasks(weekly, file: "x").first)
     let next = try #require(Edit.completeRecurring(weekly, task: w, today: D("2026-10-23")))
     #expect(Parse.tasks(next, file: "x").contains { !$0.done && $0.time == 19 * 60 && $0.due == D("2026-10-30") })
+    // las marcas propias escritas después de la regla no se meten en ella (también ⏱️ con selector de variación)
+    for tail in ["🔕", "⏰ 19:00", "⏱ 45m", "⏱\u{FE0F} 45m"] {
+        let l = "- [ ] Pilates 📅 2026-10-23 🔁 every week \(tail)"
+        let r = try #require(Parse.tasks(l, file: "x").first)
+        #expect(r.recurrence == "week" && r.text == "Pilates")
+        #expect(Parse.tasks(try #require(Edit.completeRecurring(l, task: r, today: D("2026-10-23"))), file: "x").contains { !$0.done && $0.due == D("2026-10-30") })
+    }
 }
 
 @MainActor @Test func timedAppointmentsInCalendarAlertsAndCalendarApp() throws {

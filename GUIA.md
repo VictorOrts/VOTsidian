@@ -242,7 +242,7 @@ Una sección `## …` por pasillo (Fruta y verdura, Despensa, Limpieza y hogar�
 - [x] Huevos
 ```
 
-Desde ⌘K, `compra leche y pan` los añade. «Vaciar comprados» quita lo que ya está marcado.
+Desde ⌘K, `compra leche y pan` los añade. Si pegas una lista con un artículo por línea (con o sin viñetas), entra cada uno por separado. «Vaciar comprados» quita lo que ya está marcado.
 
 #### Menú de la semana
 
@@ -374,7 +374,7 @@ objetivo_anual: 12
 
 ### Personas
 
-Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`. `Cumpleaños` admite `MM-DD` si no sabes el año.
+Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`. `Cumpleaños` admite `MM-DD` si no sabes el año. Quien nació un 29 de febrero sale el 28 los años que no son bisiestos; una fecha que no existe («02-30») no sale en el Calendario.
 
 ### Documentos
 
@@ -434,10 +434,10 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 | `⏱ 1h30m` | Lo que calculas que dura (`45m`, `2h`, `1h30m`). Da la altura del bloque en Mi día y la duración del evento en Calendar (sin ella, 15 minutos). |
 | `🔕` | Sin aviso: sigue en la app, pero no va a Calendar ni a las notificaciones de macOS. Se pone con «sin aviso» al escribirla o desde «Editar tarea». |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
-| `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…) |
+| `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…). `⏰`, `⏱` o `🔕` pueden ir antes o después. |
 | `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja |
 
-En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30».
+En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30». También «el lunes 2 de noviembre», «el viernes que viene», «dentro de 3 días», «en una semana», «en enero» (el día 1), «reunión 9:00-10:30» (hora y duración) y «leer al día» (se repite cada día).
 
 La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Si solo dices la hora, sin día, es para hoy. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
 
@@ -453,13 +453,14 @@ El día por horas, de 0 a 24 h. No guarda nada aparte: todo va en la línea de c
 - **Jornada.** Arriba, lo planificado frente a las horas que quieres dedicar al día (8 por defecto, se cambia en el menú «de 8 h»). Cuentan las tareas y citas pendientes con hora, y las tareas sin hora que tienen duración; la medicación y lo hecho no. Si te pasas, la barra se pone roja.
 - **Repartir.** Coloca las tareas sin hora en los huecos libres, por orden (primero las vencidas y las de más prioridad), entre las 9:00 y las 20:00, o desde ahora si es hoy. Las que no caben se quedan sin hora. ⌥⌘Z lo deshace de una vez.
 - **Empezar el día.** Desde el panel Hoy, Mi día, la barra de menús o ⌘K. Repasa en tres pasos lo que quedó pendiente (a hoy, a mañana o hecha), lo de hoy (con cuánto dura cada cosa) y lo de los próximos tres días (adelantar a hoy), y termina en Mi día para repartirlo.
+- **Leyenda.** Encima del mes salen solo los tipos que hay ese mes; los que comparten color van juntos («medicación / suscripción»).
 - **Semana por horas.** En Calendario, «Semana» enseña de lunes a domingo con las mismas columnas de horas. Soltar una tarea en una columna le pone ese día y esa hora; en la cabecera de un día, solo el día. «Por horas», en el panel de un día, lo abre en Mi día. Igual que en Mi día, un clic en un bloque, en una ficha de la cabecera o en una fila del panel (también en la vista de mes) abre su ficha arriba del panel derecho. El botón junto a «Mes / Semana» pliega ese panel para que la rejilla gane anchura (se recuerda); al abrir la ficha de un evento, vuelve a salir. Pasar el ratón por un título cortado lo enseña entero.
 
 ## La ventana
 
 - **Barra de arriba.** Atrás y adelante (⌘[ y ⌘]) recorren las pantallas que has visitado. Bajo el título sale la sección (Dinero, Cuerpo…). A la derecha: buscar (⌘K), añadir (⇧⌘N) y el panel Hoy (⌥⌘0). Con un enfoque en marcha, su cuenta atrás.
 - **Agenda.** Mi día, Planificar semana y Tareas son una sola entrada de la barra lateral, con «Día · Semana · Lista» arriba. Al volver a la Agenda sale el último modo que usaste. Cambiar de modo no llena el historial de Atrás.
-- **Panel Hoy.** A la derecha de todas las pantallas salvo Calendario, que tiene el suyo. Arriba, el mes con un punto por tipo de evento (los colores del Calendario); un clic en un día enseña lo de ese día y el campo de abajo añade a ese día. Si es hoy, también lo vencido. Las tareas se marcan con un clic; con el botón derecho, enfoque, pasar a mañana o ver su nota. Abajo: la nota de hoy, Empezar el día y Cerrar el día. Si la ventana es estrecha se esconde solo; ⌥⌘0 lo oculta del todo, y entonces Inicio vuelve a enseñar su tarjeta «Hoy». Con la app abierta pasada la medianoche (o al despertar el Mac), el panel, Mi día y el Calendario pasan solos al día nuevo si enseñaban hoy.
+- **Panel Hoy.** A la derecha de todas las pantallas salvo Calendario, que tiene el suyo. Arriba, el mes con un punto por tipo de evento (los colores del Calendario); un clic en un día enseña lo de ese día y el campo de abajo añade a ese día. Si es hoy, también lo vencido. Las tareas se marcan con un clic; con el botón derecho, enfoque, pasar a mañana o ver su nota. Abajo: la nota de hoy, Empezar el día y Cerrar el día. Si la ventana es estrecha se esconde solo; ⌥⌘0 lo oculta del todo, y entonces Inicio vuelve a enseñar su tarjeta «Hoy». Con la app abierta pasada la medianoche (o al despertar el Mac), el panel, Mi día y el Calendario pasan solos al día nuevo si enseñaban hoy. Lo mismo la fecha de los formularios (Peso, Medicación, Mascota, Vehículo, Suscripciones, Préstamos, medidas y fotos): lo que apuntes por la mañana va al día nuevo, no al de ayer.
 - **Notas al lado.** Con el panel visible, un enlace `[[nota]]` pulsado fuera de Notas abre la nota en la pestaña «Nota» del panel: se pueden marcar casillas y cambiar propiedades, y «Editar en Notas» la abre en el editor. «Otra ventana» la deja en una ventana aparte. De una nota muy larga se enseñan las primeras 250 líneas, con un enlace para seguir en Notas. Las notas con pantalla propia (Vehículo, Peso…) siguen abriendo su pantalla.
 - **Fijadas y recientes.** Con el botón derecho en una pantalla de la barra lateral, «Fijar arriba». Las fijadas son también ⌘2…⌘9, en su orden (⌘1 es Inicio), así que no cambian al ocultar un módulo. Debajo, las tres últimas notas abiertas. Al principio están fijadas la Agenda, Calendario y Notas.
 - **Otra ventana.** Botón derecho en una pantalla → «Abrir en otra ventana», por ejemplo para tener Gastos y Notas a la vez.
@@ -485,7 +486,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | `terminé Dune` | Termina hoy un libro que lees o tienes pendiente (basta parte del título). |
 | `cuota Coche` | Apunta la cuota de un préstamo, en la nota y en Gastos. |
 
-La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea».
+La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea». «Comprar …» con una fecha («comprar regalo el 15 de noviembre») sí es una tarea.
 
 ## Notas que crea la app
 
@@ -552,7 +553,7 @@ Si algo no llega (Calendar no se actualiza, una copia falla, iCloud no baja un a
 
 ## Copias y deshacer
 
-- La app copia toda la carpeta antes del primer cambio de cada día y guarda las últimas 14 copias automáticas. Se pueden cifrar con contraseña en Ajustes.
+- La app copia toda la carpeta antes del primer cambio de cada día y guarda las últimas 14 copias automáticas. Con la app abierta, la copia del día nuevo se hace sola a medianoche o al despertar el Mac. Se pueden cifrar con contraseña en Ajustes.
 - Cada cambio hecho desde la app se deshace con ⌥⌘Z.
 - Para recuperar una versión antigua de una nota: Notas → ⋯ → Historial.
 - Para volver a una copia entera: Ajustes → Copias de seguridad. Antes de restaurar, la app guarda el estado actual.

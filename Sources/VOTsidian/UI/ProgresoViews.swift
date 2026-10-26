@@ -40,6 +40,7 @@ struct MedidasCard: View {
             }
         }
         .sheet(item: $spec) { RowSheet(spec: $0) }
+        .followsToday($date)
     }
 
     private func latest(_ records: [MeasureRecord]) -> some View {
@@ -171,6 +172,7 @@ struct FotosCard: View {
                 }
             }
         }
+        .followsToday($date)
     }
 
     private func compare(_ list: [(url: URL, date: Date?)]) -> some View {

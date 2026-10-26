@@ -124,9 +124,10 @@ extension Store {
         ensureInbox()
         edit(VaultPath.inbox) { text in
             var out: String? = text
-            // Se mira el texto que se va formando: así tampoco se repiten las que vienen dos veces en `items`.
+            // Se mira el texto que se va formando: así tampoco se repiten las que vienen dos veces en `items`. Se compara la tarea
+            // entera: con «contiene», «Correr» no se añadía si ya estaba «Correr 10 km».
             for (t, due) in items {
-                guard let cur = out, !cur.contains("- [ ] \(t)") else { continue }
+                guard let cur = out, !Parse.tasks(cur, file: VaultPath.inbox).contains(where: { !$0.done && MD.fold($0.text) == MD.fold(t) }) else { continue }
                 out = Edit.addInboxTask(cur, task: t, due: due)
             }
             return out
@@ -135,7 +136,8 @@ extension Store {
 
     func addIdea(_ text: String) {
         ensureInbox()
-        edit(VaultPath.inbox) { Edit.appendToSection($0, section: "Ideas", line: "- \(text)") ?? Edit.appendToSectionCreating($0, section: "Ideas", lines: ["- \(text)"]) }
+        let line = "- \(Edit.oneLine(text))"
+        edit(VaultPath.inbox) { Edit.appendToSection($0, section: "Ideas", line: line) ?? Edit.appendToSectionCreating($0, section: "Ideas", lines: [line]) }
     }
 
     /// Copia manual, con hora en el nombre. No se borra sola.

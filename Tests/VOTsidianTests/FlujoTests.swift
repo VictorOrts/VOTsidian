@@ -153,6 +153,17 @@ import Testing
     #expect(store.today == tomorrow && store.agendaCache.isEmpty && store.budgetCache.isEmpty)
 }
 
+@Test func formDatesFollowTheNewDay() {
+    let cal = DayKey.calendar()
+    let old = DayKey.date("2026-10-25")!, new = DayKey.date("2026-10-26")!   // la noche del cambio de hora
+    // la fecha de un formulario (con hora) pasa al día nuevo y conserva la hora; la de un panel (medianoche), igual
+    let form = cal.date(bySettingHour: 23, minute: 40, second: 0, of: old)!
+    #expect(DayKey.following(form, from: old, to: new) == cal.date(bySettingHour: 23, minute: 40, second: 0, of: new))
+    #expect(DayKey.following(old, from: old, to: new) == new)
+    // una fecha elegida a mano (otro día) no se toca
+    #expect(DayKey.following(DayKey.date("2026-10-20")!, from: old, to: new) == nil)
+}
+
 @MainActor @Test func overdueDoseShowsTodayAndCountsFromToday() throws {
     let store = Store(root: try syntheticVault())
     let today = DayKey.today()

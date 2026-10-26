@@ -59,16 +59,28 @@ struct Person: Identifiable, Equatable {
     var line: Int
     var id: Int { line }
 
-    /// Próxima fecha de cumpleaños desde `today`.
-    func nextBirthday(from today: Date = DayKey.today()) -> (date: Date, age: Int?)? {
+    /// Año de nacimiento, si la fecha lo trae.
+    var birthYear: Int? {
+        let p = birthday.split(separator: "-").compactMap { Int($0) }
+        return p.count == 3 ? p[0] : nil
+    }
+
+    /// El cumpleaños en el año `year`, o `nil` si la fecha no existe («02-30»). Quien nació un 29 de febrero lo celebra el 28 los
+    /// años que no son bisiestos (el calendario lo pasaba al 1 de marzo sin avisar).
+    func birthday(in year: Int) -> Date? {
         let p = birthday.split(separator: "-").compactMap { Int($0) }
         guard p.count == 2 || p.count == 3 else { return nil }
         let (month, day) = p.count == 3 ? (p[1], p[2]) : (p[0], p[1])
+        return DayKey.make(year, month, day) ?? (month == 2 && day == 29 ? DayKey.make(year, 2, 28) : nil)
+    }
+
+    /// Próxima fecha de cumpleaños desde `today`.
+    func nextBirthday(from today: Date = DayKey.today()) -> (date: Date, age: Int?)? {
         let cal = DayKey.calendar()
         let year = cal.component(.year, from: today)
-        guard var d = cal.date(from: DateComponents(year: year, month: month, day: day)) else { return nil }
-        if d < today { d = cal.date(from: DateComponents(year: year + 1, month: month, day: day)) ?? d }
-        return (d, p.count == 3 ? cal.component(.year, from: d) - p[0] : nil)
+        guard var d = birthday(in: year) else { return nil }
+        if d < today { d = birthday(in: year + 1) ?? d }
+        return (d, birthYear.map { cal.component(.year, from: d) - $0 })
     }
 }
 
@@ -153,8 +165,16 @@ extension Parse {
 
 enum Recurrence {
     /// Separa «month on the 31st» en la regla base («month») y el día fijo del mes (31; -1 = el último).
-    /// `🔁 every …` hasta el siguiente campo de la tarea (fechas, prioridad, `[completion::]`).
-    static let pattern = #"🔁\s*every\s+[^📅⏳🛫➕✅⏫🔼🔽\[]+"#
+    /// `🔁 every …` hasta el siguiente campo de la tarea (fechas, prioridad, `[completion::]`, y las marcas propias ⏰ ⏱ 🔕).
+    static let pattern = #"🔁\s*every\s+[^📅⏳🛫➕✅⏫🔼🔽⏰⏱🔕\[]+"#
+
+    /// El trozo `🔁 every …` de una línea. Con `NSString`, como `TaskDuration.find`: la búsqueda de `String` no paraba ante un
+    /// «⏱️» con selector de variación y la regla se quedaba con la duración («week ⏱️ 30m»).
+    static func find(in line: String) -> String? {
+        let ns = line as NSString
+        let r = ns.range(of: pattern, options: .regularExpression)
+        return r.location == NSNotFound ? nil : ns.substring(with: r)
+    }
 
     /// «every week when done» (Obsidian Tasks): la siguiente se cuenta desde el día en que se completa, no desde la fecha.
     static func isWhenDone(_ rule: String) -> Bool { rule.lowercased().contains("when done") }

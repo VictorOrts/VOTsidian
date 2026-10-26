@@ -110,6 +110,7 @@ struct VehiculoView: View {
             .readableWidth()
         }
         .navigationTitle(v.name)
+        .followsToday($date)
     }
 
     private func save() {

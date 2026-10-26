@@ -113,7 +113,10 @@ struct TareasView: View {
         let today = DayKey.today()
         let wd = DayKey.calendar().component(.weekday, from: today)
         let monday = DayKey.adding(days: (9 - wd) % 7 == 0 ? 7 : (9 - wd) % 7, to: today)
-        let targets: [(String, Date?)] = [("Hoy", today), ("Mañana", DayKey.adding(days: 1, to: today)), ("El lunes", monday), ("En una semana", DayKey.adding(days: 7, to: today)), ("Sin fecha", nil)]
+        let (tomorrow, week) = (DayKey.adding(days: 1, to: today), DayKey.adding(days: 7, to: today))
+        // El domingo «el lunes» es mañana y el lunes es «en una semana»: entonces no se repite.
+        let targets: [(String, Date?)] = [("Hoy", today), ("Mañana", tomorrow)] + (monday == tomorrow || monday == week ? [] : [("El lunes", monday)])
+            + [("En una semana", week), ("Sin fecha", nil)]
         return HStack(spacing: 6) {
             Text("Arrastra una tarea a:").font(.caption).foregroundStyle(.secondary)
             ForEach(targets, id: \.0) { DropChip(title: $0.0, day: $0.1) }

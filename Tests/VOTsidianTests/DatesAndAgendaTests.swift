@@ -21,6 +21,29 @@ import Testing
     #expect(t("5/1") == ("", "2027-01-05"))
     #expect(t("tomar 5 g de magnesio") == ("tomar 5 g de magnesio", nil))
     #expect(t("sin fecha aquí") == ("sin fecha aquí", nil))
+    // el día de la semana delante de la fecha, «que viene», «dentro de», palabras, meses sueltos y conectores dobles
+    #expect(t("el lunes 2 de noviembre cita") == ("cita", "2026-11-02"))
+    #expect(t("examen el viernes 30/10") == ("examen", "2026-10-30"))
+    #expect(t("fiesta el viernes que viene") == ("fiesta", "2026-10-23"))
+    #expect(t("dentro de 3 días ir al banco") == ("ir al banco", "2026-10-22"))
+    #expect(t("revisar en una semana") == ("revisar", "2026-10-26"))
+    #expect(t("renovar DNI en enero") == ("renovar DNI", "2027-01-01"))
+    #expect(t("hacer la declaración en octubre") == ("hacer la declaración", "2026-10-19"))
+    #expect(t("regalo para el 15 de noviembre") == ("regalo", "2026-11-15"))
+    // un 29 de febrero sin año es el del próximo año bisiesto, no «el 29» de este mes
+    #expect(t("llamar el 29 de febrero") == ("llamar", "2028-02-29"))
+}
+
+@Test func naturalTasksWithRangesAndShopping() {
+    let today = DayKey.date("2026-10-19")!
+    let r = NaturalDate.extractTask("reunión 9:00-10:30", today: today)
+    #expect(r.text == "reunión" && r.time == 9 * 60 && r.duration == 90)
+    #expect(NaturalDate.extractTask("subir de 3-5 kg", today: today).duration == nil)
+    #expect(NaturalDate.extractTask("leer al día", today: today).recurrence == "day")
+    // «comprar» con fecha es una tarea; sin fecha, la lista de la compra
+    #expect(QuickCommand.parse("comprar regalo el 15 de noviembre", today: today) == nil)
+    #expect(QuickCommand.parse("comprar leche y pan", today: today) == .shopping(["leche", "pan"]))
+    #expect(QuickCommand.parse("compra leche mañana", today: today) == .shopping(["leche mañana"]))
 }
 
 @MainActor @Test func agendaDiaryAndLinkRepairOnCopy() throws {

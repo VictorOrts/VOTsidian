@@ -139,7 +139,7 @@ extension Store {
         let staging = stagingURL(for: dest)
         try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
         guard !fm.fileExists(atPath: dest.path), !fm.fileExists(atPath: staging.path) else { return false }
-        do { try fm.copyItem(at: src, to: staging) } catch {
+        do { try cloneOrCopy(src, to: staging) } catch {
             Log.backups.error("No se pudo clonar la carpeta para cifrarla: \(error.localizedDescription, privacy: .public)")
             try? fm.removeItem(at: staging); return false
         }
@@ -152,6 +152,28 @@ extension Store {
         return true
     }
 
+    /// Clon APFS de toda la carpeta de una vez (`clonefile`: ~15 veces más rápido que copiar nota a nota y sin ocupar espacio
+    /// hasta que algo cambia). Si no se puede (otro volumen…) o hay archivos de iCloud sin bajar, copia normal: el clon de un
+    /// archivo sin bajar sería solo el marcador, y la copia normal lee su contenido.
+    nonisolated static func cloneOrCopy(_ src: URL, to dest: URL) throws {
+        if !hasDatalessFiles(src), clonefile(src.path, dest.path, 0) == 0 { return }
+        let err = errno
+        Log.backups.notice("Sin clon APFS (\(String(cString: strerror(err)), privacy: .public)): se copia nota a nota")
+        // Un clon a medias se quita; si el destino ya existía, no es nuestro y no se toca (`copyItem` fallará).
+        if err != EEXIST { try? FileManager.default.removeItem(at: dest) }
+        try FileManager.default.copyItem(at: src, to: dest)
+    }
+
+    /// ¿Algún archivo de la carpeta está en iCloud sin bajar a este Mac? (`SF_DATALESS`, con `lstat`: sin pedir la descarga.)
+    nonisolated static func hasDatalessFiles(_ root: URL) -> Bool {
+        guard let walk = FileManager.default.enumerator(atPath: root.path) else { return false }
+        var st = stat()
+        while let rel = walk.nextObject() as? String {
+            if lstat(root.appendingPathComponent(rel).path, &st) == 0, st.st_flags & UInt32(SF_DATALESS) != 0 { return true }
+        }
+        return false
+    }
+
     /// Copia a una carpeta temporal y la renombra al final, para que una copia a medias no pase por completa.
     /// Devuelve si la copia existe al terminar.
     @discardableResult
@@ -162,7 +184,7 @@ extension Store {
         let partial = dest.deletingLastPathComponent().appendingPathComponent(".\(dest.lastPathComponent).partial")
         try? fm.removeItem(at: partial)
         do {
-            try fm.copyItem(at: src, to: partial)
+            try cloneOrCopy(src, to: partial)
             try fm.moveItem(at: partial, to: dest)
         } catch {
             Log.backups.error("No se pudo copiar la carpeta: \(error.localizedDescription, privacy: .public)")

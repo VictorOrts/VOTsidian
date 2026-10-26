@@ -81,6 +81,7 @@ struct MascotaView: View {
         }
         .navigationTitle(n.name)
         .sheet(item: $spec) { RowSheet(spec: $0) }
+        .followsToday($date)
     }
 
     private func ficha(_ label: String, _ key: String) -> some View {

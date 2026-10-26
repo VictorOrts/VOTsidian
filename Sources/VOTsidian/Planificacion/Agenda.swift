@@ -121,12 +121,9 @@ extension Store {
         let cal = DayKey.calendar()
         let years = Set([cal.component(.year, from: start), cal.component(.year, from: end)])
         for p in people {
-            let parts = p.birthday.split(separator: "-").compactMap { Int($0) }
-            guard parts.count >= 2 else { continue }
-            let (m, d) = parts.count == 3 ? (parts[1], parts[2]) : (parts[0], parts[1])
             for y in years {
-                if let date = cal.date(from: DateComponents(year: y, month: m, day: d)) {
-                    add(AgendaItem(id: "b\(p.name)\(y)", kind: .birthday, title: "Cumpleaños de \(p.name)", detail: parts.count == 3 ? "\(y - parts[0]) años" : "", date: date, screen: .personas))
+                if let date = p.birthday(in: y) {
+                    add(AgendaItem(id: "b\(p.name)\(y)", kind: .birthday, title: "Cumpleaños de \(p.name)", detail: p.birthYear.map { "\(y - $0) años" } ?? "", date: date, screen: .personas))
                 }
             }
         }

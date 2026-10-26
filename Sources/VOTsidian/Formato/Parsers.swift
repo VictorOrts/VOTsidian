@@ -52,8 +52,8 @@ enum Parse {
             var clean = body
             let priority = body.contains("⏫") ? 3 : body.contains("🔼") ? 2 : body.contains("🔽") ? 1 : 0
             var recurrence: String?
-            if let r = body.range(of: Recurrence.pattern, options: .regularExpression) {
-                recurrence = String(body[r]).replacingOccurrences(of: "🔁", with: "").replacingOccurrences(of: "every", with: "").trimmingCharacters(in: .whitespaces)
+            if body.unicodeScalars.contains("\u{1F501}"), let r = Recurrence.find(in: body) {
+                recurrence = r.replacingOccurrences(of: "🔁", with: "").replacingOccurrences(of: "every", with: "").trimmingCharacters(in: .whitespaces)
             }
             var time: Int?
             if let tm = body.firstMatch(of: /⏰\s*([0-9]{1,2}):([0-9]{2})/), let h = Int(tm.1), let mi = Int(tm.2), h < 24, mi < 60 { time = h * 60 + mi }
