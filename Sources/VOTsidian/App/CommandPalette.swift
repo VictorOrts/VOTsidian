@@ -175,7 +175,9 @@ struct CommandPalette: View {
 }
 
 struct QuickAddSheet: View {
-    enum Kind: String, CaseIterable, Identifiable { case auto = "Cualquier cosa", tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Toma", idea = "Idea"; var id: String { rawValue } }
+    /// Etiquetas cortas: desde macOS 27 cada pestaña del control segmentado mide lo que la más larga, y con «Cualquier cosa»
+    /// el control no cabía en la hoja y la cortaba por los dos lados (lo comprueba `quickAddTabsFitTheSheet`).
+    enum Kind: String, CaseIterable, Identifiable { case auto = "Libre", tarea = "Tarea", gasto = "Gasto", peso = "Peso", pinchazo = "Toma", idea = "Idea"; var id: String { rawValue } }
 
     @Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -242,7 +244,7 @@ struct QuickAddSheet: View {
                 Button("Guardar", action: save).keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent).disabled(!valid)
             }
         }
-        .padding(22).frame(width: 520)
+        .padding(22).frame(width: Self.width)
         .onAppear {
             focused = true
             let m = store.medicacion
@@ -254,6 +256,8 @@ struct QuickAddSheet: View {
             if let med = selectedMed { dose = store.medicacion.last(of: med)?.dose ?? med.dose }
         }
     }
+
+    static let width: CGFloat = 520
 
     private var selectedMed: Medication? { store.medicacion.meds.first { $0.name == medName } }
 

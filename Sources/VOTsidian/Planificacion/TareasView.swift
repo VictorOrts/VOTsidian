@@ -86,7 +86,8 @@ struct TareasView: View {
     private var filterPicker: some View {
         let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < DayKey.today() } ?? false) }.count
         return Picker("", selection: $filter) { ForEach(Filter.allCases) { Text($0 == .vencidas && overdue > 0 ? "Vencidas (\(overdue))" : $0.rawValue).tag($0) } }
-            .pickerStyle(.segmented).labelsHidden().frame(width: 420)
+            // Su ancho real: desde macOS 27 cada pestaña mide lo que la más larga («Vencidas (12)»), y con un ancho fijo se cortaba.
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
     }
 
     private var searchRow: some View {

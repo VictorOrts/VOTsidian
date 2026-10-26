@@ -487,7 +487,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | `terminé Dune` | Termina hoy un libro que lees o tienes pendiente (basta parte del título). |
 | `cuota Coche` | Apunta la cuota de un préstamo, en la nota y en Gastos. |
 
-La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea». «Comprar …» con una fecha («comprar regalo el 15 de noviembre») sí es una tarea.
+La **captura rápida** (⇧⌘N), en «Libre», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea». «Comprar …» con una fecha («comprar regalo el 15 de noviembre») sí es una tarea.
 
 ## Notas que crea la app
 
