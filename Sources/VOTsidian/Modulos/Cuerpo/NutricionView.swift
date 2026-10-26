@@ -22,9 +22,9 @@ struct NutricionView: View {
                 if p.kcal > 0 {
                     TileRow {
                         Tile(title: "Calorías", value: fmt(p.kcal, 0), note: "kcal al día")
-                        Tile(title: "Proteína", value: fmt(p.protein, 0, unit: " g"), note: "\(Int(p.protein * 4 / p.kcal * 100)) % · \(fmt(p.protein * 4, 0)) kcal", tint: Brand.info)
-                        Tile(title: "Carbohidratos", value: fmt(p.carbs, 0, unit: " g"), note: "\(Int(p.carbs * 4 / p.kcal * 100)) % · \(fmt(p.carbs * 4, 0)) kcal", tint: Brand.amber)
-                        Tile(title: "Grasas", value: fmt(p.fat, 0, unit: " g"), note: "\(Int(p.fat * 9 / p.kcal * 100)) % · \(fmt(p.fat * 9, 0)) kcal", tint: Brand.violet)
+                        Tile(title: "Proteína", value: fmt(p.protein, 0, unit: " g"), note: "\(percentText(p.protein * 4 / p.kcal)) · \(fmt(p.protein * 4, 0)) kcal", tint: Brand.info)
+                        Tile(title: "Carbohidratos", value: fmt(p.carbs, 0, unit: " g"), note: "\(percentText(p.carbs * 4 / p.kcal)) · \(fmt(p.carbs * 4, 0)) kcal", tint: Brand.amber)
+                        Tile(title: "Grasas", value: fmt(p.fat, 0, unit: " g"), note: "\(percentText(p.fat * 9 / p.kcal)) · \(fmt(p.fat * 9, 0)) kcal", tint: Brand.violet)
                     }
                     HStack(alignment: .top, spacing: 16) {
                         Card(title: "Reparto de calorías", icon: "chart.pie") {

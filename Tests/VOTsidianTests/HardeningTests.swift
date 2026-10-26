@@ -82,3 +82,15 @@ import Testing
     try "# Hola\n".write(to: dir.appendingPathComponent("Hola.md"), atomically: true, encoding: .utf8)
     #expect(Store(root: dir).isValid)    // sin Peso.md pero con notas
 }
+
+/// Un número de 24 cifras en el plan nutricional llegaba a `Int(_:)` al calcular el % de cada macro y cerraba la app.
+@Test @MainActor func hugeNutritionNumbersDoNotCrash() throws {
+    let store = Store(root: try syntheticVault())
+    store.edit(VaultPath.plan) { _ in
+        "---\nkcal_objetivo: 1800\nproteina_g: 999999999999999999999999\ncarbohidratos_g: 150\ngrasas_g: 50\n---\n\n# Plan nutricional\n"
+    }
+    #expect(store.plan.protein > 1e20)
+    #expect(percentText(store.plan.protein * 4 / store.plan.kcal) == "–")
+    #expect(percentText(0.426) == "43 %")
+    try renderAllScreens(store)
+}

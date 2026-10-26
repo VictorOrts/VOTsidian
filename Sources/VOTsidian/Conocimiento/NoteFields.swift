@@ -23,7 +23,8 @@ struct NoteTables: View {
                     let all = t.rows.filter { r in r.cells.contains { !$0.isEmpty } }
                     // Las filas nuevas suelen ir al final: por defecto, las últimas.
                     let rows = expanded.contains(t.id) ? all : Array(all.suffix(Self.rowLimit))
-                    Grid(alignment: .leading, horizontalSpacing: 22, verticalSpacing: 7) {
+                    // 14 y no 22 entre columnas: con 9 (Pólizas) se pasaba de los 700 pt que deja el panel Hoy.
+                    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 7) {
                         GridRow {
                             ForEach(Array(t.header.enumerated()), id: \.offset) { _, h in Text(h) }
                             Color.clear.frame(width: 18, height: 1)

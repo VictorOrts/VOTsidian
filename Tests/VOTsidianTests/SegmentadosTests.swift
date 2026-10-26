@@ -47,16 +47,16 @@ import Testing
     #expect(fits.seen == 1 && fits.problems.isEmpty)
 }
 
-/// Todas las pantallas al ancho más estrecho que pueden tener: con el panel Hoy, que sale cuando el detalle mide 900 pt o más
-/// y se queda 300, la pantalla mide 600. Sin el panel, nunca menos de 790 (ventana de 1000 menos la barra lateral).
+/// Todas las pantallas al ancho más estrecho que pueden tener: con el panel Hoy, que sale cuando el detalle mide 1000 pt o más
+/// y se queda 300, la pantalla mide 700. Sin el panel, nunca menos de 790 (ventana de 1000 menos la barra lateral).
 @Test @MainActor func segmentedControlsFitEveryScreen() throws {
     let store = Store(root: try syntheticVault())
     _ = NSApplication.shared
     var total = 0
     for screen in Screen.allCases {
-        let r = clippedSegments(ScreenView(screen: screen).environment(store).tint(Brand.accent).textFieldStyle(.roundedBorder), width: 600)
+        let r = clippedSegments(ScreenView(screen: screen).environment(store).tint(Brand.accent).textFieldStyle(.roundedBorder), width: 700)
         total += r.seen
-        #expect(r.problems.isEmpty, "\(screen.rawValue) a 600 pt: \(r.problems.joined(separator: "; "))")
+        #expect(r.problems.isEmpty, "\(screen.rawValue) a 700 pt: \(r.problems.joined(separator: "; "))")
     }
     #expect(total >= 9, "solo \(total) controles")   // si no encuentra controles, el test no prueba nada
     store.peekNote = store.notes.first?.path   // con una nota abierta al lado sale «Hoy | Nota»
@@ -75,5 +75,28 @@ import Testing
     for width in [300.0, 480.0] {
         let r = clippedSegments(TaskEditor(task: task) {}.environment(store).padding(12).frame(width: width), width: width, height: 700)
         #expect(r.seen == (width > 400 ? 1 : 0) && r.problems.isEmpty, "Editor de tareas a \(Int(width)) pt (\(r.seen)): \(r.problems.joined(separator: "; "))")
+    }
+}
+
+/// Ninguna pantalla pide más ancho del que tiene: si no, en la app la ventana no deja estrecharse o la pantalla se corta por los
+/// dos lados (Medicación, Vehículo, Lecturas, Trámites e Inicio no cabían en los 600 pt que dejaba el panel Hoy).
+@Test @MainActor func screensFitBesideTheTodayPanel() throws {
+    let store = Store(root: try syntheticVault())
+    _ = NSApplication.shared
+    func width(_ view: some View, in available: CGFloat) -> CGFloat {
+        NSHostingController(rootView: view.environment(store)).sizeThatFits(in: CGSize(width: available, height: 900)).width
+    }
+    for screen in Screen.allCases {
+        // Calendario y Lienzo no llevan el panel Hoy: tienen los 790 pt de la ventana más estrecha.
+        let available: CGFloat = screen == .calendario || screen == .lienzo ? 790 : 700
+        let w = width(ScreenView(screen: screen), in: available)
+        #expect(w <= available + 1, "\(screen.rawValue) pide \(Int(w)) pt de \(Int(available))")
+    }
+    // El panel del día del Calendario, abierto, en mes y en semana: sin sitio va encima de la rejilla y no la empuja.
+    defer { UserDefaults.standard.removeObject(forKey: "calendarPanel"); UserDefaults.standard.removeObject(forKey: "calendarWeek") }
+    for week in [false, true] {
+        UserDefaults.standard.set(true, forKey: "calendarPanel"); UserDefaults.standard.set(week, forKey: "calendarWeek")
+        let w = width(CalendarioView(), in: 790)
+        #expect(w <= 791, "Calendario \(week ? "semana" : "mes") con el panel pide \(Int(w)) pt")
     }
 }

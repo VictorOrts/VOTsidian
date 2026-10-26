@@ -78,9 +78,11 @@ import Testing
     let files = try store.exportData(to: out)
     let names = Set(files.map(\.lastPathComponent))
     #expect(names.isSuperset(of: ["peso.csv", "medicacion.csv", "habitos.csv", "tareas.csv", "sueno.csv", "resumen.md"]))
-    let peso = try String(contentsOf: out.appendingPathComponent("peso.csv"), encoding: .utf8)
+    // Empieza con el BOM de UTF-8: así Excel no rompe los acentos.
+    #expect(try Data(contentsOf: out.appendingPathComponent("peso.csv")).prefix(3) == Data([0xEF, 0xBB, 0xBF]))
+    let peso = try String(contentsOf: out.appendingPathComponent("peso.csv"), encoding: .utf8).replacingOccurrences(of: "\u{FEFF}", with: "")
     #expect(peso.hasPrefix("fecha,peso_kg,notas\n") && peso.components(separatedBy: "\n").count > 2)
-    let dosis = try String(contentsOf: out.appendingPathComponent("medicacion.csv"), encoding: .utf8)
+    let dosis = try String(contentsOf: out.appendingPathComponent("medicacion.csv"), encoding: .utf8).replacingOccurrences(of: "\u{FEFF}", with: "")
     #expect(dosis.hasPrefix("fecha,medicamento,dosis,") && dosis.components(separatedBy: "\n").count > 2)
     #expect(try String(contentsOf: out.appendingPathComponent("sueno.csv"), encoding: .utf8).contains("2026-03-05,7"))
     #expect(try String(contentsOf: out.appendingPathComponent("habitos.csv"), encoding: .utf8).components(separatedBy: "\n").count > 2)

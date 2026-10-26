@@ -112,8 +112,9 @@ struct ContentView: View {
     @State private var wide = true
 
     private var current: Screen { store.screen.flatMap { store.isVisible($0) ? $0 : nil } ?? .inicio }
-    /// Calendario ya tiene su propio panel del día.
-    private var panelShown: Bool { panelOn && wide && current != .calendario }
+    /// Calendario ya tiene su propio panel del día, y el Lienzo quiere todo el ancho (con su lista de lienzos necesita ~730 pt).
+    private var panelFits: Bool { wide && current != .calendario && current != .lienzo }
+    private var panelShown: Bool { panelOn && panelFits }
 
     var body: some View {
         let _ = BodyCounter.hit("ContentView")
@@ -153,7 +154,9 @@ struct ContentView: View {
                         HoyPanel().frame(width: 300).transition(.move(edge: .trailing))
                     }
                 }
-                .onGeometryChange(for: Bool.self) { $0.size.width >= 900 } action: { wide = $0 }
+                // Con el panel (300), la pantalla se queda en 700 pt o más: Medicación, Vehículo, Lecturas, Trámites o Inicio no caben en
+                // menos y se cortaban por los dos lados (lo comprueba `screensFitBesideTheTodayPanel`).
+                .onGeometryChange(for: Bool.self) { $0.size.width >= 1000 } action: { wide = $0 }
                 .navigationTitle(Screen.agendaModes.contains(current) ? "Agenda" : store.title(current))
                 .navigationSubtitle(current == .inicio ? "" : current.section?.title ?? "")
                 .toolbar { toolbar }
@@ -162,7 +165,7 @@ struct ContentView: View {
             // «Ver la nota al lado» con el panel oculto: se abre el panel o, si no cabe o es el Calendario, la nota en Notas.
             .onChange(of: store.peekNote) {
                 guard let p = store.peekNote, !panelShown else { return }
-                if wide && current != .calendario { withAnimation(.snappy) { panelOn = true } } else { store.peekNote = nil; store.pendingNote = p }
+                if panelFits { withAnimation(.snappy) { panelOn = true } } else { store.peekNote = nil; store.pendingNote = p }
             }
             .environment(\.openURL, OpenURLAction { store.open(link: $0, peek: peek) })
             .sheet(isPresented: $store.showPalette) { CommandPalette() }

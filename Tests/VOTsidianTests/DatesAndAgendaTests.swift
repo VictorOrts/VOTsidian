@@ -114,3 +114,32 @@ import Testing
     #expect(p("revisión todos los meses el 5") == ("revisión", "month", "2026-11-05"))
     #expect(p("llamar mañana") == ("llamar", nil, "2026-10-20"))
 }
+
+/// «esta semana», «la semana que viene», «el finde», «a fin de mes» y la hora desde ahora («en 10 minutos», «dentro de 2 horas»).
+@Test func naturalWeeksMonthEndAndRelativeTimes() throws {
+    let monday = try #require(DayKey.date("2026-10-26"))   // lunes
+    func t(_ s: String, _ today: Date = monday) -> (String, String?) { let r = NaturalDate.extract(s, today: today); return (r.text, r.date.map(DayKey.string)) }
+    #expect(t("revisar seguros esta semana") == ("revisar seguros", "2026-11-01"))
+    #expect(t("llamar al banco la semana que viene") == ("llamar al banco", "2026-11-02"))
+    #expect(t("pintar la valla la próxima semana") == ("pintar la valla", "2026-11-02"))
+    #expect(t("limpiar el coche este finde") == ("limpiar el coche", "2026-10-31"))
+    #expect(t("limpiar el coche el fin de semana", try #require(DayKey.date("2026-11-01"))) == ("limpiar el coche", "2026-11-01"))   // domingo: hoy
+    #expect(t("pagar el alquiler a fin de mes") == ("pagar el alquiler", "2026-10-31"))
+    #expect(t("revisar a final de mes", try #require(DayKey.date("2026-02-10"))) == ("revisar", "2026-02-28"))
+    // Lo de antes sigue igual: un día de la semana, y «cada semana» es una repetición, no una fecha.
+    #expect(t("dentista el viernes") == ("dentista", "2026-10-30"))
+    #expect(NaturalDate.extractTask("regar cada semana", today: monday).recurrence == "week")
+
+    let now = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 26, hour: 22, minute: 47)))
+    let a = NaturalDate.extractTask("sacar la ropa en 10 minutos", today: monday, now: now)
+    #expect(a.text == "sacar la ropa" && a.date.map(DayKey.string) == "2026-10-26" && a.time == 22 * 60 + 57)
+    let b = NaturalDate.extractTask("llamar a Ana dentro de 2 horas", today: monday, now: now)
+    #expect(b.text == "llamar a Ana" && b.date.map(DayKey.string) == "2026-10-27" && b.time == 47)   // pasa de medianoche: mañana
+    #expect(NaturalDate.extractTask("apagar el horno en media hora", today: monday, now: now).time == 23 * 60 + 17)
+    #expect(NaturalDate.extractTask("salir en hora y media", today: monday, now: now).time == 17)   // 22:47 + 1 h 30 = 00:17
+    // «en 3 días» sigue siendo una fecha, y «durante 10 minutos», una duración.
+    #expect(NaturalDate.extractTask("revisar en 3 días", today: monday, now: now).time == nil)
+    #expect(NaturalDate.extractTask("meditar durante 10 minutos", today: monday, now: now).duration == 10)
+    let c = NaturalDate.extractDateTime("cita en 2 horas", today: monday, now: now)
+    #expect(c.text == "cita" && c.time == 47 && c.date.map(DayKey.string) == "2026-10-27")
+}

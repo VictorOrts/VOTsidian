@@ -102,8 +102,11 @@ if [ "${INSTALL:-1}" = "1" ] && [ -z "${CI:-}" ]; then
   rm -rf "$DEST"
   ditto "$APP" "$DEST"
   "$LSREGISTER" -u "$PWD/$APP" >/dev/null 2>&1 || true
+  # Sin la copia de build/: Spotlight la indexa aunque no esté en LaunchServices, y salían dos VOTsidian al buscar.
+  rm -rf "$APP"
   "$LSREGISTER" -f -R "$DEST"
   [ "$WAS_OPEN" = "1" ] && open "$DEST"
   echo "Instalada: $DEST"
+else
+  echo "Listo: $PWD/$APP"
 fi
-echo "Listo: $PWD/$APP"

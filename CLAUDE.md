@@ -9,9 +9,9 @@ mensajes de commit y documentación, en español. Formato de cada nota para el u
 ```bash
 swift build                                    # compilar
 swift test                                     # ~250 tests, ~50 s (incluye fuzz)
-./scripts/build-app.sh                         # build/VOTsidian.app (release, firmada)
+./scripts/build-app.sh                         # release firmada, instalada en /Applications (INSTALL=0: se queda en build/)
 VOT_SHOTS=.claude/capturas VOT_SHOT_SCREEN=vehiculo VOT_SHOT_HEIGHT=1500 swift test --filter screenshots   # captura de una pantalla
-VOT_SHOTS=/tmp/x VOT_SHOT_SCREEN=bases VOT_SHOT_WIDTH=1110 swift test --filter screenshots                  # la pantalla más estrecha (600 pt, con el panel Hoy)
+VOT_SHOTS=/tmp/x VOT_SHOT_SCREEN=bases VOT_SHOT_WIDTH=1210 swift test --filter screenshots                  # la pantalla más estrecha (700 pt, con el panel Hoy)
 VOT_FUZZ=10 VOT_FUZZ_SEED=3 swift test --filter FuzzTests                                               # fuzz a fondo
 VOT_BENCH=1 swift test -c release --filter heavyUserBenchmark                                            # tiempos con 3 años de datos
 VOT_BENCH=1 VOT_BENCH_SCREEN=calendario swift test -c release --filter heavyUserBenchmark                # pinta esa pantalla 20 s (para `sample <pid>`)
@@ -92,8 +92,9 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
 - Desde macOS 27 cada pestaña de un `Picker(.segmented)` mide lo que la más larga: nada de `.frame(width:)` fijo (se corta por
   dentro) ni filas que no quepan (empujan la vista fuera de la ventana). `.fixedSize()` y, si puede faltar sitio, `ViewThatFits`
-  con otra fila o con `.menu`. La pantalla más estrecha mide 600 pt (detalle de 900 con el panel Hoy). `SegmentadosTests` pinta
-  cada pantalla a ese ancho y falla si un control segmentado se corta.
+  con otra fila o con `.menu`. La pantalla más estrecha mide 700 pt: el panel Hoy (300) sale con un detalle de 1000 o más (no en Calendario ni
+  Lienzo, que tienen 790). `SegmentadosTests` falla si un control segmentado se corta o si una pantalla pide más ancho del que
+  tiene (`screensFitBesideTheTodayPanel`): si no, la pantalla se cortaba por los dos lados. `ViewThatFits` mira el ancho *ideal*.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - Registro: `Log.notes/icloud/backups/calendar/notifications` (`Log.swift`). Errores y cuentas `.public`; rutas `.private`;
   nunca el texto de una nota.
@@ -104,7 +105,7 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   `store.addTask`. Una pantalla nueva necesita su nombre en `Screen.caseDisplayRepresentations` (literal: lo lee el compilador).
   SwiftPM no crea `Metadata.appintents`: lo hace `build-app.sh` con `-emit-const-values-path` y `appintentsmetadataprocessor`.
   Siri solo abre la app desde `/Applications`: desde `build/` LaunchServices da `permErr -54` y Siri dice «función restringida»
-  (`ditto build/VOTsidian.app /Applications/VOTsidian.app`). «Not trusting process VOTsidian with identifier (null)» de Biome es
+  (`build-app.sh` la instala ahí y borra la de `build/`, que Spotlight enseñaba como otra VOTsidian). «Not trusting process VOTsidian with identifier (null)» de Biome es
   solo un aviso (firma sin `application-identifier`), no la causa.
   Con macOS 27.2 la Siri nueva no reconoce las frases de `AppShortcutsProvider` de una app de desarrollo, tampoco de una hecha
   con Xcode (probado el 2026-10-26): usa su orden genérica de abrir apps. Las acciones sí van en Atajos, y Siri ejecuta un atajo

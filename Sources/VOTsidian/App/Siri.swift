@@ -20,8 +20,8 @@ struct CapturarIntent: AppIntent {
         guard let guess = Capture.interpret(texto, categories: store.expenseCategories, people: store.people.map(\.name), learned: store.expenseLearned) else {
             return .result(dialog: "No he entendido «\(texto)».")
         }
-        let reply = store.run(guess.command)
-        return .result(dialog: "\(guess.command.summary). \(reply)")
+        let text = SiriText.captureReply(summary: guess.command.summary, reply: store.run(guess.command))
+        return .result(dialog: "\(text)")
     }
 }
 
@@ -174,6 +174,11 @@ nonisolated enum SiriText {
         }
         if overdue > 0 { parts.append(overdue == 1 ? "Hay una tarea vencida." : "Hay \(overdue) tareas vencidas.") }
         return parts.joined(separator: " ")
+    }
+
+    /// Lo que se apuntó y lo que contestó la app. Casi todas las órdenes contestan con el mismo resumen: se dice una vez.
+    static func captureReply(summary: String, reply: String) -> String {
+        reply == summary ? "Hecho: \(summary)." : "\(summary). \(reply)"
     }
 
     /// Los avisos ya vienen de más a menos urgente.

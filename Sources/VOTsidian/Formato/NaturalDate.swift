@@ -90,6 +90,17 @@ enum NaturalDate {
                 if unit.hasPrefix("ano") { return cal.date(byAdding: .year, value: n, to: today) }
                 return DayKey.adding(days: n, to: today)
             }),
+            // «este finde» y «el fin de semana»: el sábado que llega (hoy, si ya es fin de semana).
+            (#"\b(?:(?:el|este) )?(?:fin de semana|finde)(?: que viene)?\b"#, .relative, { _ in
+                let wd = cal.component(.weekday, from: today)   // 1 domingo … 7 sábado
+                return wd == 7 || wd == 1 ? today : DayKey.adding(days: 7 - wd, to: today)
+            }),
+            // «la semana que viene»: el lunes; «esta semana»: el domingo, el último día en que aún vale.
+            (#"\b(?:la )?(?:semana que viene|proxima semana|semana proxima)\b"#, .relative, { _ in DayKey.adding(days: 7, to: DayKey.weekStart(today)) }),
+            (#"\besta semana\b"#, .relative, { _ in DayKey.adding(days: 6, to: DayKey.weekStart(today)) }),
+            (#"\b(?:a |para )?(?:fin|final|finales) de(?:l)? mes\b"#, .relative, { _ in
+                cal.dateInterval(of: .month, for: today).map { DayKey.adding(days: -1, to: cal.startOfDay(for: $0.end)) }
+            }),
             (#"\b(?:(?:el|este|proximo) )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)(?: que viene)?\b"#, .weekday, { m in
                 let target = weekdays[group(m, 1)!]!
                 var delta = (target - cal.component(.weekday, from: today) + 7) % 7
@@ -204,15 +215,39 @@ enum NaturalDate {
         return (input, nil, nil)
     }
 
+    /// «en 10 minutos», «dentro de 2 horas», «en media hora», «en hora y media»: el día y la hora contando desde `now` (pasada la
+    /// medianoche, el día siguiente). Devuelve la frase sin ello.
+    static func extractRelativeTime(_ input: String, now: Date = Date()) -> (text: String, date: Date, minutes: Int)? {
+        let input = input.precomposedStringWithCanonicalMapping
+        let folded = aligned(input)
+        let ns = folded as NSString
+        guard let re = try? NSRegularExpression(pattern: #"\b(?:en|dentro de) (?:(una hora y media|hora y media|media hora)|([0-9]{1,3}|un|una|dos|tres|cuatro|cinco|diez|quince) (minutos?|min|horas?))\b"#),
+              let m = re.firstMatch(in: folded, range: NSRange(location: 0, length: ns.length)) else { return nil }
+        var delta: Int
+        if m.range(at: 1).location != NSNotFound {
+            delta = ns.substring(with: m.range(at: 1)).hasPrefix("media") ? 30 : 90
+        } else {
+            let word = ns.substring(with: m.range(at: 2))
+            guard let n = Int(word) ?? numberWords[word] else { return nil }
+            delta = ns.substring(with: m.range(at: 3)).hasPrefix("hora") ? n * 60 : n
+        }
+        guard delta > 0, delta <= 48 * 60 else { return nil }
+        let target = now.addingTimeInterval(TimeInterval(delta * 60))
+        let text = (input as NSString).replacingCharacters(in: m.range, with: "").replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+        return (text, DayKey.calendar().startOfDay(for: target), TimeOfDay.minutes(of: target))
+    }
+
     /// Fecha y hora de una frase («cita dentista el 29/10 a las 17:30»): primero la hora, luego la fecha con lo que queda.
-    static func extractDateTime(_ input: String, today: Date = DayKey.today()) -> (text: String, date: Date?, time: Int?) {
+    static func extractDateTime(_ input: String, today: Date = DayKey.today(), now: Date = Date()) -> (text: String, date: Date?, time: Int?) {
+        if let r = extractRelativeTime(input, now: now) { return (r.text, r.date, r.minutes) }
         let t = extractTime(input)
         let d = extract(t.text, today: today)
         return (d.text, d.date, t.minutes)
     }
 
     /// Como `extract`, pero entiende también "cada semana", "cada 15 días", "cada lunes", "todos los meses".
-    static func extractTask(_ input: String, today: Date = DayKey.today()) -> ParsedTask {
+    static func extractTask(_ input: String, today: Date = DayKey.today(), now: Date = Date()) -> ParsedTask {
         // Prioridad: «urgente», «importante», «prioridad alta/media/baja» o «!» al final.
         var priority = 0
         var base = input
@@ -232,8 +267,11 @@ enum NaturalDate {
             base = base.trimmingCharacters(in: .whitespaces)
         }
         let lasting = extractDuration(base)
-        let timed = extractTime(lasting.text)
+        // «llamar a Ana en 20 minutos»: día y hora desde ahora; si no, la hora escrita («a las 17:30»).
+        let relative = extractRelativeTime(lasting.text, now: now)
+        let timed = relative.map { (text: $0.text, minutes: Optional($0.minutes)) } ?? extractTime(lasting.text)
         var r = extractTask(timed.text, today: today, noPriority: true)
+        if let relative, r.date == nil { r.date = relative.date }
         r.priority = priority
         r.time = lasting.time ?? timed.minutes
         r.muted = muted
