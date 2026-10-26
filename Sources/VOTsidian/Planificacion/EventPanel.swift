@@ -74,6 +74,11 @@ struct TaskEditor: View {
         _origin = State(initialValue: task)
     }
 
+    private var priorityPicker: some View {
+        Picker("Prioridad", selection: $draft.priority) { Text("Ninguna").tag(0); Text("Baja").tag(1); Text("Media").tag(2); Text("Alta").tag(3) }
+            .labelsHidden()
+    }
+
     private var dirty: Bool { draft != base }
 
     var body: some View {
@@ -93,8 +98,11 @@ struct TaskEditor: View {
                     ForEach(TaskDuration.presets(including: draft.duration), id: \.self) { Text(TaskDuration.human($0)).tag($0) }
                 }.fixedSize().help("Altura del bloque en Mi día y duración del evento en Calendar (⏱ en la nota).")
             }
-            Picker("Prioridad", selection: $draft.priority) { Text("Ninguna").tag(0); Text("Baja").tag(1); Text("Media").tag(2); Text("Alta").tag(3) }
-                .pickerStyle(.segmented).labelsHidden()
+            // En el panel (300 pt) las cuatro pestañas no caben desde macOS 27 (cada una mide lo que «Ninguna»): ahí, menú.
+            ViewThatFits(in: .horizontal) {
+                priorityPicker.pickerStyle(.segmented).fixedSize()
+                priorityPicker.pickerStyle(.menu).fixedSize()
+            }
             Toggle("Sin aviso en Calendar ni notificaciones", isOn: $draft.muted).toggleStyle(.checkbox)
                 .help("Sigue en Tareas y en el Calendario de la app; solo deja de ir a Calendar de macOS y a las notificaciones (🔕 en la nota).")
             HStack(spacing: 6) {

@@ -11,6 +11,7 @@ swift build                                    # compilar
 swift test                                     # ~250 tests, ~50 s (incluye fuzz)
 ./scripts/build-app.sh                         # build/VOTsidian.app (release, firmada)
 VOT_SHOTS=.claude/capturas VOT_SHOT_SCREEN=vehiculo VOT_SHOT_HEIGHT=1500 swift test --filter screenshots   # captura de una pantalla
+VOT_SHOTS=/tmp/x VOT_SHOT_SCREEN=bases VOT_SHOT_WIDTH=1110 swift test --filter screenshots                  # la pantalla más estrecha (600 pt, con el panel Hoy)
 VOT_FUZZ=10 VOT_FUZZ_SEED=3 swift test --filter FuzzTests                                               # fuzz a fondo
 VOT_BENCH=1 swift test -c release --filter heavyUserBenchmark                                            # tiempos con 3 años de datos
 VOT_BENCH=1 VOT_BENCH_SCREEN=calendario swift test -c release --filter heavyUserBenchmark                # pinta esa pantalla 20 s (para `sample <pid>`)
@@ -89,6 +90,10 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Una función pura dentro de una vista (`static func` en un `View`) es `@MainActor`: llamada desde un test que no lo es, sus
   cierres abortan el proceso al comprobar el aislamiento (señal 5). Márcala `nonisolated` (ver `NotePeek.head`).
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
+- Desde macOS 27 cada pestaña de un `Picker(.segmented)` mide lo que la más larga: nada de `.frame(width:)` fijo (se corta por
+  dentro) ni filas que no quepan (empujan la vista fuera de la ventana). `.fixedSize()` y, si puede faltar sitio, `ViewThatFits`
+  con otra fila o con `.menu`. La pantalla más estrecha mide 600 pt (detalle de 900 con el panel Hoy). `SegmentadosTests` pinta
+  cada pantalla a ese ancho y falla si un control segmentado se corta.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
 - Registro: `Log.notes/icloud/backups/calendar/notifications` (`Log.swift`). Errores y cuentas `.public`; rutas `.private`;
   nunca el texto de una nota.
@@ -101,6 +106,9 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   Siri solo abre la app desde `/Applications`: desde `build/` LaunchServices da `permErr -54` y Siri dice «función restringida»
   (`ditto build/VOTsidian.app /Applications/VOTsidian.app`). «Not trusting process VOTsidian with identifier (null)» de Biome es
   solo un aviso (firma sin `application-identifier`), no la causa.
+  Con macOS 27.2 la Siri nueva no reconoce las frases de `AppShortcutsProvider` de una app de desarrollo, tampoco de una hecha
+  con Xcode (probado el 2026-10-26): usa su orden genérica de abrir apps. Las acciones sí van en Atajos, y Siri ejecuta un atajo
+  por su nombre. «Failed to load a definition» de `WFInterchangeAppRegistry` sale también con apps de Xcode: no es la causa.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
   probar contra Calendar real.
 
