@@ -37,6 +37,7 @@ struct MedicacionView: View {
         .navigationTitle(store.medicacion.name)
         .sheet(item: $spec) { RowSheet(spec: $0) }
         .onAppear { resetEntry() }
+        .followsToday($date)
     }
 
     private func resetEntry() {

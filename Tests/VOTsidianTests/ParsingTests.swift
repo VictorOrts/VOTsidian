@@ -111,6 +111,11 @@ import Testing
     let r = w.ratePerMonth(window: 120)!
     #expect(r < -2 && r > -3)
     #expect(w.projectedGoalDate(window: 120) != nil)
+    // un ritmo casi cero no cierra la app ni da una fecha absurda
+    w.records = [WeightRecord(date: DayKey.date("2026-06-24")!, kg: 104.000000000001, note: ""),
+                 WeightRecord(date: DayKey.date("2026-09-30")!, kg: 104, note: "")]
+    #expect(w.projectedGoalDate(window: 120) == nil && w.daysToGoal(at: -1e-300) == nil)
+    #expect(w.daysToGoal(at: -2) == Int(19 / 2 * 30.4))
 }
 
 @Test func projectionRange() throws {
@@ -219,6 +224,12 @@ import Testing
     let b = people[0].nextBirthday(from: today)!
     #expect(DayKey.string(b.date) == "2027-10-17" && b.age == 37)
     #expect(DayKey.string(people[1].nextBirthday(from: today)!.date) == "2027-02-17" && people[1].nextBirthday(from: today)!.age == nil)
+    // 29 de febrero: el 28 los años que no son bisiestos; una fecha que no existe no da cumpleaños
+    let leap = Person(name: "Ana", relation: "", birthday: "2000-02-29", lastContact: nil, line: 0)
+    #expect(DayKey.string(leap.nextBirthday(from: today)!.date) == "2027-02-28" && leap.nextBirthday(from: today)!.age == 27)
+    #expect(leap.birthday(in: 2028).map(DayKey.string) == "2028-02-29")
+    #expect(Person(name: "X", relation: "", birthday: "02-30", lastContact: nil, line: 0).nextBirthday(from: today) == nil)
+    #expect(Person(name: "X", relation: "", birthday: "13-01", lastContact: nil, line: 0).birthday(in: 2026) == nil)
 }
 
 @Test func dosePeriods() {

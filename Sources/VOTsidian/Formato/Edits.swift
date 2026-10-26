@@ -219,7 +219,7 @@ extension Edit {
         for pattern in [#"⏳\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"🛫\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"➕\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"\[completion::[^\]]*\]"#] {
             if let r = body.range(of: pattern, options: .regularExpression) { tail += " " + body[r] }
         }
-        if let r = body.range(of: Recurrence.pattern, options: .regularExpression) { tail = " " + body[r].trimmingCharacters(in: .whitespaces) + tail }
+        if let r = Recurrence.find(in: body) { tail = " " + r.trimmingCharacters(in: .whitespaces) + tail }
         let prio = priority < 0 ? task.priority : priority
         lines[i] = String(m.1) + newText.trimmingCharacters(in: .whitespaces) + priorityMark(prio) + dueMark(due, time ?? task.time) + durationMark(duration ?? task.duration) + ((muted ?? task.muted) ? " 🔕" : "") + tail
         return lines.joined(separator: "\n")

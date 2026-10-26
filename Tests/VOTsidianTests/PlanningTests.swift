@@ -57,6 +57,9 @@ import Testing
     #expect(plan.contains { $0.id == "doc-2026-11-10--P7D" && DayKey.string($0.fire) == "2026-11-03" })
     #expect(!plan.contains { $0.id.hasPrefix("old") })
     #expect(plan == plan.sorted { $0.fire < $1.fire })
+    // En FREQ=WEEKLY, INTERVAL cuenta semanas, no días
+    let biweekly = ICSEvent(uid: "quincena", title: "Cada dos semanas", notes: "", start: DayKey.date("2026-10-20")!, minutes: 540, rule: "FREQ=WEEKLY;INTERVAL=2")
+    #expect(Notifier.plan([biweekly], now: now, today: today).map { DayKey.string($0.fire) } == ["2026-10-20", "2026-11-03", "2026-11-17"])
 }
 
 @Test func dosePeriodsJoinSameDose() {

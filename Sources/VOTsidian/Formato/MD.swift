@@ -135,6 +135,12 @@ enum DayKey {
 
     static func today() -> Date { calendar().startOfDay(for: Date()) }
 
+    /// Al pasar de `old` a `new` (cambio de día): la fecha que estaba en `old` se mueve a `new` con la misma hora; otra, `nil`.
+    static func following(_ day: Date, from old: Date, to new: Date) -> Date? {
+        guard calendar().isDate(day, inSameDayAs: old) else { return nil }
+        return adding(days: days(from: old, to: new), to: day)
+    }
+
     static func days(from a: Date, to b: Date) -> Int {
         calendar().dateComponents([.day], from: calendar().startOfDay(for: a), to: calendar().startOfDay(for: b)).day ?? 0
     }

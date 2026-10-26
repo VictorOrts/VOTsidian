@@ -111,6 +111,10 @@ import Testing
     let inbox = store.read(VaultPath.inbox)
     #expect(inbox.components(separatedBy: "- [ ] Llamar").count == 2)
     #expect(inbox.contains("- [ ] Otra"))
+    // una tarea que solo empieza igual que otra no es repetida
+    store.addTasks([("Llamar a Ana", nil), ("Llama", nil), ("llamar", nil)])
+    let after = Parse.tasks(store.read(VaultPath.inbox), file: VaultPath.inbox).map(\.text)
+    #expect(after.filter { $0 == "Llamar a Ana" }.count == 1 && after.contains("Llama") && after.filter { MD.fold($0) == "llamar" }.count == 1)
 }
 
 @MainActor @Test func conflictCopyKeepsWhatWasTyped() throws {

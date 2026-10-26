@@ -103,7 +103,14 @@ struct WeightData: Equatable {
 
     func projectedGoalDate(window days: Int? = 120) -> Date? {
         guard hasGoal, let l = last, let r = ratePerMonth(window: days), isGood(r), r != 0, (remainingKg ?? 0) > 0 else { return nil }
-        return DayKey.adding(days: Int(abs(goalKg - l.kg) / abs(r) * 30.4), to: l.date)
+        return daysToGoal(at: r).map { DayKey.adding(days: $0, to: l.date) }
+    }
+
+    /// Días hasta el objetivo a ese ritmo, o `nil` si pasa de un siglo: con un ritmo casi cero (años con el mismo peso, la
+    /// tendencia suavizada se acerca sin llegar) la cuenta pasaba de `Int.max` y cerraba la app.
+    func daysToGoal(at ratePerMonth: Double) -> Int? {
+        guard let l = last, ratePerMonth != 0, let d = MD.int(abs(goalKg - l.kg) / abs(ratePerMonth) * 30.4), d <= 36_500 else { return nil }
+        return d
     }
 
     /// Fecha estimada de llegada al objetivo sobre la tendencia suavizada: la central usa los últimos 4 meses;
@@ -116,8 +123,9 @@ struct WeightData: Equatable {
         let rates = [60, 120, nil].compactMap { trend.ratePerMonth(window: $0) }.filter { $0 != 0 && isGood($0) }
         guard let fast = rates.max(by: { abs($0) < abs($1) }), let slow = rates.min(by: { abs($0) < abs($1) }) else { return nil }
         let central = trend.ratePerMonth(window: 120).flatMap { $0 != 0 && isGood($0) ? $0 : nil } ?? rates.sorted()[rates.count / 2]
-        func date(_ r: Double) -> Date { DayKey.adding(days: Int(abs(goalKg - l.kg) / abs(r) * 30.4), to: l.date) }
-        return WeightProjection(date: date(central), earliest: date(fast), latest: date(slow), ratePerMonth: central)
+        func date(_ r: Double) -> Date? { daysToGoal(at: r).map { DayKey.adding(days: $0, to: l.date) } }
+        guard let middle = date(central), let earliest = date(fast) else { return nil }
+        return WeightProjection(date: middle, earliest: earliest, latest: date(slow) ?? middle, ratePerMonth: central)
     }
 }
 

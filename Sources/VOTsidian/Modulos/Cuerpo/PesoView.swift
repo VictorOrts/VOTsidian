@@ -103,6 +103,7 @@ struct PesoView: View {
         }
         .navigationTitle("Peso")
         .sheet(item: $spec) { RowSheet(spec: $0) }
+        .followsToday($date)
     }
 
     private func field(_ label: String, _ key: String) -> some View {
@@ -227,8 +228,8 @@ struct PesoView: View {
                     Text(m.name)
                     Spacer()
                     if let hit { Text(DayKey.dmy(hit.date)).font(.caption).foregroundStyle(.secondary) }
-                    else if let l = w.last, let r = rate, r < 0 {
-                        let d = DayKey.adding(days: Int((l.kg - m.kg) / -r * 30.4), to: l.date)
+                    else if let l = w.last, let r = rate, r < 0, let days = MD.int((l.kg - m.kg) / -r * 30.4), days <= 36_500 {
+                        let d = DayKey.adding(days: days, to: l.date)
                         Text("≈ \(DayKey.esLong(d, .dateTime.month(.abbreviated).year()))").font(.caption).foregroundStyle(.secondary)
                     } else { Text("pendiente").font(.caption).foregroundStyle(.secondary) }
                     EditButton { spec = RowSpec(file: VaultPath.proyecto, mode: .edit(line: m.line), title: "hito") }

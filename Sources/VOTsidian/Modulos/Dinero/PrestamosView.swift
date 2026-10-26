@@ -124,5 +124,6 @@ private struct PagoForm: View {
                 amount = ""
             }.buttonStyle(.borderedProminent).disabled(chosen == nil || Money.parse(amount) <= 0)
         }
+        .followsToday($date)
     }
 }
