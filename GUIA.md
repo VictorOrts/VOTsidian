@@ -242,7 +242,7 @@ Una sección `## …` por pasillo (Fruta y verdura, Despensa, Limpieza y hogar�
 - [x] Huevos
 ```
 
-Desde ⌘K, `compra leche y pan` los añade. «Vaciar comprados» quita lo que ya está marcado.
+Desde ⌘K, `compra leche y pan` los añade. Si pegas una lista con un artículo por línea (con o sin viñetas), entra cada uno por separado. «Vaciar comprados» quita lo que ya está marcado.
 
 #### Menú de la semana
 
@@ -435,9 +435,12 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 | `🔕` | Sin aviso: sigue en la app, pero no va a Calendar ni a las notificaciones de macOS. Se pone con «sin aviso» al escribirla o desde «Editar tarea». |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
 | `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…). `⏰`, `⏱` o `🔕` pueden ir antes o después. |
-| `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja |
+| `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja (`🔺` cuenta como alta y `⏬` como baja, y se conservan) |
+| `- [/]` | En curso (Tasks): sale como pendiente y se completa igual |
 
-En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30».
+Lo demás de Tasks (`❌` cancelada, `🆔`, `⛔`, `🏁`) se conserva al editar la tarea desde la app.
+
+En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30». También «el lunes 2 de noviembre», «el viernes que viene», «dentro de 3 días», «en una semana», «en enero» (el día 1), «reunión 9:00-10:30» (hora y duración) y «leer al día» (se repite cada día).
 
 La hora se entiende escrita así: «a las 17:30», «a las 5 de la tarde», «a las 9 y media», «a las 11 menos cuarto», «sobre las 10», «a mediodía» o «17:30» suelto. «A las 1» a «a las 6» sin «de la mañana» se toman como de la tarde, que es como se suele decir una cita. Si solo dices la hora, sin día, es para hoy. Las tareas con hora salen con ella en el Calendario, en Hoy y en Tareas, ordenadas por hora; en Calendar son un evento a esa hora con aviso una hora antes.
 
@@ -453,6 +456,7 @@ El día por horas, de 0 a 24 h. No guarda nada aparte: todo va en la línea de c
 - **Jornada.** Arriba, lo planificado frente a las horas que quieres dedicar al día (8 por defecto, se cambia en el menú «de 8 h»). Cuentan las tareas y citas pendientes con hora, y las tareas sin hora que tienen duración; la medicación y lo hecho no. Si te pasas, la barra se pone roja.
 - **Repartir.** Coloca las tareas sin hora en los huecos libres, por orden (primero las vencidas y las de más prioridad), entre las 9:00 y las 20:00, o desde ahora si es hoy. Las que no caben se quedan sin hora. ⌥⌘Z lo deshace de una vez.
 - **Empezar el día.** Desde el panel Hoy, Mi día, la barra de menús o ⌘K. Repasa en tres pasos lo que quedó pendiente (a hoy, a mañana o hecha), lo de hoy (con cuánto dura cada cosa) y lo de los próximos tres días (adelantar a hoy), y termina en Mi día para repartirlo.
+- **Leyenda.** Encima del mes salen solo los tipos que hay ese mes; los que comparten color van juntos («medicación / suscripción»).
 - **Semana por horas.** En Calendario, «Semana» enseña de lunes a domingo con las mismas columnas de horas. Soltar una tarea en una columna le pone ese día y esa hora; en la cabecera de un día, solo el día. «Por horas», en el panel de un día, lo abre en Mi día. Igual que en Mi día, un clic en un bloque, en una ficha de la cabecera o en una fila del panel (también en la vista de mes) abre su ficha arriba del panel derecho. El botón junto a «Mes / Semana» pliega ese panel para que la rejilla gane anchura (se recuerda); al abrir la ficha de un evento, vuelve a salir. Pasar el ratón por un título cortado lo enseña entero.
 
 ## La ventana
@@ -485,7 +489,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | `terminé Dune` | Termina hoy un libro que lees o tienes pendiente (basta parte del título). |
 | `cuota Coche` | Apunta la cuota de un préstamo, en la nota y en Gastos. |
 
-La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea».
+La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea». «Comprar …» con una fecha («comprar regalo el 15 de noviembre») sí es una tarea.
 
 ## Notas que crea la app
 
