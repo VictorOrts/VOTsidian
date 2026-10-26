@@ -44,20 +44,25 @@ struct AnadirTareaIntent: AppIntent {
     }
 }
 
-/// Lo que hay hoy en la agenda y lo vencido, leído en voz alta o en un atajo.
+/// Lo que hay un día en la agenda («qué tengo el miércoles»), hoy si no se dice otro; hoy, también lo vencido.
 struct HoyIntent: AppIntent {
-    static let title: LocalizedStringResource = "Qué tengo hoy"
-    static let description = IntentDescription("Dice las tareas, citas y avisos de hoy en la agenda, y cuántas tareas están vencidas.")
+    static let title: LocalizedStringResource = "Qué tengo"
+    static let description = IntentDescription("Dice las tareas, citas y avisos de un día en la agenda (hoy si no dices otro) y, si es hoy, cuántas tareas están vencidas.")
+    static var parameterSummary: some ParameterSummary { Summary("Qué tengo \(\.$fecha)") }
+
+    @Parameter(title: "Día", description: "El día que quieres consultar. Sin él, hoy.")
+    var fecha: Date?
 
     @Dependency var store: Store
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let today = DayKey.today()
-        let end = DayKey.adding(days: 1, to: today).addingTimeInterval(-1)
-        let items = store.agenda(from: today, to: end)[DayKey.string(today)] ?? []
-        let overdue = store.tasks.filter { !$0.done && ($0.due.map { $0 < today } ?? false) }.count
-        let text = SiriText.today(items, overdue: overdue)
+        let day = fecha.map { DayKey.calendar().startOfDay(for: $0) } ?? today
+        let end = DayKey.adding(days: 1, to: day).addingTimeInterval(-1)
+        let items = store.agenda(from: day, to: end)[DayKey.string(day)] ?? []
+        let overdue = day == today ? store.tasks.filter { !$0.done && ($0.due.map { $0 < today } ?? false) }.count : 0
+        let text = SiriText.day(items, label: SiriText.label(day, today: today), overdue: overdue)
         return .result(value: text, dialog: "\(text)")
     }
 }
@@ -121,7 +126,8 @@ struct VOTsidianShortcuts: AppShortcutsProvider {
         ], shortTitle: "Apuntar", systemImageName: "plus.circle")
         AppShortcut(intent: HoyIntent(), phrases: [
             "Qué tengo hoy en \(.applicationName)", "Mi día en \(.applicationName)", "Agenda de hoy en \(.applicationName)",
-        ], shortTitle: "Qué tengo hoy", systemImageName: "sun.max")
+            "Qué tengo en \(.applicationName)", "Mi agenda en \(.applicationName)",
+        ], shortTitle: "Qué tengo", systemImageName: "sun.max")
         AppShortcut(intent: AvisosIntent(), phrases: [
             "Avisos de \(.applicationName)", "Qué está pendiente en \(.applicationName)",
         ], shortTitle: "Avisos", systemImageName: "bell")
@@ -133,17 +139,28 @@ struct VOTsidianShortcuts: AppShortcutsProvider {
 
 /// Lo que dice Siri, sin depender del `Store` (se prueba en `SiriTests`).
 nonisolated enum SiriText {
-    /// Hoy, como la agenda: lo de todo el día primero y lo que tiene hora después, en orden; lo hecho no se lee. Hasta `limit` elementos, y cuántos quedan.
-    static func today(_ items: [AgendaItem], overdue: Int, limit: Int = 6) -> String {
+    /// «Hoy», «Mañana», «Ayer» o «El miércoles 28 de octubre».
+    static func label(_ day: Date, today: Date) -> String {
+        switch DayKey.days(from: today, to: day) {
+        case 0: return "Hoy"
+        case 1: return "Mañana"
+        case -1: return "Ayer"
+        default: return "El " + DayKey.esLong(day, .dateTime.weekday(.wide).day().month(.wide)).replacingOccurrences(of: ",", with: "")
+        }
+    }
+
+    /// Un día, como la agenda: lo de todo el día primero y lo que tiene hora después, en orden; lo hecho no se lee. Hasta `limit`
+    /// elementos, y cuántos quedan.
+    static func day(_ items: [AgendaItem], label: String = "Hoy", overdue: Int, limit: Int = 6) -> String {
         let pending = items.filter { $0.kind != .done }
             .sorted { ($0.minutes ?? -1, $0.title) < ($1.minutes ?? -1, $1.title) }
         var parts: [String] = []
         if pending.isEmpty {
-            parts.append("Hoy no tienes nada en la agenda.")
+            parts.append("\(label) no tienes nada en la agenda.")
         } else {
             let lines = pending.prefix(limit).map { i in i.timeText.map { "\($0), \(i.title)" } ?? i.title }
             let more = pending.count - lines.count
-            parts.append("Hoy tienes \(pending.count == 1 ? "una cosa" : "\(pending.count) cosas"): " + lines.joined(separator: "; ")
+            parts.append("\(label) tienes \(pending.count == 1 ? "una cosa" : "\(pending.count) cosas"): " + lines.joined(separator: "; ")
                          + (more > 0 ? "; y \(more) más." : "."))
         }
         if overdue > 0 { parts.append(overdue == 1 ? "Hay una tarea vencida." : "Hay \(overdue) tareas vencidas.") }

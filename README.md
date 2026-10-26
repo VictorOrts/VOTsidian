@@ -72,7 +72,7 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | **Captura rápida** (⇧⌘N) | «Cualquier cosa»: escribe una frase («dentista el viernes a las 17:30», «22 € cena con Ana», «peso 101,2», «compra leche y pan») y, antes de guardar, enseña lo que ha entendido y en qué nota irá. Las pestañas Tarea, Gasto, Peso, Toma e Idea siguen para lo concreto. Todos los campos de añadir tareas enseñan igual lo que van a guardar. |
 | **Navegación** | Atrás y adelante (⌘[ y ⌘]), la sección de la pantalla bajo el título, y buscar, añadir y el panel Hoy en la barra de arriba. En la barra lateral, «Fijadas» (botón derecho → «Fijar arriba») y las tres últimas notas abiertas. «Abrir en otra ventana», con el botón derecho en una pantalla, y «Otra ventana» en una nota, para tener dos cosas a la vista. |
 | **Barra de menús** | Tareas, hábitos y tomas de hoy, y añadir tareas sin abrir la ventana. |
-| **Siri y Atajos** | «Añade una tarea en VOTsidian», «Apunta en VOTsidian» (lo mismo que la captura rápida), «Qué tengo hoy en VOTsidian», «Avisos de VOTsidian» y «Abre Gastos en VOTsidian». Las mismas acciones, en la app Atajos. |
+| **Siri y Atajos** | «Añade una tarea en VOTsidian», «Apunta en VOTsidian» (lo mismo que la captura rápida), «Qué tengo el miércoles en VOTsidian», «Avisos de VOTsidian» y «Abre Gastos en VOTsidian». Las mismas acciones, en la app Atajos. |
 | **Avisos** | Lista por urgencia con botón para resolver cada aviso. También en un calendario propio «VOTsidian» de Calendar que la app mantiene al día sola (opcional y sin duplicados), como archivo `.ics` o como notificaciones de macOS. |
 
 ### Notas

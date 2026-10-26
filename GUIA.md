@@ -560,11 +560,11 @@ Con la app empaquetada (`build-app.sh`), Siri entiende estas frases sin configur
 |---|---|
 | «Añade una tarea en VOTsidian», «Nueva tarea en VOTsidian» | Pregunta la tarea y la guarda con lo que entienda: «llamar al taller el lunes a las 10». Siempre es una tarea, aunque empiece por «compra». |
 | «Apunta en VOTsidian», «Anota en VOTsidian» | Como la captura rápida: «peso 101,2», «22 € cena con Ana», «compra leche y huevos», «dentista el viernes a las 17:30». Dice lo que ha hecho. |
-| «Qué tengo hoy en VOTsidian» | Lee lo de hoy en la agenda (primero lo de todo el día, luego lo que tiene hora) y cuántas tareas están vencidas. |
+| «Qué tengo hoy en VOTsidian», «Qué tengo el miércoles en VOTsidian» | Lee lo de ese día en la agenda (primero lo de todo el día, luego lo que tiene hora). Sin día, hoy, y entonces también cuántas tareas están vencidas. |
 | «Avisos de VOTsidian» | Lee los cinco avisos más urgentes. |
 | «Abre Gastos en VOTsidian» | Abre la app en esa pantalla (cualquiera de la barra lateral). |
 
-Las mismas acciones están en la app Atajos, en la sección de VOTsidian, para usarlas en tus propios atajos: «Qué tengo hoy» y «Avisos pendientes» devuelven el texto, por ejemplo para mandarlo en un mensaje. Siri escribe en las mismas notas que la app y cada cambio se deshace igual, con ⌥⌘Z. Con `swift run` no hay Siri: macOS solo ve las acciones de la app empaquetada.
+Las mismas acciones están en la app Atajos, en la sección de VOTsidian, para usarlas en tus propios atajos: «Qué tengo» y «Avisos pendientes» devuelven el texto, por ejemplo para mandarlo en un mensaje. Siri escribe en las mismas notas que la app y cada cambio se deshace igual, con ⌥⌘Z. Con `swift run` no hay Siri: macOS solo ve las acciones de la app empaquetada.
 
 ## Copias y deshacer
 
