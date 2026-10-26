@@ -76,13 +76,15 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Marcadores de tarea propios, además de los de Obsidian Tasks: `⏰ 17:30` (hora, tras la fecha), `⏱ 1h30m` (duración,
   `TaskDuration`) y `🔕` (no va a Calendar ni a las notificaciones). Se escriben con `Edit.taskLine`/`dueMark`/`durationMark` y se
   conservan en `updateTask` y `completeRecurring`. Un emoji con selector de variación (`⏱️`) no lo encuentra `String.range(of:)`
-  con regex ni un literal `/⏱/`: buscar con `NSString` (ver `TaskDuration.find`).
+  con regex ni un literal `/⏱/`: buscar con `NSString` (ver `TaskDuration.find` y `Recurrence.find`).
 - Mi día (`MiDia.swift`, `MiDiaView.swift`): `DayPlan.build` (puro) reparte las tareas en bloques con hora y «sin hora»;
   `TimelineColumn` se comparte con la semana por horas del Calendario. Arrastrar usa el `id` de la tarea como `String`.
   La selección es `EventSelection` (id del bloque o del `AgendaItem` y su título, porque el id de una tarea es «nota:línea» y
   otra tarea puede ocupar esa línea si la nota cambia fuera); `resolve` da el `EventRef` y `EventPanel` pinta la ficha. El
   formulario es `TaskEditor` (con `TaskDraft`, puro), compartido con `TaskSheet`: guarda sobre la tarea con la que empezó
   (`origin`) y, si esa misma tarea se mueve mientras se edita, mezcla campo a campo (`TaskDraft.rebased`).
+- Una fecha de formulario que empieza en hoy (`@State var date = Date()`) lleva `.followsToday($date)`: si no, con la app abierta
+  de un día para otro, lo apuntado por la mañana iba al día anterior.
 - Toda entrada de tareas en lenguaje natural (también `QuickCommand.task`) pasa por `Store.addTask(_ p: ParsedTask)`.
 - Una función pura dentro de una vista (`static func` en un `View`) es `@MainActor`: llamada desde un test que no lo es, sus
   cierres abortan el proceso al comprobar el aislamiento (señal 5). Márcala `nonisolated` (ver `NotePeek.head`).

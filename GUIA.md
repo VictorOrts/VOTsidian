@@ -374,7 +374,7 @@ objetivo_anual: 12
 
 ### Personas
 
-Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`. `Cumpleaños` admite `MM-DD` si no sabes el año.
+Una tabla con una columna `Persona`, más `Relación`, `Cumpleaños` y `Última vez`. `Cumpleaños` admite `MM-DD` si no sabes el año. Quien nació un 29 de febrero sale el 28 los años que no son bisiestos; una fecha que no existe («02-30») no sale en el Calendario.
 
 ### Documentos
 
@@ -434,7 +434,7 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 | `⏱ 1h30m` | Lo que calculas que dura (`45m`, `2h`, `1h30m`). Da la altura del bloque en Mi día y la duración del evento en Calendar (sin ella, 15 minutos). |
 | `🔕` | Sin aviso: sigue en la app, pero no va a Calendar ni a las notificaciones de macOS. Se pone con «sin aviso» al escribirla o desde «Editar tarea». |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
-| `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…) |
+| `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…). `⏰`, `⏱` o `🔕` pueden ir antes o después. |
 | `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja |
 
 En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30».
@@ -459,7 +459,7 @@ El día por horas, de 0 a 24 h. No guarda nada aparte: todo va en la línea de c
 
 - **Barra de arriba.** Atrás y adelante (⌘[ y ⌘]) recorren las pantallas que has visitado. Bajo el título sale la sección (Dinero, Cuerpo…). A la derecha: buscar (⌘K), añadir (⇧⌘N) y el panel Hoy (⌥⌘0). Con un enfoque en marcha, su cuenta atrás.
 - **Agenda.** Mi día, Planificar semana y Tareas son una sola entrada de la barra lateral, con «Día · Semana · Lista» arriba. Al volver a la Agenda sale el último modo que usaste. Cambiar de modo no llena el historial de Atrás.
-- **Panel Hoy.** A la derecha de todas las pantallas salvo Calendario, que tiene el suyo. Arriba, el mes con un punto por tipo de evento (los colores del Calendario); un clic en un día enseña lo de ese día y el campo de abajo añade a ese día. Si es hoy, también lo vencido. Las tareas se marcan con un clic; con el botón derecho, enfoque, pasar a mañana o ver su nota. Abajo: la nota de hoy, Empezar el día y Cerrar el día. Si la ventana es estrecha se esconde solo; ⌥⌘0 lo oculta del todo, y entonces Inicio vuelve a enseñar su tarjeta «Hoy». Con la app abierta pasada la medianoche (o al despertar el Mac), el panel, Mi día y el Calendario pasan solos al día nuevo si enseñaban hoy.
+- **Panel Hoy.** A la derecha de todas las pantallas salvo Calendario, que tiene el suyo. Arriba, el mes con un punto por tipo de evento (los colores del Calendario); un clic en un día enseña lo de ese día y el campo de abajo añade a ese día. Si es hoy, también lo vencido. Las tareas se marcan con un clic; con el botón derecho, enfoque, pasar a mañana o ver su nota. Abajo: la nota de hoy, Empezar el día y Cerrar el día. Si la ventana es estrecha se esconde solo; ⌥⌘0 lo oculta del todo, y entonces Inicio vuelve a enseñar su tarjeta «Hoy». Con la app abierta pasada la medianoche (o al despertar el Mac), el panel, Mi día y el Calendario pasan solos al día nuevo si enseñaban hoy. Lo mismo la fecha de los formularios (Peso, Medicación, Mascota, Vehículo, Suscripciones, Préstamos, medidas y fotos): lo que apuntes por la mañana va al día nuevo, no al de ayer.
 - **Notas al lado.** Con el panel visible, un enlace `[[nota]]` pulsado fuera de Notas abre la nota en la pestaña «Nota» del panel: se pueden marcar casillas y cambiar propiedades, y «Editar en Notas» la abre en el editor. «Otra ventana» la deja en una ventana aparte. De una nota muy larga se enseñan las primeras 250 líneas, con un enlace para seguir en Notas. Las notas con pantalla propia (Vehículo, Peso…) siguen abriendo su pantalla.
 - **Fijadas y recientes.** Con el botón derecho en una pantalla de la barra lateral, «Fijar arriba». Las fijadas son también ⌘2…⌘9, en su orden (⌘1 es Inicio), así que no cambian al ocultar un módulo. Debajo, las tres últimas notas abiertas. Al principio están fijadas la Agenda, Calendario y Notas.
 - **Otra ventana.** Botón derecho en una pantalla → «Abrir en otra ventana», por ejemplo para tener Gastos y Notas a la vez.
@@ -552,7 +552,7 @@ Si algo no llega (Calendar no se actualiza, una copia falla, iCloud no baja un a
 
 ## Copias y deshacer
 
-- La app copia toda la carpeta antes del primer cambio de cada día y guarda las últimas 14 copias automáticas. Se pueden cifrar con contraseña en Ajustes.
+- La app copia toda la carpeta antes del primer cambio de cada día y guarda las últimas 14 copias automáticas. Con la app abierta, la copia del día nuevo se hace sola a medianoche o al despertar el Mac. Se pueden cifrar con contraseña en Ajustes.
 - Cada cambio hecho desde la app se deshace con ⌥⌘Z.
 - Para recuperar una versión antigua de una nota: Notas → ⋯ → Historial.
 - Para volver a una copia entera: Ajustes → Copias de seguridad. Antes de restaurar, la app guarda el estado actual.
