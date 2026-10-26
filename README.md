@@ -37,8 +37,8 @@
 ```bash
 git clone https://github.com/VictorOrts/VOTsidian.git
 cd VOTsidian
-./scripts/build-app.sh       # crea build/VOTsidian.app
-open build/VOTsidian.app
+./scripts/build-app.sh       # crea la app y la instala en /Applications (INSTALL=0: solo build/VOTsidian.app)
+open /Applications/VOTsidian.app
 ```
 
 Para probar sin empaquetar, `swift run VOTsidian`. Las notificaciones de macOS solo funcionan en la app empaquetada.
@@ -60,13 +60,13 @@ Todo se cambia después en **Ajustes → Módulos**. La [guía](GUIA.md) explica
 | Función | Qué hace |
 |---|---|
 | **Inicio** | Lo que pide atención y una tarjeta por módulo. «Personalizar» reordena y oculta las tarjetas. La tarjeta «Hoy» solo sale si ocultas el panel Hoy. |
-| **Panel Hoy** (⌥⌘0) | A la derecha de todas las pantallas: el mes en pequeño con un punto por tipo de evento, lo del día que elijas (con lo vencido, si es hoy), tareas que se marcan con un clic y un campo para añadir. Los enlaces a notas se abren en su pestaña «Nota», sin salir de la pantalla. En una ventana estrecha y en Calendario (que tiene su propio panel) se esconde solo. A medianoche pasa solo al día nuevo. |
+| **Panel Hoy** (⌥⌘0) | A la derecha de todas las pantallas: el mes en pequeño con un punto por tipo de evento, lo del día que elijas (con lo vencido, si es hoy), tareas que se marcan con un clic y un campo para añadir. Los enlaces a notas se abren en su pestaña «Nota», sin salir de la pantalla. En una ventana estrecha, en Calendario (que tiene su propio panel) y en Lienzo se esconde solo. A medianoche pasa solo al día nuevo. |
 | **Agenda** | Mi día, Planificar semana y Tareas en una sola entrada, con «Día · Semana · Lista» arriba. |
 | **Mi día** (Día) | El día por horas: arrastra las tareas sin hora a una franja, estira un bloque para cambiar lo que dura y mira si te pasas de las horas que quieres trabajar. «Repartir» las coloca solas en los huecos, y «Empezar el día» repasa lo de ayer, lo de hoy y lo que viene. |
 | **Planificar semana** (Semana) | Tablero de lunes a domingo para repartir las tareas arrastrándolas. |
 | **Tareas** (Lista) | Fecha, hora, duración, prioridad y repetición («cada mes», «cada 2 semanas»), escritas en lenguaje natural: «llamar al dentista el viernes a las 17:30», «reunión mañana de 10 a 11:30». Arrastra una tarea a «Hoy», «Mañana», «El lunes», «En una semana» o «Sin fecha» para cambiarle la fecha. |
 | **Enfoque** | Con el botón derecho en una tarea, «Empezar enfoque»: una cuenta atrás en la barra de arriba (lo que dura la tarea, o 25 minutos) que suena al acabar. Un clic la para. |
-| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día. Un clic en un evento abre su ficha en el panel para editarlo; el panel se pliega para ver la rejilla más ancha. |
+| **Calendario** | Tareas, citas, pagos, cumpleaños, caducidades y vencimientos, por mes o por semana con horas, con la nota del día. Un clic en un evento abre su ficha en el panel para editarlo; el panel se pliega para ver la rejilla más ancha y, si la ventana es estrecha, va encima de la rejilla. |
 | **Revisiones** | Semanal (hábitos, cumplimiento y racha), mensual, y «Empezar el día» y «Cerrar el día» para planificar por la mañana y repasar lo pendiente por la noche. |
 | **Proyectos y Objetivos** | Lista o tablero, tareas por proyecto y revisión trimestral. |
 | **Captura rápida** (⇧⌘N) | «Libre»: escribe una frase («dentista el viernes a las 17:30», «22 € cena con Ana», «peso 101,2», «compra leche y pan») y, antes de guardar, enseña lo que ha entendido y en qué nota irá. Las pestañas Tarea, Gasto, Peso, Toma e Idea siguen para lo concreto. Todos los campos de añadir tareas enseñan igual lo que van a guardar. |

@@ -5,7 +5,7 @@ import Testing
 
 // Capturas de todas las pantallas, en claro y oscuro, para revisar el diseño. Solo corre con
 // `VOT_SHOTS=/carpeta/salida VAULT_COPY=/ruta/vault swift test --filter screenshots`; trabaja sobre una copia temporal.
-// `VOT_SHOT_WIDTH` cambia el ancho de la ventana (1280 por defecto; 1110 deja la pantalla en 600 con el panel Hoy).
+// `VOT_SHOT_WIDTH` cambia el ancho de la ventana (1280 por defecto; 1210 deja la pantalla en 700 con el panel Hoy).
 @MainActor @Test func screenshots() throws {
     guard let out = ProcessInfo.processInfo.environment["VOT_SHOTS"] else { return }
     let outDir = URL(fileURLWithPath: out)

@@ -69,7 +69,8 @@ extension Store {
         var made: [URL] = []
         func write(_ name: String, _ text: String) throws {
             let u = dir.appendingPathComponent(name)
-            try text.write(to: u, atomically: true, encoding: .utf8)
+            // Con BOM, Excel sabe que es UTF-8 (sin él, «Medicación» salía «MedicaciÃ³n»); Numbers lo ignora.
+            try ((name.hasSuffix(".csv") ? "\u{FEFF}" : "") + text).write(to: u, atomically: true, encoding: .utf8)
             made.append(u)
         }
         try write("peso.csv", CSV.file(["fecha", "peso_kg", "notas"], weight.records.map { [DayKey.string($0.date), CSV.num($0.kg), $0.note] }))

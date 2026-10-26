@@ -248,7 +248,7 @@ struct GastosView: View {
                         }
                     }
                     .frame(height: 10)
-                    .accessibilityElement().accessibilityLabel("\(l.name): \(Int(r / l.planned * 100)) % de lo previsto")
+                    .accessibilityElement().accessibilityLabel("\(l.name): \(percentText(r / l.planned)) de lo previsto")
                 }
             }
         }

@@ -17,6 +17,9 @@ func dayLabel(_ d: Date) -> String {
     let cal = DayKey.calendar()
     return cal.component(.year, from: d) == cal.component(.year, from: Date()) ? shortDate(d) : DayKey.esLong(d, .dateTime.day().month(.abbreviated).year())
 }
+/// «42 %» de una proporción (0,42). Con un número absurdo de una nota («proteina_g: 999999999999999999999999») sale «–»:
+/// pasar a `Int` un `Double` enorme cierra la app.
+func percentText(_ ratio: Double) -> String { MD.int((ratio * 100).rounded()).map { "\($0) %" } ?? "–" }
 func longDate(_ d: Date) -> String { DayKey.esLong(d, .dateTime.weekday(.wide).day().month(.wide)) }
 
 /// «1 día», «3 días»: cuenta con la palabra en singular o plural.

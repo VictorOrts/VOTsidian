@@ -147,7 +147,8 @@ private func editEverything(_ t: String, _ r: inout Rng) {
 @Test func randomLinesNeverCrashTheLineParsers() {
     var r = Rng(state: 99 &+ seed)
     let words = ["peso", "animo", "dormi", "gasto", "cuota", "libro", "tarea", "cita", "compra", "pinchazo", "cintura", "devolucion", "termine", "hoy", "mañana", "ayer", "el viernes", "el 29/10", "cada mes",
-                 "cada 2 semanas", "25/11", "2026-02-30", "99999999999999999999", "el ٢٩", "en ٣ días", "٢٢ € cena", "２９/１０", "1,5", "-3", "€", "22 € cena con Ana", "0,0", "NaN", "inf", "⏫", "🔁", "📅", "#etiqueta", "carpeta:casa", "tipo:evento", "[[", "]]", "\u{202E}", "a las 17:30", "a las 5 de la tarde", "a las 9 y media", "sobre las 25:61", "a mediodía", "⏰ 17:30", "17:30", "a la 1", "menos cuarto", "de 10 a 11:30", "de 23 a 99", "durante 9999 min", "durante hora y media", "⏱ 1h30m", "de 0 a 0"]
+                 "cada 2 semanas", "25/11", "2026-02-30", "99999999999999999999", "el ٢٩", "en ٣ días", "٢٢ € cena", "２９/１０", "1,5", "-3", "€", "22 € cena con Ana", "0,0", "NaN", "inf", "⏫", "🔁", "📅", "#etiqueta", "carpeta:casa", "tipo:evento", "[[", "]]", "\u{202E}", "a las 17:30", "a las 5 de la tarde", "a las 9 y media", "sobre las 25:61", "a mediodía", "⏰ 17:30", "17:30", "a la 1", "menos cuarto", "de 10 a 11:30", "de 23 a 99", "durante 9999 min", "durante hora y media", "⏱ 1h30m", "de 0 a 0",
+                 "esta semana", "la semana que viene", "este finde", "a fin de mes", "en 10 minutos", "dentro de 999 horas", "en 0 minutos", "en media hora"]
     for _ in 0..<(4000 * scale) {
         let s = (0..<Int.random(in: 1...7, using: &r)).map { _ in words.randomElement(using: &r)! }.joined(separator: Bool.random(using: &r) ? " " : "")
         _ = (QuickCommand.parse(s), NaturalDate.extract(s), NaturalDate.extractTask(s), NaturalDate.extractTime(s), NaturalDate.extractDateTime(s), ExpenseParser.parse(s, categories: ["Alimentación", "Transporte"], people: ["Ana"], learned: ["cena": "Alimentación"]))
@@ -339,6 +340,8 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture,
         VaultPath.suscripciones: suscripcionesFixture, VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture,
         "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture, "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),
+        // Las calorías con unidad no cambian: así el % de cada macro sale absurdo (si todo fuera igual, saldría 100 %).
+        VaultPath.plan: "---\nkcal_objetivo: 1800 kcal\nproteina_g: 175\ncarbohidratos_g: 130\ngrasas_g: 50\n---\n\n# Plan nutricional\n",
     ]
     let others = [VaultPath.plan, VaultPath.medico, VaultPath.finanzas, VaultPath.compra, VaultPath.moda, VaultPath.mascota, VaultPath.personas, VaultPath.documentos, VaultPath.objetivos,
                   VaultPath.inbox, VaultPath.medidas, VaultPath.proyecto, "Diario/\(DayKey.string(DayKey.today())).md"]
@@ -373,12 +376,17 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         VaultPath.peso: pesoFixture, VaultPath.medicacion: medicacionFixture, VaultPath.casa: casaFixture, VaultPath.vehiculo: vehiculoFixture,
         VaultPath.suscripciones: suscripcionesFixture, VaultPath.prestamos: prestamosFixture, VaultPath.lecturas: lecturasFixture, VaultPath.viajes: viajesFixture,
         "\(VaultPath.revisiones)/\(DayKey.weekKey(Date())).md": weekFixture, "Finanzas/Gastos/\(Budget.monthKey(Date())).md": gastosFixture(Date()),
+        // Las calorías con unidad no cambian: así el % de cada macro sale absurdo (si todo fuera igual, saldría 100 %).
+        VaultPath.plan: "---\nkcal_objetivo: 1800 kcal\nproteina_g: 175\ncarbohidratos_g: 130\ngrasas_g: 50\n---\n\n# Plan nutricional\n",
     ]
-    for value in ["nan", "inf", "-1e999", String(repeating: "9", count: 300), String(repeating: "9", count: 400)] {
+    for value in ["nan", "inf", "-1e999", String(repeating: "9", count: 24), "-" + String(repeating: "9", count: 24),
+                  String(repeating: "9", count: 300), String(repeating: "9", count: 400)] {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("absurdos-\(UUID().uuidString)/V")
         for (rel, text) in fixtures {
             // Cada número de una celda (no las fechas) pasa a ser el valor absurdo.
+            // Y cada propiedad numérica del encabezado («proteina_g: 175»): un número de 24 cifras ahí cerraba Nutrición.
             let t = text.replacingOccurrences(of: #"\|\s*[0-9]+(?:[.,][0-9]+)?\s*(€|km|kg|g|h)?\s*(?=\|)"#, with: "| \(value) $1 ", options: .regularExpression)
+                .replacingOccurrences(of: #"(?m)^([a-z_]+):[ \t]*[0-9]+(?:[.,][0-9]+)?[ \t]*$"#, with: "$1: \(value)", options: .regularExpression)
             let u = dir.appendingPathComponent(rel)
             try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
             try t.write(to: u, atomically: true, encoding: .utf8)

@@ -30,11 +30,17 @@ private func item(_ title: String, _ kind: AgendaItem.Kind = .task, at minutes: 
     let store = Store(root: try syntheticVault())
     let day = DayKey.adding(days: 2, to: today)
     store.addAppointment("Endocrino", date: day, time: 17 * 60 + 45)
-    var hoy = HoyIntent()
+    let hoy = HoyIntent()
     hoy.store = store
     hoy.fecha = day.addingTimeInterval(15 * 3600)   // Siri manda la fecha con hora
     let result = try await hoy.perform()
     #expect(result.value?.contains("17:45, Endocrino") == true)
+}
+
+/// «Apunta en VOTsidian»: el resumen una sola vez si la app contesta lo mismo (antes, «Registrar peso…» dos veces).
+@Test func siriCaptureReplyDoesNotRepeat() {
+    #expect(SiriText.captureReply(summary: "Registrar peso 101,2 kg (hoy)", reply: "Registrar peso 101,2 kg (hoy)") == "Hecho: Registrar peso 101,2 kg (hoy).")
+    #expect(SiriText.captureReply(summary: "Tarea «x» para mañana", reply: "Añadida para martes, 27 de octubre") == "Tarea «x» para mañana. Añadida para martes, 27 de octubre")
 }
 
 @Test func siriCutsLongListsAndSaysHowManyMore() {
@@ -54,14 +60,14 @@ private func item(_ title: String, _ kind: AgendaItem.Kind = .task, at minutes: 
 @Test @MainActor func siriIntentsWriteToTheNotes() async throws {
     let store = Store(root: try syntheticVault())
 
-    var tarea = AnadirTareaIntent()
+    let tarea = AnadirTareaIntent()
     tarea.store = store
     tarea.texto = "llamar al taller mañana a las 10"
     _ = try await tarea.perform()
     let manana = DayKey.adding(days: 1, to: DayKey.today())
     #expect(store.tasks.contains { $0.text == "llamar al taller" && $0.due == manana && $0.time == 600 })
 
-    var captura = CapturarIntent()
+    let captura = CapturarIntent()
     captura.store = store
     captura.texto = "compra mostaza"
     _ = try await captura.perform()
@@ -71,7 +77,7 @@ private func item(_ title: String, _ kind: AgendaItem.Kind = .task, at minutes: 
 /// «Ve a Calendario en VOTsidian» deja la app en esa pantalla.
 @Test @MainActor func siriOpensAScreen() async throws {
     let store = Store(root: try syntheticVault())
-    var abrir = AbrirPantallaIntent()
+    let abrir = AbrirPantallaIntent()
     abrir.store = store
     abrir.target = .calendario
     _ = try await abrir.perform()

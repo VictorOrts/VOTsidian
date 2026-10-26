@@ -346,7 +346,7 @@ struct NoteChartView: View {
                 VStack(spacing: 2) {
                     Text(hovered?.label ?? "Total").font(.caption).foregroundStyle(.secondary)
                     Text(d.format(hovered?.value ?? total, d.series[0])).font(.title3.weight(.semibold)).monospacedDigit()
-                    if let h = hovered, total > 0 { Text("\(Int((h.value / total * 100).rounded())) %").font(.caption).foregroundStyle(.secondary) }
+                    if let h = hovered, total > 0 { Text(percentText(h.value / total)).font(.caption).foregroundStyle(.secondary) }
                 }
             }
             .frame(width: 220, height: 220)
@@ -357,7 +357,7 @@ struct NoteChartView: View {
                         RoundedRectangle(cornerRadius: 2).fill(palette[p.id % palette.count]).frame(width: 10, height: 10)
                         Text(p.label).lineLimit(1)
                         Text(d.format(p.value, p.series)).monospacedDigit().gridColumnAlignment(.trailing)
-                        Text(total > 0 ? "\(Int((p.value / total * 100).rounded())) %" : "").foregroundStyle(.secondary).monospacedDigit().gridColumnAlignment(.trailing)
+                        Text(total > 0 ? percentText(p.value / total) : "").foregroundStyle(.secondary).monospacedDigit().gridColumnAlignment(.trailing)
                     }
                     .font(.callout)
                     .fontWeight(hovered?.id == p.id ? .semibold : .regular)

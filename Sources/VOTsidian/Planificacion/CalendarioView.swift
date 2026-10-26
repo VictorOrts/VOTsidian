@@ -30,15 +30,33 @@ struct CalendarioView: View {
 
     var body: some View {
         let _ = BodyCounter.hit("CalendarioView")
-        HStack(spacing: 0) {
-            Group { if weekMode { week } else { month } }
-                .padding(20)
-                .frame(maxWidth: .infinity)
-            if showPanel {
-                Divider()
-                dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
-                    .frame(width: 400)
+        let grid = Group { if weekMode { week } else { month } }
+            .padding(20)
+            .frame(maxWidth: .infinity)
+        // La rejilla necesita ~500 pt (mes) o ~540 (semana) y el panel 400: si no caben juntos (ventana estrecha con la barra
+        // lateral), el panel va encima de la rejilla, por la derecha, en vez de empujar la ventana o cortarla.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) {
+                // `ViewThatFits` mira el ancho ideal: sin este, el de la rejilla era tan grande que el panel iba siempre encima.
+                grid.frame(idealWidth: weekMode ? 540 : 500)
+                if showPanel {
+                    Divider()
+                    dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
+                        .frame(width: 400)
+                        .transition(.move(edge: .trailing))
+                }
+            }
+            grid.overlay(alignment: .trailing) {
+                if showPanel {
+                    HStack(spacing: 0) {
+                        Divider()
+                        dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
+                            .frame(width: 400)
+                            .background(Color(nsColor: .windowBackgroundColor))
+                    }
+                    .shadow(color: .black.opacity(0.15), radius: 12, x: -4)
                     .transition(.move(edge: .trailing))
+                }
             }
         }
         .navigationTitle("Calendario")
