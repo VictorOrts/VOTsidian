@@ -435,10 +435,7 @@ Una tarea es cualquier línea `- [ ] …` de cualquier nota. Las que apuntas des
 | `🔕` | Sin aviso: sigue en la app, pero no va a Calendar ni a las notificaciones de macOS. Se pone con «sin aviso» al escribirla o desde «Editar tarea». |
 | `⏳ 2026-11-01` | Fecha en que piensas hacerla |
 | `🔁 every week` | Se repite (`every day`, `every 2 weeks`, `every month`, `every week when done`…). `⏰`, `⏱` o `🔕` pueden ir antes o después. |
-| `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja (`🔺` cuenta como alta y `⏬` como baja, y se conservan) |
-| `- [/]` | En curso (Tasks): sale como pendiente y se completa igual |
-
-Lo demás de Tasks (`❌` cancelada, `🆔`, `⛔`, `🏁`) se conserva al editar la tarea desde la app.
+| `⏫`, `🔼`, `🔽` | Prioridad alta, media y baja |
 
 En la captura rápida (⇧⌘N) puedes escribirlo en lenguaje natural: «llamar al dentista el viernes», «pagar el alquiler cada mes», «reunión mañana a las 17:30». También «el lunes 2 de noviembre», «el viernes que viene», «dentro de 3 días», «en una semana», «en enero» (el día 1), «reunión 9:00-10:30» (hora y duración) y «leer al día» (se repite cada día).
 
