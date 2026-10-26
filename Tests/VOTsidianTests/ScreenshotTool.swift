@@ -5,6 +5,7 @@ import Testing
 
 // Capturas de todas las pantallas, en claro y oscuro, para revisar el diseño. Solo corre con
 // `VOT_SHOTS=/carpeta/salida VAULT_COPY=/ruta/vault swift test --filter screenshots`; trabaja sobre una copia temporal.
+// `VOT_SHOT_WIDTH` cambia el ancho de la ventana (1280 por defecto; 1110 deja la pantalla en 600 con el panel Hoy).
 @MainActor @Test func screenshots() throws {
     guard let out = ProcessInfo.processInfo.environment["VOT_SHOTS"] else { return }
     let outDir = URL(fileURLWithPath: out)
@@ -17,7 +18,7 @@ import Testing
             store.screen = screen
             let host = NSHostingView(rootView: ContentView().environment(store).tint(Brand.accent)
                 .textFieldStyle(.roundedBorder).environment(\.colorScheme, scheme).preferredColorScheme(scheme))
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: Double(ProcessInfo.processInfo.environment["VOT_SHOT_HEIGHT"] ?? "") ?? 860), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: Double(ProcessInfo.processInfo.environment["VOT_SHOT_WIDTH"] ?? "") ?? 1280, height: Double(ProcessInfo.processInfo.environment["VOT_SHOT_HEIGHT"] ?? "") ?? 860), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
             window.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
             window.contentView = host
             window.orderFrontRegardless()

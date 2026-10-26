@@ -60,11 +60,14 @@ struct BasesView: View {
                         }.buttonStyle(.plain).help(t.name)
                     }
                 }
-                HStack {
-                    // Con el panel Hoy abierto la fila no cabe: el campo cede sitio y los botones no se cortan («≡ I», «+ N»).
+                // Con el panel Hoy abierto la fila no cabe: el campo cede sitio y los botones no se cortan («≡ I», «+ N»); si aun
+                // así no cabe (la pantalla se queda en 600 pt), la vista y sus menús bajan a otra línea.
+                let search = HStack {
                     TextField("Filtrar por nombre", text: $query.text).frame(minWidth: 140, maxWidth: 240)
                     Button { query.conditions.append(BaseCondition(key: allKeys.first ?? "")) } label: { Label("Filtro", systemImage: "line.3.horizontal.decrease") }.disabled(allKeys.isEmpty).fixedSize()
                     viewsMenu(current)
+                }
+                let layout = HStack {
                     Picker("Vista", selection: $query.layout) {
                         ForEach(BaseView.Layout.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                     }.pickerStyle(.segmented).labelsHidden().fixedSize()
@@ -78,9 +81,15 @@ struct BasesView: View {
                             query.groupKey = groupKeys.first { Self.pretty($0) == label } ?? groupKey
                         }.help("Propiedad que forma las columnas")
                     }
-                    Spacer()
-                    Button { showNew = true } label: { Label("Nueva nota de este tipo", systemImage: "plus").labelStyle(.iconOnly) }
-                        .disabled(current.isEmpty).help("Nueva nota de este tipo")
+                }
+                let newNote = Button { showNew = true } label: { Label("Nueva nota de este tipo", systemImage: "plus").labelStyle(.iconOnly) }
+                    .disabled(current.isEmpty).help("Nueva nota de este tipo")
+                ViewThatFits(in: .horizontal) {
+                    HStack { search; layout; Spacer(); newNote }
+                    VStack(alignment: .leading) {
+                        HStack { search; Spacer(); newNote }
+                        layout
+                    }
                 }
                 ForEach($query.conditions) { $c in
                     HStack {
