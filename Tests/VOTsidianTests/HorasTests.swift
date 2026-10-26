@@ -137,33 +137,3 @@ private func D(_ s: String) -> Date { DayKey.date(s)! }
     store.addTask(NaturalDate.extractTask("comprar sellos"))
     #expect(store.tasks.first { $0.text == "comprar sellos" }.map { $0.due == nil && $0.time == nil } == true)
 }
-
-@Test func obsidianTasksFieldsAreKept() throws {
-    let D = { (s: String) in DayKey.date(s)! }
-    // 🔺 y ⏬ cuentan como alta y baja, y al editar sin tocar la prioridad se quedan como estaban
-    for (l, p, mark) in [("- [ ] A 🔺 📅 2026-10-26", 3, "🔺"), ("- [ ] B ⏬ 📅 2026-10-26", 1, "⏬")] {
-        let t = try #require(Parse.tasks(l, file: "x").first)
-        #expect(t.priority == p && !t.text.contains(mark))
-        #expect(try #require(Edit.updateTask(l, task: t, newText: t.text + "!", due: t.due)).contains(mark))
-        #expect(try #require(Edit.updateTask(l, task: t, newText: t.text, due: t.due, priority: 2)).contains("🔼"))
-    }
-    // 🆔, ⛔, 🏁 y ❌ no se meten en la regla ni en el texto, y se conservan al editar
-    for (l, field) in [("- [ ] C 🔁 every week 🆔 abc123 📅 2026-10-26", "🆔 abc123"), ("- [ ] C 🔁 every week ⛔ abc,def 📅 2026-10-26", "⛔ abc,def"),
-                       ("- [ ] C 🔁 every week 🏁 delete 📅 2026-10-26", "🏁 delete"), ("- [ ] C ❌ 2026-10-20 📅 2026-10-26", "❌ 2026-10-20")] {
-        let t = try #require(Parse.tasks(l, file: "x").first)
-        #expect(t.text == "C" && (t.recurrence == nil || t.recurrence == "week"))
-        #expect(try #require(Edit.updateTask(l, task: t, newText: "C2", due: t.due)).contains(field))
-        if t.recurrence != nil {
-            let next = try #require(Edit.completeRecurring(l, task: t, today: D("2026-10-26")))
-            #expect(Parse.tasks(next, file: "x").contains { !$0.done && $0.due == D("2026-11-02") })
-            // 🏁 pasa a la siguiente; el identificador no se duplica
-            #expect(next.components(separatedBy: field).count - 1 == (field.hasPrefix("🏁") ? 2 : 1))
-        }
-    }
-    // «[/]» (en curso) es una tarea abierta que se puede completar
-    let wip = "- [/] Informe 📅 2026-10-26"
-    let w = try #require(Parse.tasks(wip, file: "x").first)
-    #expect(!w.done)
-    #expect(Parse.tasks(try #require(Edit.setTask(wip, task: w, done: true)), file: "x").first?.done == true)
-    #expect(Parse.tasks(try #require(Edit.toggleCheckbox(wip, line: 0)), file: "x").first?.done == true)
-}

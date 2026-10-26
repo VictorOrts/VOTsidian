@@ -85,7 +85,7 @@ enum Edit {
         var lines = MD.lines(text)
         guard let i = MD.index(of: task.raw, in: lines, near: task.line) else { return nil }
         var l = lines[i]
-        guard let box = l.firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)[ xX\/](\])/) else { return nil }
+        guard let box = l.firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)[ xX](\])/) else { return nil }
         l = String(box.1) + (done ? "x" : " ") + String(box.2) + l[box.range.upperBound...]
         if done {
             if !l.contains("[completion::"), l.range(of: #"✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, options: .regularExpression) == nil { l += " [completion:: \(DayKey.string(day))]" }
@@ -154,10 +154,8 @@ extension Edit {
         var lines = MD.lines(done)
         // setTask no cambia el número de líneas: la tarea está en el mismo índice que en el texto original.
         guard let i = MD.index(of: task.raw, in: MD.lines(text), near: task.line), let next = Recurrence.next(after: task.due, rule: rule, today: today) else { return done }
-        let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)[ xX\/](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
-        // Lo que hacer al completar (`🏁`) es de la serie y pasa a la siguiente; el identificador (`🆔`) y las dependencias, no.
-        let onCompletion = task.raw.firstMatch(of: /🏁\s*[a-z]+/).map { " " + String($0.0) } ?? ""
-        lines.insertClamped(prefix + task.text + priorityMark(task.priority, keeping: task.raw, was: task.priority) + dueMark(next, task.time) + durationMark(task.duration) + (task.muted ? " 🔕" : "") + " 🔁 every \(rule)" + onCompletion, at: i + 1)
+        let prefix = task.raw.firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)[ xX](\]\s+)/).map { String($0.1) + " " + String($0.2) } ?? "- [ ] "
+        lines.insertClamped(prefix + task.text + priorityMark(task.priority) + dueMark(next, task.time) + durationMark(task.duration) + (task.muted ? " 🔕" : "") + " 🔁 every \(rule)", at: i + 1)
         return lines.joined(separator: "\n")
     }
 }
@@ -206,8 +204,8 @@ extension Edit {
             guard let found = MD.index(of: expect, in: lines, near: line) else { return nil }
             line = found
         }
-        guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)([ xX\/])(\].*)$/) else { return nil }
-        let wasDone = m.2 == "x" || m.2 == "X"   // «[/]» (en curso) cuenta como abierta: se marca hecha
+        guard line >= 0, line < lines.count, let m = lines[line].firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[)([ xX])(\].*)$/) else { return nil }
+        let wasDone = m.2 != " "
         var l = String(m.1) + (wasDone ? " " : "x") + String(m.3)
         if wasDone { l = l.replacingOccurrences(of: #"\s*(\[completion::[^\]]*\]|✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2})"#, with: "", options: .regularExpression) }
         else if completion, !l.contains("[completion::") { l += " [completion:: \(DayKey.string(day))]" }
@@ -217,35 +215,19 @@ extension Edit {
 
     static func priorityMark(_ p: Int) -> String { p == 3 ? " ⏫" : p == 2 ? " 🔼" : p == 1 ? " 🔽" : "" }
 
-    /// Campos de Obsidian Tasks que la app no usa pero conserva: cancelada (`❌ fecha`), identificador (`🆔 abc`), depende de
-    /// (`⛔ abc,def`) y qué hacer al completarla (`🏁 delete`).
-    static let tasksFieldsPattern = #"(?:❌\s*[0-9]{4}-[0-9]{2}-[0-9]{2}|🆔\s*[A-Za-z0-9_-]+|⛔\s*[A-Za-z0-9_,-]+|🏁\s*[a-z]+)"#
-
-    /// La marca de prioridad que se escribe: si no cambió, la que ya tenía la línea (🔺 y ⏬ de Tasks no pasan a ⏫ y 🔽).
-    static func priorityMark(_ p: Int, keeping line: String, was old: Int) -> String {
-        guard p == old else { return priorityMark(p) }
-        if p == 3, line.contains("🔺") { return " 🔺" }
-        if p == 1, line.contains("⏬") { return " ⏬" }
-        return priorityMark(p)
-    }
-
     /// `priority`: -1 la deja como está, 0 la quita, 1 a 3 la cambia. `time` y `duration`: `nil` las deja como están; `.some(nil)` las quita.
     static func updateTask(_ text: String, task: TaskItem, newText: String, due: Date?, priority: Int = -1, time: Int?? = nil, muted: Bool? = nil, duration: Int?? = nil) -> String? {
         var lines = MD.lines(text)
-        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[[ xX\/]\]\s+)(.*)$/) else { return nil }
+        guard let i = MD.index(of: task.raw, in: lines, near: task.line), let m = lines[i].firstMatch(of: /^(\s*(?:[-*+]|[0-9]+\.)\s+\[[ xX]\]\s+)(.*)$/) else { return nil }
         let body = String(m.2)
         var tail = ""
         // Se conservan las demás fechas de Obsidian Tasks (programada, inicio, creada, hecha) y la marca de completada.
         for pattern in [#"⏳\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"🛫\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"➕\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"✅\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"\[completion::[^\]]*\]"#] {
             if let r = body.range(of: pattern, options: .regularExpression) { tail += " " + body[r] }
         }
-        if body.contains("❌") || body.contains("🆔") || body.contains("⛔") || body.contains("🏁"), let re = try? NSRegularExpression(pattern: tasksFieldsPattern) {
-            let ns = body as NSString
-            for f in re.matches(in: body, range: NSRange(location: 0, length: ns.length)) { tail += " " + ns.substring(with: f.range) }
-        }
         if let r = Recurrence.find(in: body) { tail = " " + r.trimmingCharacters(in: .whitespaces) + tail }
         let prio = priority < 0 ? task.priority : priority
-        lines[i] = String(m.1) + oneLine(newText).trimmingCharacters(in: .whitespaces) + priorityMark(prio, keeping: body, was: task.priority) + dueMark(due, time ?? task.time) + durationMark(duration ?? task.duration) + ((muted ?? task.muted) ? " 🔕" : "") + tail
+        lines[i] = String(m.1) + oneLine(newText).trimmingCharacters(in: .whitespaces) + priorityMark(prio) + dueMark(due, time ?? task.time) + durationMark(duration ?? task.duration) + ((muted ?? task.muted) ? " 🔕" : "") + tail
         return lines.joined(separator: "\n")
     }
 
