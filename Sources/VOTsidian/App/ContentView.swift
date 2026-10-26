@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum Screen: String, CaseIterable, Identifiable, Codable {
+enum Screen: String, CaseIterable, Identifiable, Codable, Sendable {
     case inicio = "Inicio", dia = "Mi día", tareas = "Tareas", calendario = "Calendario", planificar = "Planificar semana", semana = "Revisión semanal", mes = "Revisión mensual", proyectos = "Proyectos", objetivos = "Objetivos"
     case peso = "Peso", nutricion = "Plan nutricional", medicacion = "Medicación", salud = "Salud y médicos", correlaciones = "Correlaciones"
     case casa = "Casa", compra = "Compra", moda = "Moda", mascota = "Mascota", vehiculo = "Vehículo", personas = "Personas", documentos = "Documentos", finanzas = "Finanzas", gastos = "Gastos"

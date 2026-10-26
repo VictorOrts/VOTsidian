@@ -19,6 +19,7 @@ Esta guía explica cómo empezar y qué formato tiene cada nota, por si prefiere
 - [Gráficas en una nota](#gráficas-en-una-nota)
 - [Lienzos](#lienzos)
 - [Calendar y avisos](#calendar-y-avisos)
+- [Siri y Atajos](#siri-y-atajos)
 - [Copias y deshacer](#copias-y-deshacer)
 
 ## Empezar
@@ -486,7 +487,7 @@ En el buscador, una frase corta que empieza por una palabra clave hace una acci�
 | `terminé Dune` | Termina hoy un libro que lees o tienes pendiente (basta parte del título). |
 | `cuota Coche` | Apunta la cuota de un préstamo, en la nota y en Gastos. |
 
-La **captura rápida** (⇧⌘N), en «Cualquier cosa», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea». «Comprar …» con una fecha («comprar regalo el 15 de noviembre») sí es una tarea.
+La **captura rápida** (⇧⌘N), en «Libre», entiende estas mismas órdenes sin abrir el buscador, y además un importe en euros como gasto («22 € cena con Ana», «gasolina 48 euros») y cualquier otra frase como tarea. Antes de guardar enseña lo que ha entendido y la nota donde irá. Ojo: como en ⌘K, «compra …» va a la lista de la compra; para una tarea que empieza así, usa la pestaña «Tarea». «Comprar …» con una fecha («comprar regalo el 15 de noviembre») sí es una tarea.
 
 ## Notas que crea la app
 
@@ -550,6 +551,20 @@ Los avisos (citas, pagos, caducidades, cuotas, renovaciones, viajes…) se puede
 La sincronización con Calendar y las notificaciones solo funcionan en la app empaquetada (`build-app.sh`), no con `swift run`. Lo que avisa cada módulo está en su sección de «Formato de cada nota».
 
 Si algo no llega (Calendar no se actualiza, una copia falla, iCloud no baja un archivo), la app lo apunta en el registro del sistema. Ábrelo en Consola.app y filtra por el subsistema `com.votsidian.app`, o en Terminal: `log stream --predicate 'subsystem == "com.votsidian.app"' --level info`. Nunca se apunta el contenido de las notas, y las rutas salen ocultas salvo que macOS muestre los datos privados.
+
+## Siri y Atajos
+
+Con la app empaquetada (`build-app.sh`) y copiada en Aplicaciones, Siri entiende estas frases sin configurar nada. Si la abres desde otra carpeta (por ejemplo `build/`), Siri no puede abrirla y contesta que la función «está restringida». Todas llevan el nombre de la app; lo que falte, Siri lo pregunta.
+
+| Di | Hace |
+|---|---|
+| «Añade una tarea en VOTsidian», «Nueva tarea en VOTsidian» | Pregunta la tarea y la guarda con lo que entienda: «llamar al taller el lunes a las 10». Siempre es una tarea, aunque empiece por «compra». |
+| «Apunta en VOTsidian», «Anota en VOTsidian» | Como la captura rápida: «peso 101,2», «22 € cena con Ana», «compra leche y huevos», «dentista el viernes a las 17:30». Dice lo que ha hecho. |
+| «Qué tengo hoy en VOTsidian», «Qué tengo el miércoles en VOTsidian» | Lee lo de ese día en la agenda (primero lo de todo el día, luego lo que tiene hora). Sin día, hoy, y entonces también cuántas tareas están vencidas. |
+| «Avisos de VOTsidian» | Lee los cinco avisos más urgentes. |
+| «Abre Gastos en VOTsidian» | Abre la app en esa pantalla (cualquiera de la barra lateral). |
+
+Las mismas acciones están en la app Atajos, en la sección de VOTsidian, para usarlas en tus propios atajos: «Qué tengo» y «Avisos pendientes» devuelven el texto, por ejemplo para mandarlo en un mensaje. Siri escribe en las mismas notas que la app y cada cambio se deshace igual, con ⌥⌘Z. Con `swift run` no hay Siri: macOS solo ve las acciones de la app empaquetada.
 
 ## Copias y deshacer
 

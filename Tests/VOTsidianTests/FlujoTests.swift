@@ -175,3 +175,11 @@ import Testing
     #expect(next.first?.date == today && next.first?.detail == "\(-late) días tarde")
     #expect(next.dropFirst().first?.date == DayKey.adding(days: every, to: today))
 }
+
+/// Las pestañas de la captura rápida caben en la hoja: si no, el control segmentado la empuja y corta todo por la izquierda.
+@Test @MainActor func quickAddTabsFitTheSheet() {
+    let labels = QuickAddSheet.Kind.allCases.map(\.rawValue)
+    let picker = NSHostingView(rootView: Picker("", selection: .constant(labels[0])) { ForEach(labels, id: \.self) { Text($0).tag($0) } }
+        .pickerStyle(.segmented).labelsHidden())
+    #expect(picker.fittingSize.width <= QuickAddSheet.width - 44)
+}

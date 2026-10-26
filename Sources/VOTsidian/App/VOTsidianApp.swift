@@ -1,15 +1,20 @@
+import AppIntents
 import AppKit
 import SwiftUI
 
 @main
 struct VOTsidianApp: App {
-    @State private var store = Store()
+    @State private var store: Store
     @AppStorage("appearance") private var appearance = Appearance.system.rawValue
     @AppStorage("menuBar") private var menuBar = true
     @AppStorage(Pins.key) private var pinnedRaw = Pins.standard
     @AppStorage("todayPanel") private var panelOn = true
 
     init() {
+        // Siri y Atajos usan el mismo `Store` que las ventanas (`Siri.swift`).
+        let store = Store()
+        _store = State(initialValue: store)
+        AppDependencyManager.shared.add(dependency: store)
         NSApplication.shared.setActivationPolicy(.regular)
         // Se recibe en el hilo principal y antes de salir: guarda lo que el autoguardado aún no había guardado.
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: nil) { _ in

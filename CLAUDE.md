@@ -1,6 +1,6 @@
 # VOTsidian: notas para trabajar en el código
 
-Agenda personal para macOS 26 en SwiftUI (paquete Swift 6.3, sin dependencias). Todo se guarda en notas Markdown de una carpeta
+Agenda personal para macOS 27 en SwiftUI (paquete Swift 6.4, sin dependencias). Todo se guarda en notas Markdown de una carpeta
 del usuario, compatible con Obsidian: **las notas son la fuente de verdad**, no hay base de datos. Interfaz, comentarios,
 mensajes de commit y documentación, en español. Formato de cada nota para el usuario: [GUIA.md](GUIA.md).
 
@@ -54,7 +54,7 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 1. `Sources/VOTsidian/Modulos/<sección>/X.swift` (Cuerpo, Dinero, Hogar u Ocio, como la barra lateral): modelo `XData`, `Parse.x`, `Edit.addX…` (con `Edit.addRow(text, section:)`), acciones en `extension Store`,
    y `xAlerts(today:)` si avisa. `XView.swift`: la pantalla (`MissingNoteBanner`, `Tile`, `Card`, `AlertList(alerts:emptyText:)`, `NoteTables`).
 2. `Store.swift`: `VaultPath.defaults` + `static var x`, comentario de claves, `private(set) var x = XData()`, `derive(VaultPath.x)`.
-3. `ContentView.swift`: `Screen` (case + icono + sección en `Screen.sections` + vista en `ScreenView`).
+3. `ContentView.swift`: `Screen` (case + icono + sección en `Screen.sections` + vista en `ScreenView`) y su nombre para Siri en `Screen.caseDisplayRepresentations` (`Siri.swift`).
 4. `Modules.swift`: `Module` (case, `title`, `detail`, `icon`, `screens`, `files`), `Starter.labels`, plantilla en `Starter.text`.
 5. `Store+Derived.swift`: `reminderSources()` y el mapa de pantallas de `open(link:)`.
 6. `Alerts.swift` (`out += xAlerts…`), `Agenda.swift` (`Kind` con icono y color, elementos, `screenAliases`), `SearchEngine.swift` (sinónimos).
@@ -94,6 +94,13 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   nunca el texto de una nota.
 - «Charts: Custom UnitPoint values are not supported in AxisValueLabel's anchor property» sale en la consola con cualquier `Chart`
   (también uno sin ejes propios) en macOS 26, una vez por proceso: es de Charts, no de la app. No tocar los `anchor` por eso.
+- Siri y Atajos (`App/Siri.swift`): las acciones (`AppIntent`) toman el `Store` con `@Dependency` (lo registra `VOTsidianApp.init`
+  en `AppDependencyManager`; en tests se asigna a mano, `intent.store = store`) y reutilizan `Capture.interpret`, `store.run` y
+  `store.addTask`. Una pantalla nueva necesita su nombre en `Screen.caseDisplayRepresentations` (literal: lo lee el compilador).
+  SwiftPM no crea `Metadata.appintents`: lo hace `build-app.sh` con `-emit-const-values-path` y `appintentsmetadataprocessor`.
+  Siri solo abre la app desde `/Applications`: desde `build/` LaunchServices da `permErr -54` y Siri dice «función restringida»
+  (`ditto build/VOTsidian.app /Applications/VOTsidian.app`). «Not trusting process VOTsidian with identifier (null)» de Biome es
+  solo un aviso (firma sin `application-identifier`), no la causa.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
   probar contra Calendar real.
 
@@ -116,7 +123,7 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
     de devolver lo guardado.
   - `revision` no se observa: ninguna vista debe usarlo para refrescarse. Avisos y barra lateral están en `currentAlerts` y `sidebar`,
     publicados en `refreshPublished()` (aplazado con `refreshPublishedSoon()`); las copias, en `backupsStamp`; los enlaces, en `linksVersion`.
-  - Las propiedades publicadas deben ser `Equatable` (la observación de Swift 6.3 no avisa si el valor no cambia); lo que cambia en
+  - Las propiedades publicadas deben ser `Equatable` (la observación de Swift 6.4 no avisa si el valor no cambia); lo que cambia en
     cada edición y no se pinta (`undoStack`, `lastQuietWrite`…) va con `@ObservationIgnored`.
   - `ContentView` no debe leer nada que cambie en cada edición: el aviso de «guardado», el banner, el panel Hoy, las notas
     recientes y la cuenta atrás del enfoque son vistas aparte. El panel sí se repinta con las tareas (lo comprueba `FluidezTests`). Lo mismo
