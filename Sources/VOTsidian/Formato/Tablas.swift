@@ -165,8 +165,9 @@ extension Parse {
 
 enum Recurrence {
     /// Separa «month on the 31st» en la regla base («month») y el día fijo del mes (31; -1 = el último).
-    /// `🔁 every …` hasta el siguiente campo de la tarea (fechas, prioridad, `[completion::]`, y las marcas propias ⏰ ⏱ 🔕).
-    static let pattern = #"🔁\s*every\s+[^📅⏳🛫➕✅⏫🔼🔽⏰⏱🔕\[]+"#
+    /// `🔁 every …` hasta el siguiente campo de la tarea (fechas, prioridad, `[completion::]`, los de Tasks ❌ 🆔 ⛔ 🏁 y las
+    /// marcas propias ⏰ ⏱ 🔕).
+    static let pattern = #"🔁\s*every\s+[^📅⏳🛫➕✅❌⏫🔼🔽🔺⏬🆔⛔🏁⏰⏱🔕\[]+"#
 
     /// El trozo `🔁 every …` de una línea. Con `NSString`, como `TaskDuration.find`: la búsqueda de `String` no paraba ante un
     /// «⏱️» con selector de variación y la regla se quedaba con la duración («week ⏱️ 30m»).

@@ -43,14 +43,15 @@ enum Parse {
             // Filtro barato antes de la expresión regular (que es lo caro en una tabla de mil filas): sin «[» o sin empezar por
             // viñeta o número, la línea no puede ser una tarea.
             guard line.utf8.contains(UInt8(ascii: "[")), let first = line.first(where: { !$0.isWhitespace }), "-*+".contains(first) || first.isNumber,
-                  let m = line.firstMatch(of: /^\s*(?:[-*+]|[0-9]+\.)\s+\[([ xX])\]\s+(.*)$/) else { continue }
+                  let m = line.firstMatch(of: /^\s*(?:[-*+]|[0-9]+\.)\s+\[([ xX\/])\]\s+(.*)$/) else { continue }   // «[/]»: en curso (Tasks), sigue abierta
             let body = String(m.2)
             func date(_ emoji: String) -> Date? {
                 guard let r = body.range(of: "\(emoji)\\s*[0-9]{4}-[0-9]{2}-[0-9]{2}", options: .regularExpression) else { return nil }
                 return DayKey.date(String(body[r].suffix(10)))
             }
             var clean = body
-            let priority = body.contains("⏫") ? 3 : body.contains("🔼") ? 2 : body.contains("🔽") ? 1 : 0
+            // Tasks tiene cinco niveles; aquí son tres: 🔺 (máxima) cuenta como alta y ⏬ (mínima) como baja.
+            let priority = body.contains("⏫") || body.contains("🔺") ? 3 : body.contains("🔼") ? 2 : body.contains("🔽") || body.contains("⏬") ? 1 : 0
             var recurrence: String?
             if body.unicodeScalars.contains("\u{1F501}"), let r = Recurrence.find(in: body) {
                 recurrence = r.replacingOccurrences(of: "🔁", with: "").replacingOccurrences(of: "every", with: "").trimmingCharacters(in: .whitespaces)
@@ -58,7 +59,7 @@ enum Parse {
             var time: Int?
             if let tm = body.firstMatch(of: /⏰\s*([0-9]{1,2}):([0-9]{2})/), let h = Int(tm.1), let mi = Int(tm.2), h < 24, mi < 60 { time = h * 60 + mi }
             let duration = body.unicodeScalars.contains("\u{23F1}") ? TaskDuration.find(in: body) : nil   // solo si hay «⏱»
-            for pattern in [#"[📅⏳🛫➕✅]\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"⏰\s*[0-9]{1,2}:[0-9]{2}"#, TaskDuration.pattern, #"\[completion::[^\]]*\]"#, Recurrence.pattern, "⏫", "🔼", "🔽", "🔕"] {
+            for pattern in [#"[📅⏳🛫➕✅]\s*[0-9]{4}-[0-9]{2}-[0-9]{2}"#, #"⏰\s*[0-9]{1,2}:[0-9]{2}"#, TaskDuration.pattern, #"\[completion::[^\]]*\]"#, Recurrence.pattern, Edit.tasksFieldsPattern, "⏫", "🔼", "🔽", "🔺", "⏬", "🔕"] {
                 clean = clean.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
             }
             clean = clean.trimmingCharacters(in: .whitespaces)
@@ -70,7 +71,7 @@ enum Parse {
                 completed = DayKey.date(String(body[r].suffix(10)))
             }
             out.append(TaskItem(file: file, line: i, raw: line, text: clean, due: date("📅"), scheduled: date("⏳"),
-                                done: m.1 != " ", completed: completed, recurrence: recurrence, priority: priority, time: time, muted: body.contains("🔕"), duration: duration))
+                                done: m.1 == "x" || m.1 == "X", completed: completed, recurrence: recurrence, priority: priority, time: time, muted: body.contains("🔕"), duration: duration))
         }
         return out
     }

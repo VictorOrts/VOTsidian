@@ -9,6 +9,8 @@ enum NaturalDate {
     /// Qué se escribió, para saber cómo llevar la fecha al pasado (un gasto) cuando cae en el futuro.
     enum Kind { case none, exact, dayMonth, dayOfMonth, weekday, relative }
 
+    private static let numberWords = ["un": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "quince": 15]
+
     /// El texto sin tildes ni mayúsculas, con **exactamente** la misma longitud (en unidades UTF-16) que el original, para que las
     /// posiciones que se encuentran en él valgan en el original. Lo que no se puede plegar sin cambiar la longitud (un emoji
     /// compuesto, una bandera) se sustituye por un carácter que no coincide con nada.
@@ -42,9 +44,10 @@ enum NaturalDate {
             guard (1...12).contains(m), (1...31).contains(d) else { return nil }
             var year = y ?? todayYear
             if let y, y < 100 { year = 2000 + y }
-            guard var out = DayKey.make(year, m, d) ?? (y == nil ? DayKey.make(year + 1, m, d) : nil) else { return nil }
-            if y == nil, out < today { out = DayKey.make(year + 1, m, d) ?? out }
-            return out
+            if y != nil { return DayKey.make(year, m, d) }
+            // Sin año, la próxima vez que exista: «el 29 de febrero» puede caer dentro de tres años.
+            for k in 0...8 { if let out = DayKey.make(year + k, m, d), out >= today { return out } }
+            return nil
         }
 
         func apply(_ pattern: String, _ resolve: (NSTextCheckingResult) -> Date?) -> (String, Date)? {
@@ -52,7 +55,7 @@ enum NaturalDate {
                   let m = re.firstMatch(in: folded, range: full), let d = resolve(m) else { return nil }
             var removed = (input as NSString).replacingCharacters(in: m.range, with: "")
             // Quita conectores que se quedan colgando antes o después.
-            removed = removed.replacingOccurrences(of: #"(?i)\s+(para|el|este|esta|proximo|próximo|de|en|a)\s*$"#, with: "", options: .regularExpression)
+            removed = removed.replacingOccurrences(of: #"(?i)(\s+(para|el|este|esta|proximo|próximo|de|en|a))+\s*$"#, with: "", options: .regularExpression)
             removed = removed.replacingOccurrences(of: #"(?i)^\s*(para|el)\s+"#, with: "", options: .regularExpression)
             removed = removed.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
             return (removed, d)
@@ -65,10 +68,11 @@ enum NaturalDate {
         var yearGiven = false
         let rules: [(String, Kind, (NSTextCheckingResult) -> Date?)] = [
             (#"\b([0-9]{4})-([0-9]{2})-([0-9]{2})\b"#, .exact, { m in date(Int(group(m, 1)!), Int(group(m, 2)!)!, Int(group(m, 3)!)!) }),
-            (#"\b([0-9]{1,2})/([0-9]{1,2})(?:/([0-9]{2,4}))?\b"#, .dayMonth, { m in
+            // Un día de la semana delante («el lunes 2 de noviembre», «el viernes 30/10») va con la fecha: si no, quedaba en el texto.
+            (#"(?:\b(?:el )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo),? )?\b([0-9]{1,2})/([0-9]{1,2})(?:/([0-9]{2,4}))?\b"#, .dayMonth, { m in
                 yearGiven = group(m, 3) != nil
                 return date(group(m, 3).flatMap { Int($0) }, Int(group(m, 2)!)!, Int(group(m, 1)!)!) }),
-            (#"\b([0-9]{1,2}) de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de ([0-9]{4}))?\b"#, .dayMonth,
+            (#"(?:\b(?:el )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo),? )?\b([0-9]{1,2}) de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de ([0-9]{4}))?\b"#, .dayMonth,
              { m in
                 yearGiven = group(m, 3) != nil
                 return date(group(m, 3).flatMap { Int($0) }, months[group(m, 2)!]!, Int(group(m, 1)!)!) }),
@@ -77,14 +81,16 @@ enum NaturalDate {
             (#"\bpasado manana\b"#, .relative, { _ in DayKey.adding(days: 2, to: today) }),
             (#"\bmanana\b"#, .relative, { _ in DayKey.adding(days: 1, to: today) }),
             (#"\bhoy\b"#, .relative, { _ in today }),
-            (#"\ben ([0-9]{1,4}) (dias?|semanas?|meses?)\b"#, .relative, { m in
-                let n = Int(group(m, 1)!)!
+            (#"\b(?:en|dentro de) ([0-9]{1,4}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince) (dias?|semanas?|meses?|anos?)\b"#, .relative, { m in
+                let word = group(m, 1)!
+                guard let n = Int(word) ?? numberWords[word] else { return nil }
                 let unit = group(m, 2)!
                 if unit.hasPrefix("semana") { return DayKey.adding(days: 7 * n, to: today) }
                 if unit.hasPrefix("mes") { return cal.date(byAdding: .month, value: n, to: today) }
+                if unit.hasPrefix("ano") { return cal.date(byAdding: .year, value: n, to: today) }
                 return DayKey.adding(days: n, to: today)
             }),
-            (#"\b(?:(?:el|este|proximo) )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b"#, .weekday, { m in
+            (#"\b(?:(?:el|este|proximo) )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)(?: que viene)?\b"#, .weekday, { m in
                 let target = weekdays[group(m, 1)!]!
                 var delta = (target - cal.component(.weekday, from: today) + 7) % 7
                 if delta == 0 { delta = 7 }
@@ -101,6 +107,12 @@ enum NaturalDate {
                     if c.month! > 12 { c.month = 1; c.year! += 1 }
                 }
                 return nil
+            }),
+            // «en enero»: el día 1 de la próxima vez que llegue ese mes (si es el mes en curso, hoy).
+            (#"\ben (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?: de ([0-9]{4}))?\b"#, .dayMonth, { m in
+                let month = months[group(m, 1)!]!
+                if let y = group(m, 2).flatMap({ Int($0) }) { yearGiven = true; return date(y, month, 1) }
+                return month == cal.component(.month, from: today) ? today : date(nil, month, 1)
             }),
         ]
         for (pattern, kind, resolve) in rules {
@@ -166,6 +178,12 @@ enum NaturalDate {
             if (1...6).contains(h2) || h2 < h1 && h2 < 12 { h2 += 12 }
             let start = h1 * 60 + (group(m, 2) ?? 0), end = h2 * 60 + (group(m, 4) ?? 0)
             if h1 < 24, h2 <= 24, (group(m, 2) ?? 0) < 60, (group(m, 4) ?? 0) < 60, TaskDuration.range.contains(end - start) { return (cut(m), start, end - start) }
+        }
+        // «9:00-10:30», «9:00 – 10:30»: con minutos a los dos lados, para no confundirlo con «3-5 kg».
+        if let re = try? NSRegularExpression(pattern: #"(?<![0-9/])([0-9]{1,2})[:.]([0-9]{2})\s*[-–]\s*([0-9]{1,2})[:.]([0-9]{2})(?![0-9])(?:\s*h\b)?"#),
+           let m = re.firstMatch(in: folded, range: full), let h1 = group(m, 1), let m1 = group(m, 2), let h2 = group(m, 3), let m2 = group(m, 4),
+           h1 < 24, h2 <= 24, m1 < 60, m2 < 60, TaskDuration.range.contains(h2 * 60 + m2 - h1 * 60 - m1) {
+            return (cut(m), h1 * 60 + m1, h2 * 60 + m2 - h1 * 60 - m1)
         }
         let words: [(String, (NSTextCheckingResult) -> Int?)] = [
             (#"\bdurante (?:una )?hora y media\b"#, { _ in 90 }),
@@ -237,6 +255,7 @@ enum NaturalDate {
                 let unit = u.hasPrefix("dia") ? "days" : u.hasPrefix("semana") ? "weeks" : u.hasPrefix("mes") ? "months" : "years"
                 return ("\(n) \(unit)", nil)
             }),
+            (#"\b(?:al dia|a diario|diariamente)\b"#, { _ in ("day", nil) }),
             (#"\b(?:cada|todos los|todas las) (dia|dias|semana|semanas|mes|meses|ano|anos)\b"#, { m in
                 let u = ns.substring(with: m.range(at: 1))
                 return (u.hasPrefix("dia") ? "day" : u.hasPrefix("semana") ? "week" : u.hasPrefix("mes") ? "month" : "year", nil)

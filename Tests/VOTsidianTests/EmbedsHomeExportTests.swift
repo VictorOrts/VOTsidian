@@ -64,6 +64,9 @@ import Testing
 @Test func csvQuoting() {
     #expect(CSV.row(["a", "b,c", "d\"e", "f\ng"]) == "a,\"b,c\",\"d\"\"e\",\"f\ng\"")
     #expect(CSV.file(["x", "y"], [["1", "2"]]) == "x,y\n1,2\n")
+    #expect(CSV.row(["a\r\nb"]) == "\"a\r\nb\"")
+    #expect(Edit.rowString(["a\r\nb", "c\rd", "e\nf|g"]) == "| a b | c d | e f\\|g |")
+    #expect(Edit.taskLine("llamar\r\n## Otra sección", due: nil) == "- [ ] llamar ## Otra sección")
     #expect(CSV.num(106.0) == "106" && CSV.num(nil) == "" && CSV.num(7.5) == "7.5")
 }
 

@@ -39,6 +39,9 @@ import Testing
     // sin pie, la sección nueva va al final y no dentro del encabezado
     let bare = Shopping.addItems("---\ntipo: compra\n---\n\n## Fruta\n", items: ["peras"], category: "Fiesta")
     #expect(bare.text.hasPrefix("---\ntipo: compra\n---\n") && Shopping.parse(bare.text).map(\.category) == ["Fiesta"])
+    // una lista pegada, con viñetas o casillas, son varios artículos
+    let pasted = Shopping.addItems(c.text, items: ["- Huevos\r\n- [ ] Pan\n\n• Sal"], category: "Despensa")
+    #expect(pasted.added == 3 && pasted.text.contains("- [ ] Huevos\n- [ ] Pan\n- [ ] Sal"))
     var items = Shopping.parse(c.text)
     #expect(items.map(\.text) == ["Pollo", "Leche", "Pavo", "Velas"] && items.map(\.category) == ["Carne y pescado", "Carne y pescado", "Carne y pescado", "Fiesta"])
     let checked = try #require(Edit.toggleCheckbox(c.text, line: items[0].line, expect: items[0].raw))

@@ -136,7 +136,8 @@ extension Store {
 
     func addIdea(_ text: String) {
         ensureInbox()
-        edit(VaultPath.inbox) { Edit.appendToSection($0, section: "Ideas", line: "- \(text)") ?? Edit.appendToSectionCreating($0, section: "Ideas", lines: ["- \(text)"]) }
+        let line = "- \(Edit.oneLine(text))"
+        edit(VaultPath.inbox) { Edit.appendToSection($0, section: "Ideas", line: line) ?? Edit.appendToSectionCreating($0, section: "Ideas", lines: [line]) }
     }
 
     /// Copia manual, con hora en el nombre. No se borra sola.

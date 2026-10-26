@@ -32,6 +32,7 @@ struct CompraView: View {
                     HStack {
                         Button(action: complete) { Label("Completar con el menú", systemImage: "wand.and.stars") }
                             .help("Añade lo que falte de la «Lista de la compra» de Menú y compra y los ingredientes de los platos de la semana")
+                            .disabled(store.read(WeeklyMenu.file).isEmpty)   // sin la nota no hay nada que completar
                         Button("Vaciar comprados") { store.clearBought() }.disabled(items.allSatisfy { !$0.done })
                         Button("Desmarcar todo") { store.uncheckShopping() }.disabled(items.allSatisfy { !$0.done })
                         if !message.isEmpty { Text(message).font(.callout).foregroundStyle(.secondary) }

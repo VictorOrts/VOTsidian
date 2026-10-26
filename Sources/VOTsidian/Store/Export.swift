@@ -5,7 +5,8 @@ enum CSV {
     /// Una fila CSV: entrecomilla lo que lleve comas, comillas o saltos de línea.
     static func row(_ cells: [String]) -> String {
         cells.map { c in
-            if c.contains(",") || c.contains("\"") || c.contains("\n") { return "\"" + c.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
+            // `isNewline` y no `contains("\n")`: un «\r\n» es un solo carácter en Swift y no lo encontraba.
+            if c.contains(",") || c.contains("\"") || c.contains(where: \.isNewline) { return "\"" + c.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
             return c
         }.joined(separator: ",")
     }

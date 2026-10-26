@@ -249,7 +249,9 @@ struct MiDiaView: View {
         Text(plan.unscheduled.isEmpty ? "Sin hora" : "Sin hora (\(plan.unscheduled.count))").font(.headline)
         VStack(alignment: .leading, spacing: 6) {
             if plan.unscheduled.isEmpty {
-                Text("Todo lo de este día tiene hora.").font(.callout).foregroundStyle(.secondary)
+                // «Todo tiene hora» solo si hay alguna tarea con hora; con el día vacío, decirlo así.
+                Text(plan.blocks.contains { $0.task != nil } ? "Todo lo de este día tiene hora." : "Ninguna tarea para este día.")
+                    .font(.callout).foregroundStyle(.secondary)
             }
             ForEach(plan.unscheduled) { t in UnscheduledRow(task: t, day: day) }
         }

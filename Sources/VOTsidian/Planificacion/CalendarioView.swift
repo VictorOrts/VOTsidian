@@ -71,12 +71,13 @@ struct CalendarioView: View {
         let rows = Int(ceil(Double(lead + days) / 7))
         let gridEnd = DayKey.adding(days: rows * 7 - 1, to: gridStart)
         let agenda = store.agenda(from: gridStart, to: gridEnd)
+        let kinds = Set(agenda.values.joined().map(\.kind))
 
         return VStack(alignment: .leading, spacing: 12) {
                 // Si no cabe la leyenda al lado del mes, va debajo.
                 ViewThatFits(in: .horizontal) {
-                    HStack { monthNavigation(first); Spacer(); legend; modePicker }
-                    VStack(alignment: .leading, spacing: 8) { HStack { monthNavigation(first); Spacer(); modePicker }; legend }
+                    HStack { monthNavigation(first); Spacer(); legend(kinds); modePicker }
+                    VStack(alignment: .leading, spacing: 8) { HStack { monthNavigation(first); Spacer(); modePicker }; legend(kinds) }
                 }
                 HStack(spacing: 6) {
                     ForEach(["L", "M", "X", "J", "V", "S", "D"], id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity) }
@@ -183,11 +184,25 @@ struct CalendarioView: View {
         }
     }
 
-    private var legend: some View {
-        HStack(spacing: 10) {
-            ForEach([AgendaItem.Kind.task, .appointment, .doseNext, .weight, .birthday, .event], id: \.self) { k in
-                // Sin partir la palabra («pincha-zo») cuando falta sitio.
-                HStack(spacing: 3) { Circle().fill(k.color).frame(width: 7, height: 7); Text(label(k)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize() }
+    /// Los tipos que salen en el mes, no una lista fija: antes, una suscripción se pintaba con el violeta que la leyenda llamaba
+    /// «pinchazo». Los que comparten color van juntos («medicación / suscripción»).
+    private func legend(_ kinds: Set<AgendaItem.Kind>) -> some View {
+        let order: [AgendaItem.Kind] = [.task, .appointment, .doseNext, .dose, .weight, .birthday, .event, .document, .mascota, .vehiculo,
+                                        .suscripcion, .prestamo, .viaje, .lectura, .tramite, .shopping]
+        var groups: [(color: Color, names: [String])] = []
+        for k in order where kinds.contains(k) {
+            let name = label(k)
+            if let i = groups.firstIndex(where: { $0.color == k.color }) {
+                if !groups[i].names.contains(name) { groups[i].names.append(name) }
+            } else { groups.append((k.color, [name])) }
+        }
+        return HStack(spacing: 10) {
+            ForEach(groups.indices, id: \.self) { i in
+                // Sin partir la palabra («medica-ción») cuando falta sitio.
+                HStack(spacing: 3) {
+                    Circle().fill(groups[i].color).frame(width: 7, height: 7)
+                    Text(groups[i].names.joined(separator: " / ")).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
             }
         }
     }
@@ -196,11 +211,20 @@ struct CalendarioView: View {
         switch k {
         case .task: "tarea"
         case .appointment: "cita"
-        case .doseNext, .dose: "pinchazo"
+        case .doseNext, .dose: "medicación"
         case .weight: "peso"
         case .birthday: "cumple"
         case .event: "evento"
-        default: ""
+        case .document: "documento"
+        case .mascota: "mascota"
+        case .vehiculo: "vehículo"
+        case .suscripcion: "suscripción"
+        case .prestamo: "préstamo"
+        case .viaje: "viaje"
+        case .lectura: "lectura"
+        case .tramite: "trámite"
+        case .shopping: "compra"
+        case .done, .diary: ""
         }
     }
 

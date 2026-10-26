@@ -97,6 +97,8 @@ enum QuickCommand: Equatable {
             // La palabra se queda en el texto: es la que hace que el importe cuente como devolución.
             return ExpenseParser.parse(text, categories: categories, people: people, learned: learned, today: today).map { .expense($0) }
         case "compra", "comprar", "lista":
+            // «comprar regalo para el 15 de noviembre» es una tarea con fecha, no un artículo de la lista.
+            if verb == "comprar", NaturalDate.extract(arg, today: today).date != nil { return nil }
             let items = arg.replacingOccurrences(of: " y ", with: ",").split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             return items.isEmpty ? nil : .shopping(items)
@@ -153,6 +155,8 @@ enum Shopping {
         var lines = MD.lines(text)
         let existing = Set(parse(text).map { MD.fold($0.text) })
         var fresh: [String] = []
+        // Una lista pegada con un artículo por línea son varios artículos (sin la viñeta que traiga), no uno con saltos dentro.
+        let items = items.flatMap { $0.split(whereSeparator: \.isNewline).map { $0.replacing(/^\s*(?:[-*+•]\s+)?(?:\[[ xX]\]\s+)?/, with: "") } }
         for i in items {
             let t = i.trimmingCharacters(in: .whitespaces)
             let cap = t.prefix(1).uppercased() + t.dropFirst()
