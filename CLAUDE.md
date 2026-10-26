@@ -98,6 +98,9 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
   en `AppDependencyManager`; en tests se asigna a mano, `intent.store = store`) y reutilizan `Capture.interpret`, `store.run` y
   `store.addTask`. Una pantalla nueva necesita su nombre en `Screen.caseDisplayRepresentations` (literal: lo lee el compilador).
   SwiftPM no crea `Metadata.appintents`: lo hace `build-app.sh` con `-emit-const-values-path` y `appintentsmetadataprocessor`.
+  Siri solo abre la app desde `/Applications`: desde `build/` LaunchServices da `permErr -54` y Siri dice «función restringida»
+  (`ditto build/VOTsidian.app /Applications/VOTsidian.app`). «Not trusting process VOTsidian with identifier (null)» de Biome es
+  solo un aviso (firma sin `application-identifier`), no la causa.
 - EventKit y las notificaciones solo funcionan en el `.app` (necesitan el Info.plist de `build-app.sh`); con `swift test` no se puede
   probar contra Calendar real.
 

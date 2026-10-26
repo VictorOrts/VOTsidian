@@ -554,7 +554,7 @@ Si algo no llega (Calendar no se actualiza, una copia falla, iCloud no baja un a
 
 ## Siri y Atajos
 
-Con la app empaquetada (`build-app.sh`), Siri entiende estas frases sin configurar nada. Todas llevan el nombre de la app; lo que falte, Siri lo pregunta.
+Con la app empaquetada (`build-app.sh`) y copiada en Aplicaciones, Siri entiende estas frases sin configurar nada. Si la abres desde otra carpeta (por ejemplo `build/`), Siri no puede abrirla y contesta que la función «está restringida». Todas llevan el nombre de la app; lo que falte, Siri lo pregunta.
 
 | Di | Hace |
 |---|---|

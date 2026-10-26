@@ -77,4 +77,24 @@ else
   SIGN_ID=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development: .*\)"/\1/p' | head -1)
   codesign --force --sign "${SIGN_ID:--}" "$APP" >/dev/null 2>&1 || true
 fi
+
+# Instala en /Applications, sustituyendo la versión anterior: Siri solo abre la app desde ahí (desde build/ dice «función
+# restringida»). Una sola copia registrada en LaunchServices, para que Siri y Atajos no duden entre dos. INSTALL=0 para no
+# instalar; en GitHub (CI) no se instala.
+if [ "${INSTALL:-1}" = "1" ] && [ -z "${CI:-}" ]; then
+  DEST="/Applications/VOTsidian.app"
+  LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+  WAS_OPEN=0
+  if pgrep -xq VOTsidian; then
+    WAS_OPEN=1
+    osascript -e 'quit app "VOTsidian"' >/dev/null 2>&1 || true
+    for _ in $(seq 20); do pgrep -xq VOTsidian || break; sleep 0.5; done
+  fi
+  rm -rf "$DEST"
+  ditto "$APP" "$DEST"
+  "$LSREGISTER" -u "$PWD/$APP" >/dev/null 2>&1 || true
+  "$LSREGISTER" -f -R "$DEST"
+  [ "$WAS_OPEN" = "1" ] && open "$DEST"
+  echo "Instalada: $DEST"
+fi
 echo "Listo: $PWD/$APP"
