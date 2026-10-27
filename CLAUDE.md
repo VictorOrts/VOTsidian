@@ -124,6 +124,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Fuera de Notas, una nota se pinta recortada (`NotePeek.head`, 250 líneas o 30 KB): `NoteBody` tarda ~0,5 ms por línea con formato.
 - Listas largas: recortar con `ShowAllButton` (tablas de notas 40 filas, Peso 60…). Gráficas: `thinned(_:to:)` (120–400 puntos).
 - `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
+- Las pantallas largas van en `ScrollView { LazyVStack }`: las tarjetas de abajo no se construyen hasta que se ven (Gastos
+  138 → 435 pintados en 20 s, Viajes 110 → 458, Peso 147 → 297).
 - `ViewThatFits` construye y mide cada alternativa: nunca alrededor de algo pesado (rejillas, gráficas, paneles). Para elegir
   columnas o pila, `ColumnsOrStack` (`Components.swift`, un `Layout` que construye una vez; Gastos); fuera de un `ScrollView`, un
   `GeometryReader` que decide con el ancho (Calendario: 104 → 243 pintados en 20 s).
