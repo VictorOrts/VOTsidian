@@ -92,7 +92,7 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Swift Testing: nada de `#require` dentro de otro `#require`; con funciones que lanzan, saca el valor a una variable antes del `#expect`.
 - Desde macOS 27 cada pestaña de un `Picker(.segmented)` mide lo que la más larga: nada de `.frame(width:)` fijo (se corta por
   dentro) ni filas que no quepan (empujan la vista fuera de la ventana). `.fixedSize()` y, si puede faltar sitio, `ViewThatFits`
-  con otra fila o con `.menu`. La pantalla más estrecha mide 700 pt: el panel Hoy (300) sale con un detalle de 1000 o más (no en Calendario ni
+  con otra fila o con `.menu`. La pantalla más estrecha mide 700 pt: el panel Hoy (300) sale con un detalle de 1000 o más (no en Calendario, Mi día ni
   Lienzo, que tienen 790). `SegmentadosTests` falla si un control segmentado se corta o si una pantalla pide más ancho del que
   tiene (`screensFitBesideTheTodayPanel`): si no, la pantalla se cortaba por los dos lados. `ViewThatFits` mira el ancho *ideal*.
 - `sed -i` de macOS no es el de GNU: para editar varios archivos, Python.
@@ -124,6 +124,9 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Fuera de Notas, una nota se pinta recortada (`NotePeek.head`, 250 líneas o 30 KB): `NoteBody` tarda ~0,5 ms por línea con formato.
 - Listas largas: recortar con `ShowAllButton` (tablas de notas 40 filas, Peso 60…). Gráficas: `thinned(_:to:)` (120–400 puntos).
 - `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
+- `ViewThatFits` construye y mide cada alternativa: nunca alrededor de algo pesado (rejillas, gráficas, paneles). Para elegir
+  columnas o pila, `ColumnsOrStack` (`Components.swift`, un `Layout` que construye una vez; Gastos); fuera de un `ScrollView`, un
+  `GeometryReader` que decide con el ancho (Calendario: 104 → 243 pintados en 20 s).
 - **Qué repinta cada cambio** (lo mide `VOT_MATRIX=1 swift test --filter fluidezMatrix`; las comprobaciones de `FluidezTests` corren
   siempre). Reglas para no romperlo:
   - Las vistas leen notas con `store.read(rel)` (registra solo esa nota, `NoteSlot`), nunca `noteTexts`. Las tareas de una sola
