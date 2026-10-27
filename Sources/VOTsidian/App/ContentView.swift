@@ -112,8 +112,9 @@ struct ContentView: View {
     @State private var wide = true
 
     private var current: Screen { store.screen.flatMap { store.isVisible($0) ? $0 : nil } ?? .inicio }
-    /// Calendario ya tiene su propio panel del día, y el Lienzo quiere todo el ancho (con su lista de lienzos necesita ~730 pt).
-    private var panelFits: Bool { wide && current != .calendario && current != .lienzo }
+    /// Calendario ya tiene su propio panel del día, Mi día es el día entero (el panel lo repetía al lado) y el Lienzo quiere
+    /// todo el ancho (con su lista de lienzos necesita ~730 pt).
+    private var panelFits: Bool { wide && ![.calendario, .dia, .lienzo].contains(current) }
     private var panelShown: Bool { panelOn && panelFits }
 
     var body: some View {

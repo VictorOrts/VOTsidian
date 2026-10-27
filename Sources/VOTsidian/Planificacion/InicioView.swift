@@ -125,9 +125,9 @@ struct InicioView: View {
     private var summary: String {
         var parts: [String] = []
         if store.isVisible(.peso), let r = store.weight.remainingKg { parts.append("Faltan \(fmt(r)) kg para tu objetivo") }
-        // Atrasado no es «hace N días» (se leía como si ya estuviera hecho).
-        if store.isVisible(.medicacion), let d = store.medicacion.daysUntilNext, let main = store.medicacion.main {
-            parts.append("\(main.act) de \(main.name) " + (d < 0 ? "con \(-d) \(d == -1 ? "día" : "días") de retraso" : relativeDays(d)))
+        // Atrasado ya sale en «Atención» y en su tarjeta: aquí solo lo que viene.
+        if store.isVisible(.medicacion), let d = store.medicacion.daysUntilNext, d >= 0, let main = store.medicacion.main {
+            parts.append("\(main.act) de \(main.name) \(relativeDays(d))")
         }
         let pills = store.medicacion.pending().filter { $0.med.every == 1 }.count
         if store.isVisible(.medicacion), pills > 0 { parts.append(pills == 1 ? "1 toma pendiente hoy" : "\(pills) medicamentos por tomar hoy") }
@@ -279,12 +279,14 @@ struct InicioView: View {
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(fmt(l.kg, unit: " kg")).font(.system(size: 38, weight: .bold, design: .rounded)).monospacedDigit()
-                        Text(DayKey.dmy(l.date) + (w.previous.map { " · \(fmtDelta(l.kg - $0.kg)) vs el anterior" } ?? ""))
-                            .font(.callout).foregroundStyle(.secondary)
-                        HStack(spacing: 14) {
+                        // Corto, para que no se parta en la tarjeta estrecha: lo de «respecto al anterior», en la ayuda.
+                        Text(DayKey.dmy(l.date) + (w.previous.map { " · \(fmtDelta(l.kg - $0.kg))" } ?? ""))
+                            .font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                            .help(w.previous.map { "\(fmtDelta(l.kg - $0.kg)) respecto al registro anterior (\(DayKey.dmy($0.date)))" } ?? "")
+                        VStack(alignment: .leading, spacing: 2) {
                             Label("\(fmt(w.achievedKg)) kg \(w.achievedWord)", systemImage: w.gaining ? "arrow.up.right" : "arrow.down.right").foregroundStyle(Brand.accent)
                             Text("faltan \(fmt(w.remainingKg)) kg")
-                        }.font(.callout)
+                        }.font(.callout).lineLimit(1)
                     }
                 }
                 Sparkline(records: thinnedKeepingExtremes(w.records, to: 120), goal: w.hasGoal ? w.goalKg : nil).frame(height: 70)
@@ -316,8 +318,12 @@ struct InicioView: View {
                     }
                     VStack(alignment: .leading, spacing: 5) {
                         Text(d < 0 ? "Tocaba" : "Próximo").font(.caption).foregroundStyle(.secondary)
-                        Text(capitalizedFirst(longDate(next))).font(.title3.weight(.semibold))
-                        Text("Último: \(DayKey.dmy(last.date)) · \(last.dose) · \(last.site)").font(.callout).foregroundStyle(.secondary)
+                        // Sin sitio para «Domingo, 18 de octubre» en una línea, la fecha corta.
+                        ViewThatFits(in: .horizontal) {
+                            Text(capitalizedFirst(longDate(next)))
+                            Text(capitalizedFirst(DayKey.esLong(next, .dateTime.weekday(.abbreviated).day().month(.abbreviated))))
+                        }.font(.title3.weight(.semibold)).lineLimit(1)
+                        Text("Último: \(DayKey.dmy(last.date)) · \(last.dose) · \(last.site)").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         Text("\(main.name) · " + plural(m.doses.count, main.act, main.act + "s") + " · cada \(m.everyDays) días").font(.callout).foregroundStyle(.secondary)
                     }
                 }
@@ -325,10 +331,6 @@ struct InicioView: View {
                     Button { store.injectToday() } label: { Label(main.isInjection ? "Me pinché hoy" : "Tomada hoy", systemImage: "checkmark.circle") }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                         .help("Registra \(last.dose)" + (main.isInjection ? ", \(m.suggestedSite)" : "") + ". Se puede deshacer.")
-                }
-                if d < 0 {
-                    Label("Atrasado \(-d) \(-d == 1 ? "día" : "días"). Regístralo cuando te lo pongas.", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Brand.warn).font(.callout)
                 }
             } else if daily.isEmpty {
                 EmptyNote(m.meds.isEmpty ? "Sin medicamentos. Añádelos en \(m.name)." : "Nada que tomar hoy.")

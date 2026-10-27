@@ -80,6 +80,49 @@ struct TileRow<Content: View>: View {
     }
 }
 
+/// Las vistas en columnas si hay `minWidth`, y si no, una debajo de otra. Es lo de un `ViewThatFits` con un `HStack` y un
+/// `VStack`, pero construye las vistas una sola vez: `ViewThatFits` las construía y medía dos veces en cada pintado (en
+/// Gastos, con sus gráficas). En columnas, todas con la altura de la más alta y la última con `trailingWidth`, si lo hay.
+struct ColumnsOrStack: Layout {
+    var minWidth: CGFloat
+    var trailingWidth: CGFloat? = nil
+    var spacing: CGFloat = 16
+
+    private func widths(_ total: CGFloat, _ n: Int) -> [CGFloat] {
+        let free = total - spacing * CGFloat(n - 1)
+        guard let t = trailingWidth, n > 1 else { return Array(repeating: free / CGFloat(n), count: n) }
+        return Array(repeating: (free - t) / CGFloat(n - 1), count: n - 1) + [t]
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
+        if let w = proposal.width, w >= minWidth {
+            let h = zip(subviews, widths(w, subviews.count)).map { $0.sizeThatFits(.init(width: $1, height: nil)).height }.max() ?? 0
+            return CGSize(width: w, height: h)
+        }
+        let sizes = subviews.map { $0.sizeThatFits(.init(width: proposal.width, height: nil)) }
+        return CGSize(width: proposal.width ?? sizes.map(\.width).max() ?? 0,
+                      height: sizes.map(\.height).reduce(0, +) + spacing * CGFloat(subviews.count - 1))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        if bounds.width >= minWidth {
+            var x = bounds.minX
+            for (s, w) in zip(subviews, widths(bounds.width, subviews.count)) {
+                s.place(at: CGPoint(x: x, y: bounds.minY), proposal: .init(width: w, height: bounds.height))
+                x += w + spacing
+            }
+        } else {
+            var y = bounds.minY
+            for s in subviews {
+                let h = s.sizeThatFits(.init(width: bounds.width, height: nil)).height
+                s.place(at: CGPoint(x: bounds.minX, y: y), proposal: .init(width: bounds.width, height: h))
+                y += h + spacing
+            }
+        }
+    }
+}
+
 struct Card<Content: View>: View {
     let title: String
     var icon: String? = nil

@@ -175,24 +175,14 @@ struct GastosView: View {
         let prevKey = BudgetLine.monthIndex(b.month).map { BudgetLine.month($0 - 1) }
         let closingPrevious = s.isCurrent && s.day <= 15 ? previous.first { $0.month == prevKey }.map(Budget.closing) ?? [] : []
         let insights = closingPrevious + Budget.insights(b, previous: previous, status: s, events: s.isCurrent ? store.pendingContributions : [])
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
-            if s.isCurrent {
-                Tile(title: "Puedes gastar hoy", value: Money.format(s.leftToday),
-                     note: s.spentToday > 0 ? "llevas \(Money.exact(s.spentToday)) de \(Money.format(s.todayAllowance)) · \(Money.format(s.variableLeft)) en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")"
-                        : "\(Money.format(s.variableLeft)) para variables en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")",
-                     tint: s.leftToday > 0 ? Brand.accent : Brand.bad)
-                // Los dos primeros días la previsión es lo previsto, no el ritmo (ver BudgetStatus).
-                Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), note: s.day < 3 ? "según lo previsto" : "si sigues al ritmo de estos \(s.day) días", tint: s.endLeft < 0 ? Brand.bad : nil)
-            } else {
-                Tile(title: s.day == 0 ? "Previsto que sobre" : "Sobró", value: Money.format(s.day == 0 ? b.income - b.planned : b.income - b.spent - b.saved), tint: Brand.accent)
-                Tile(title: "Ahorrado", value: Money.format(b.saved))
+        // Cuatro fichas: en una fila o en dos de dos (en una rejilla adaptable quedaban tres y una sola debajo).
+        let tiles = monthTiles(b, s)
+        ViewThatFits(in: .horizontal) {
+            TileRow { ForEach(tiles.indices, id: \.self) { tiles[$0] } }
+            VStack(spacing: 12) {
+                TileRow { ForEach(0..<2, id: \.self) { tiles[$0] } }
+                TileRow { ForEach(2..<4, id: \.self) { tiles[$0] } }
             }
-            Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos · ingresos \(Money.format(b.income))")
-            // Sin importe previsto no es un pago pendiente, es una partida por rellenar.
-            let fixed = b.lines.filter { !$0.isDiscretionary && $0.isDue(b.month) && ($0.planned > 0 || b.real($0) > 0) }
-            let pending = fixed.filter { !$0.paid && b.real($0) == 0 }
-            Tile(title: "Pagos fijos", value: "\(fixed.count - pending.count) de \(fixed.count)",
-                 note: pending.isEmpty ? "todos pagados" : "\(Money.format(pending.reduce(0) { $0 + $1.planned })) por pagar")
         }
         if b.income == 0 || b.planned == 0 {
             Label("Pon lo previsto de ingresos y partidas (abajo) para ver el ritmo y las previsiones.", systemImage: "info.circle").font(.callout).foregroundStyle(.secondary)
@@ -201,17 +191,11 @@ struct GastosView: View {
         // «Lo que te queda». Sin ninguna de las dos, avisos y fondo van a la par en vez de junto a una caja vacía.
         let hasPace = b.lines.contains { $0.isDiscretionary && $0.planned > 0 }
         if !hasPace && s.day == 0 {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 16) { insightsCard(insights); fundCard(b, s) }
-                VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }
-            }
+            ColumnsOrStack(minWidth: 640) { insightsCard(insights); fundCard(b, s) }
         } else {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 16) {
-                    VStack(spacing: 16) { if hasPace { paceCard(b, s) }; if s.day > 0 { remainingCard(b, s) } }.frame(maxWidth: .infinity)
-                    VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }.frame(width: 360)
-                }
-                VStack(spacing: 16) { if hasPace { paceCard(b, s) }; insightsCard(insights); if s.day > 0 { remainingCard(b, s) }; fundCard(b, s) }
+            ColumnsOrStack(minWidth: 760, trailingWidth: 360) {
+                VStack(spacing: 16) { if hasPace { paceCard(b, s) }; if s.day > 0 { remainingCard(b, s) } }
+                VStack(spacing: 16) { insightsCard(insights); fundCard(b, s) }
             }
         }
         if b.lines.contains(where: { $0.every > 1 }) { reserveCard(b) }
@@ -219,6 +203,30 @@ struct GastosView: View {
         linesCard(b, previous: previous)
         movesCard(b)
         historyCard(b, previous: store.budgets(before: b.month, limit: 5))
+    }
+
+    private func monthTiles(_ b: Budget, _ s: BudgetStatus) -> [Tile] {
+        var out: [Tile] = []
+        if s.isCurrent {
+            out.append(Tile(title: "Puedes gastar hoy", value: Money.format(s.leftToday),
+                            note: s.spentToday > 0 ? "llevas \(Money.exact(s.spentToday)) de \(Money.format(s.todayAllowance)) · \(Money.format(s.variableLeft)) en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")"
+                                : "\(Money.format(s.variableLeft)) para variables en \(s.daysLeft) \(s.daysLeft == 1 ? "día" : "días")",
+                            tint: s.leftToday > 0 ? Brand.accent : Brand.bad))
+            // Los dos primeros días la previsión es lo previsto, no el ritmo (ver BudgetStatus).
+            out.append(Tile(title: s.endTitle, value: s.endValue, note: s.day < 3 ? "según lo previsto" : "si sigues al ritmo de estos \(s.day) días", tint: s.endLeft < 0 ? Brand.bad : nil))
+        } else {
+            let left = s.day == 0 ? b.income - b.planned : b.income - b.spent - b.saved
+            out.append(Tile(title: s.day == 0 ? (left < 0 ? "Previsto que falte" : "Previsto que sobre") : (left < 0 ? "Faltó" : "Sobró"),
+                            value: Money.format(abs(left)), tint: left < 0 ? Brand.bad : Brand.accent))
+            out.append(Tile(title: "Ahorrado", value: Money.format(b.saved)))
+        }
+        out.append(Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos · ingresos \(Money.format(b.income))"))
+        // Sin importe previsto no es un pago pendiente, es una partida por rellenar.
+        let fixed = b.lines.filter { !$0.isDiscretionary && $0.isDue(b.month) && ($0.planned > 0 || b.real($0) > 0) }
+        let pending = fixed.filter { !$0.paid && b.real($0) == 0 }
+        out.append(Tile(title: "Pagos fijos", value: "\(fixed.count - pending.count) de \(fixed.count)",
+                        note: pending.isEmpty ? "todos pagados" : "\(Money.format(pending.reduce(0) { $0 + $1.planned })) por pagar"))
+        return out
     }
 
     private func paceCard(_ b: Budget, _ s: BudgetStatus) -> some View {
@@ -235,15 +243,22 @@ struct GastosView: View {
                         Button(l.name) { filter = l.name }.buttonStyle(.plain).fontWeight(.medium)
                         Text("\(Money.format(r)) de \(Money.format(l.planned))").font(.callout).foregroundStyle(.secondary).monospacedDigit()
                         Spacer()
-                        Text(over ? "pasado en \(Money.format(r - l.planned))" : !s.isCurrent ? "dentro" : unknown ? "sin apuntar" : risk ? "a este ritmo, ~\(Money.format(proj))" : "vas bien · ~\(Money.format(proj))")
+                        Text(over ? "pasado en \(Money.format(r - l.planned))" : !s.isCurrent ? "dentro" : unknown ? "sin apuntar" : "acabarás en ~\(Money.format(proj))")
                             .font(.callout.weight(.medium)).foregroundStyle(over ? Brand.bad : risk ? Brand.warn : unknown ? .secondary : Brand.accent)
                     }
+                    // Pasada, la barra llega a lo gastado y lo que sobra de lo previsto va más claro: se ve cuánto se pasó.
+                    let scale = max(r, l.planned)
                     GeometryReader { g in
                         ZStack(alignment: .leading) {
                             Capsule().fill(.quaternary)
-                            Capsule().fill(over ? Brand.bad : risk ? Brand.warn : Brand.accent).frame(width: g.size.width * min(1, r / l.planned))
+                            if over {
+                                Capsule().fill(Brand.bad.opacity(0.45))
+                                Capsule().fill(Brand.bad).frame(width: g.size.width * l.planned / scale)
+                            } else {
+                                Capsule().fill(risk ? Brand.warn : Brand.accent).frame(width: g.size.width * r / scale)
+                            }
                             if s.isCurrent {
-                                RoundedRectangle(cornerRadius: 1).fill(Color.primary).frame(width: 2, height: 16).offset(x: g.size.width * s.fraction - 1)
+                                RoundedRectangle(cornerRadius: 1).fill(Color.primary).frame(width: 2, height: 16).offset(x: g.size.width * s.fraction * l.planned / scale - 1)
                             }
                         }
                     }

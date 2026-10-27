@@ -35,19 +35,21 @@ struct CalendarioView: View {
             .frame(maxWidth: .infinity)
         // La rejilla necesita ~500 pt (mes) o ~540 (semana) y el panel 400: si no caben juntos (ventana estrecha con la barra
         // lateral), el panel va encima de la rejilla, por la derecha, en vez de empujar la ventana o cortarla.
-        ViewThatFits(in: .horizontal) {
+        // Se decide con el ancho que hay, no con `ViewThatFits`: ese construía y medía la rejilla y el panel dos veces en
+        // cada pintado (`VOT_BENCH_SCREEN=calendario`: 104 → 243 pintados en 20 s).
+        GeometryReader { geo in
+            let beside = geo.size.width >= (weekMode ? 540 : 500) + 401
             HStack(spacing: 0) {
-                // `ViewThatFits` mira el ancho ideal: sin este, el de la rejilla era tan grande que el panel iba siempre encima.
-                grid.frame(idealWidth: weekMode ? 540 : 500)
-                if showPanel {
+                grid
+                if showPanel && beside {
                     Divider()
                     dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
                         .frame(width: 400)
                         .transition(.move(edge: .trailing))
                 }
             }
-            grid.overlay(alignment: .trailing) {
-                if showPanel {
+            .overlay(alignment: .trailing) {
+                if showPanel && !beside {
                     HStack(spacing: 0) {
                         Divider()
                         dayPanel(agenda: store.agenda(from: selected, to: selected)[DayKey.string(selected)] ?? [])
@@ -259,7 +261,7 @@ struct CalendarioView: View {
                     HStack(spacing: 4) {
                         Circle().fill(item.kind.color).frame(width: 6, height: 6)
                         Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(1).foregroundStyle(inMonth ? .primary : .secondary)
-                    }.help((item.timeText.map { $0 + " " } ?? "") + item.title)
+                    }
                 }
                 if shown.count > 2 { Text("+\(shown.count - 2) más").font(.caption2).foregroundStyle(.secondary) }
                 Spacer(minLength: 0)
@@ -270,6 +272,8 @@ struct CalendarioView: View {
             .overlay(RoundedRectangle(cornerRadius: Brand.radius).stroke(isSel ? Brand.accent : isToday ? Brand.accent.opacity(0.5) : .clear, lineWidth: isSel ? 2 : 1))
             .contentShape(Rectangle())
         }.buttonStyle(.plain)
+        // Una ayuda por celda con todo lo del día, no una por título: con 42 celdas, eso era buena parte del pintado.
+        .help(shown.map { ($0.timeText.map { $0 + " " } ?? "") + $0.title }.joined(separator: "\n"))
         .dropDestination(for: String.self) { ids, _ in
             guard let t = store.tasks.first(where: { ids.contains($0.id) && !$0.done }) else { return false }
             store.reschedule(t, to: day)

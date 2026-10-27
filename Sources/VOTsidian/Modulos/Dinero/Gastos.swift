@@ -137,6 +137,9 @@ struct BudgetStatus {
     var perDay: Double
     var endLeft: Double
     var projection: [String: Double]
+    /// «Sobrará el 31» o, si sale negativo, «Faltará el 31» con el importe en positivo (un «Sobrará −82 €» se contradecía).
+    var endTitle: String { endLeft < 0 ? "Faltará el \(days)" : "Sobrará el \(days)" }
+    var endValue: String { Money.format(abs(endLeft)) }
     /// Gastado hoy en partidas variables.
     var spentToday: Double = 0
     /// Lo que tocaba gastar hoy al empezar el día: lo que quedaba para variables repartido entre los días que faltan.

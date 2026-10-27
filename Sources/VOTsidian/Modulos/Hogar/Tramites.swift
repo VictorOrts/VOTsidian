@@ -164,7 +164,7 @@ extension Store {
         var out: [Alert] = []
         for (p, due) in tramites.pendingProcedures {
             let n = DayKey.days(from: today, to: due)
-            if n < 0 { out.append(Alert(level: .urgent, icon: "building.columns", text: "\(p.name): el plazo acabó el \(DayKey.dmy(due))", screen: .tramites)) }
+            if n < 0 { out.append(Alert(level: .urgent, icon: "building.columns", text: "\(p.name): plazo vencido, \(dueDays(n)) (\(DayKey.dmy(due)))", screen: .tramites)) }
             else if n <= 30 { out.append(Alert(level: n <= 7 ? .soon : .info, icon: "building.columns", text: "\(p.name): plazo \(relativeDays(n)) (\(DayKey.dmy(due)))", screen: .tramites)) }
         }
         for i in tramites.insurances {
