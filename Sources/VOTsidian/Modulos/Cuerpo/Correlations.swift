@@ -126,7 +126,8 @@ struct CorrelacionesView: View {
         let pairs = Correlations.pairs(points)
         let periods = Correlations.dosePeriods(store.medicacion.doses, until: DayKey.today())
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 Text("Aquí se cruzan peso, dosis y sueño por semanas. Una relación no prueba que una cosa cause la otra: sirve para sospechar y comentarlo con tu médico.")
                     .font(.callout).foregroundStyle(.secondary)
 

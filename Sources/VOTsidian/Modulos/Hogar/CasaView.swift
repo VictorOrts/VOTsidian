@@ -44,7 +44,8 @@ struct CasaView: View {
         let spent = all.filter { ["comprado", "hecho"].contains(MD.fold($0.estado)) }.reduce(0) { $0 + $1.cost }
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .casa)
                 TileRow {
                     Tile(title: "Reformas", value: Money.format(totalR), note: reformas.count == 1 ? "1 idea" : "\(reformas.count) ideas")

@@ -37,7 +37,8 @@ struct SaludView: View {
         let next = appointments.first { $0.due != nil }
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .salud)
                 TileRow {
                     Tile(title: "Próxima cita", value: next?.due.map { dayLabel($0) + (next?.time.map { " · \(TimeOfDay.text($0))" } ?? "") } ?? "–",

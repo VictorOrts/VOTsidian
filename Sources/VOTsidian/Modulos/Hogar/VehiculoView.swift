@@ -23,7 +23,8 @@ struct VehiculoView: View {
         let next = v.nextServices(today: today)
         let tasks = store.tasks(in: file).filter { !$0.done }
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .vehiculo)
                 TileRow {
                     Tile(title: "Km", value: v.currentKm.map(Vehiculo.kmText) ?? "–", note: v.plate.isEmpty ? nil : v.plate)

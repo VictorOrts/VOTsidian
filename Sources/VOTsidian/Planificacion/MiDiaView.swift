@@ -272,7 +272,30 @@ struct MiDiaView: View {
             return true
         } isTargeted: { targeted = $0 }
         Text("Arrastra una tarea a una hora. Para quitarle la hora, tráela aquí.").font(.caption).foregroundStyle(.secondary)
-        CaptureField(placeholder: "Ej.: llamar a Ana a las 18:00 durante 30 min", defaultDay: day)
+        CaptureField(placeholder: "Ej.: llamar a Ana a las 18:00", defaultDay: day)
+        undatedList
+    }
+
+    /// Tareas sin fecha, para traerlas a este día: se arrastran a una hora o, con «Este día», van a «Sin hora».
+    @ViewBuilder private var undatedList: some View {
+        let undated = store.tasks.filter { !$0.done && $0.due == nil && $0.scheduled == nil }.sorted { $0.priority > $1.priority }
+        if !undated.isEmpty {
+            Divider()
+            Text("Sin fecha (\(undated.count))").font(.headline)
+            ForEach(undated.prefix(6)) { t in
+                HStack(spacing: 8) {
+                    Text(MDParser.inline(t.text)).font(.callout).lineLimit(1)
+                    Spacer(minLength: 4)
+                    Button("Este día") { store.schedule(t, on: day, at: nil) }.buttonStyle(.borderless).controlSize(.small)
+                }
+                .padding(6)
+                .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 6))
+                .contentShape(Rectangle())
+                .draggable(t.id)
+                .help("Arrástrala a una hora, o «Este día» para dejarla sin hora")
+            }
+            if undated.count > 6 { Button("Ver todas en Tareas") { store.screen = .tareas }.buttonStyle(.accentLink).font(.callout) }
+        }
     }
 
     private func capacityBar(_ plan: DayPlan) -> some View {

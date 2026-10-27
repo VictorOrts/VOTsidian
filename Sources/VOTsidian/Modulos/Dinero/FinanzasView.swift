@@ -50,7 +50,8 @@ struct FinanzasView: View {
         let total = vivos.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }
         let pending = vivos.filter { $0.meta["estado"] != "pagado" }.reduce(0.0) { $0 + Money.parse($1.meta["aportacion_eur"] ?? "") }
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 16) {
                 MissingNoteBanner(module: .finanzas)
                 TileRow {
                     Tile(title: "Eventos", value: "\(eventos.count)")

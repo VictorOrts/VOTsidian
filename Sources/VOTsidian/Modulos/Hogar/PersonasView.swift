@@ -14,7 +14,8 @@ struct PersonasView: View {
             return (p, b.date, b.age, DayKey.days(from: today, to: b.date))
         }.sorted { $0.3 < $1.3 }
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 16) {
                 MissingNoteBanner(module: .personas)
                 Card(title: "Próximos cumpleaños", icon: "gift") {
                     if upcoming.isEmpty { EmptyNote(people.isEmpty ? "Sin personas. Añádelas en la tabla de la nota Personas, con su cumpleaños." : "Añade fechas de cumpleaños en la tabla de abajo.", icon: "gift") }

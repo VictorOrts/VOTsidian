@@ -20,7 +20,8 @@ struct SuscripcionesView: View {
         let upcoming = s.upcoming(today: today)
         let cancelled = s.items.filter { $0.status == .cancelled }
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .suscripciones)
                 TileRow {
                     Tile(title: "Al mes", value: Money.format(s.monthlyTotal), note: "\(plural(s.active.count, "suscripción activa", "suscripciones activas"))")

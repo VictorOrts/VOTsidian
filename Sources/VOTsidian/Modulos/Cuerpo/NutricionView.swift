@@ -17,7 +17,8 @@ struct NutricionView: View {
         let p = store.plan
         let w = store.weight
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .nutricion)
                 if p.kcal > 0 {
                     TileRow {

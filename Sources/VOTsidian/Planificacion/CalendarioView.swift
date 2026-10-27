@@ -30,15 +30,15 @@ struct CalendarioView: View {
 
     var body: some View {
         let _ = BodyCounter.hit("CalendarioView")
-        let grid = Group { if weekMode { week } else { month } }
-            .padding(20)
-            .frame(maxWidth: .infinity)
         // La rejilla necesita ~500 pt (mes) o ~540 (semana) y el panel 400: si no caben juntos (ventana estrecha con la barra
         // lateral), el panel va encima de la rejilla, por la derecha, en vez de empujar la ventana o cortarla.
         // Se decide con el ancho que hay, no con `ViewThatFits`: ese construía y medía la rejilla y el panel dos veces en
         // cada pintado (`VOT_BENCH_SCREEN=calendario`: 104 → 243 pintados en 20 s).
         GeometryReader { geo in
             let beside = geo.size.width >= (weekMode ? 540 : 500) + 401
+            let grid = Group { if weekMode { week } else { month(height: geo.size.height) } }
+                .padding(20)
+                .frame(maxWidth: .infinity)
             HStack(spacing: 0) {
                 grid
                 if showPanel && beside {
@@ -83,7 +83,8 @@ struct CalendarioView: View {
 
     // MARK: Mes
 
-    private var month: some View {
+    /// `height`: el alto de la pantalla. Cada celda enseña tantos títulos como le caben (antes, siempre dos y el resto vacío).
+    private func month(height: CGFloat) -> some View {
         let first = monthStart
         let lead = (cal.component(.weekday, from: first) + 5) % 7
         let days = cal.range(of: .day, in: .month, for: first)!.count
@@ -92,6 +93,9 @@ struct CalendarioView: View {
         let gridEnd = DayKey.adding(days: rows * 7 - 1, to: gridStart)
         let agenda = store.agenda(from: gridStart, to: gridEnd)
         let kinds = Set(agenda.values.joined().map(\.kind))
+        // Cabecera, días de la semana y márgenes: ~130 pt. Cada título ocupa ~17 pt, y el número del día y el margen, ~35.
+        let cellHeight = (height - 130 - 6 * CGFloat(rows - 1)) / CGFloat(rows)
+        let titles = max(1, min(8, Int((cellHeight - 35) / 17)))
 
         return VStack(alignment: .leading, spacing: 12) {
                 // Si no cabe la leyenda al lado del mes, va debajo.
@@ -107,7 +111,7 @@ struct CalendarioView: View {
                         HStack(spacing: 6) {
                             ForEach(0..<7, id: \.self) { c in
                                 let day = DayKey.adding(days: r * 7 + c, to: gridStart)
-                                cell(day, inMonth: cal.isDate(day, equalTo: first, toGranularity: .month), items: agenda[DayKey.string(day)] ?? [])
+                                cell(day, inMonth: cal.isDate(day, equalTo: first, toGranularity: .month), items: agenda[DayKey.string(day)] ?? [], titles: titles)
                             }
                         }
                     }
@@ -248,22 +252,26 @@ struct CalendarioView: View {
         }
     }
 
-    private func cell(_ day: Date, inMonth: Bool, items: [AgendaItem]) -> some View {
+    private func cell(_ day: Date, inMonth: Bool, items: [AgendaItem], titles: Int) -> some View {
         let isToday = day == DayKey.today()
         let isSel = day == selected
-        // Hasta dos títulos con el color de su tipo; el resto se resume en «+N».
+        // Los títulos que caben (`titles`), con el color de su tipo; el resto se resume en «+N».
         let shown = items.filter { $0.kind != .done && $0.kind != .diary }
         return Button { select(day) } label: {
             VStack(alignment: .leading, spacing: 3) {
                 Text("\(cal.component(.day, from: day))").font(.system(size: 14, weight: isToday ? .bold : .regular, design: .rounded))
                     .foregroundStyle(isToday ? Brand.accent : inMonth ? Color.primary : Color.secondary.opacity(0.5))
-                ForEach(shown.prefix(2)) { item in
+                // Si no caben todos, el último hueco es para el «+N más».
+                let fit = shown.count > titles ? max(1, titles - 1) : titles
+                // Si sobra alto (cada título cabe dos veces), en dos líneas en vez de cortarlo.
+                let twoLines = shown.count * 2 <= titles
+                ForEach(shown.prefix(fit)) { item in
                     HStack(spacing: 4) {
                         Circle().fill(item.kind.color).frame(width: 6, height: 6)
-                        Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(1).foregroundStyle(inMonth ? .primary : .secondary)
+                        Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(twoLines ? 2 : 1).foregroundStyle(inMonth ? .primary : .secondary)
                     }
                 }
-                if shown.count > 2 { Text("+\(shown.count - 2) más").font(.caption2).foregroundStyle(.secondary) }
+                if shown.count > fit { Text("+\(shown.count - fit) más").font(.caption2).foregroundStyle(.secondary) }
                 Spacer(minLength: 0)
             }
             .padding(7)

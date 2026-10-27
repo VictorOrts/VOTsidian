@@ -219,7 +219,7 @@ extension Store {
         }
         let s = BudgetStatus(b, today: today)
         if s.day >= 5, s.endLeft < -20 {
-            out.append(Alert(level: .soon, icon: "creditcard", text: "A este ritmo el mes acabará en \(Money.format(s.endLeft))", screen: .gastos))
+            out.append(Alert(level: .soon, icon: "creditcard", text: "A este ritmo faltarán \(Money.format(-s.endLeft)) a fin de mes", screen: .gastos))
         }
         return out
     }

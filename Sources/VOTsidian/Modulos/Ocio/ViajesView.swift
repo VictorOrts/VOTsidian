@@ -17,7 +17,8 @@ struct ViajesView: View {
         let upcoming = v.upcoming(today: today)
         let next = upcoming.first
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: las tarjetas de abajo (con sus gráficas) no se construyen hasta que se ven.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .viajes)
                 TileRow {
                     Tile(title: "Próximo viaje", value: next?.name ?? "–",

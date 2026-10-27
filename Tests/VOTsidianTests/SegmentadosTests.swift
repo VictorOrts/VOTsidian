@@ -87,8 +87,8 @@ import Testing
         NSHostingController(rootView: view.environment(store)).sizeThatFits(in: CGSize(width: available, height: 900)).width
     }
     for screen in Screen.allCases {
-        // Calendario y Lienzo no llevan el panel Hoy: tienen los 790 pt de la ventana más estrecha.
-        let available: CGFloat = screen == .calendario || screen == .lienzo ? 790 : 700
+        // Calendario, Mi día y Lienzo no llevan el panel Hoy: tienen los 790 pt de la ventana más estrecha.
+        let available: CGFloat = [.calendario, .dia, .lienzo].contains(screen) ? 790 : 700
         let w = width(ScreenView(screen: screen), in: available)
         #expect(w <= available + 1, "\(screen.rawValue) pide \(Int(w)) pt de \(Int(available))")
     }

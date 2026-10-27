@@ -35,7 +35,8 @@ struct MesView: View {
         let exists = store.monthReview(key) != nil
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 HStack {
                     Button { offset -= 1 } label: { Image(systemName: "chevron.left").accessibilityLabel("Anterior") }
                     Text(capitalizedFirst(DayKey.esLong(start, .dateTime.month(.wide).year()))).font(.title3.weight(.semibold)).frame(minWidth: 180)

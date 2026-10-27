@@ -35,7 +35,8 @@ struct GastosView: View {
         let m = month
         let budget = store.budget(m)
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            // Perezoso: las tarjetas de abajo (con sus gráficas) no se construyen hasta que se ven.
+            LazyVStack(alignment: .leading, spacing: 16) {
                 if yearMode {
                     let y = year ?? Int(m.prefix(4)) ?? DayKey.calendar().component(.year, from: DayKey.today())
                     yearHeader(y)
@@ -288,7 +289,8 @@ struct GastosView: View {
             .frame(height: 170)
             .accessibilityLabel("Lo que queda del mes día a día")
             if let today = series.real.last {
-                Text("Hoy quedan \(Money.format(today.1))." + (low.map { $0.1 < today.1 ? " Lo más bajo será ~\(Money.format($0.1)) el día \($0.0)." : "" } ?? ""))
+                // Por debajo de cero, «faltarán ~58 €» (un «~-58 €» se leía mal).
+                Text("Hoy quedan \(Money.format(today.1))." + (low.map { $0.1 >= today.1 ? "" : $0.1 < 0 ? " El día \($0.0) faltarán ~\(Money.format(-$0.1))." : " Lo más bajo será ~\(Money.format($0.1)) el día \($0.0)." } ?? ""))
                     .font(.callout).foregroundStyle(.secondary)
             }
         }

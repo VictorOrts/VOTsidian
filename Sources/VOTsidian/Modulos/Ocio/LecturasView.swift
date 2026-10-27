@@ -14,7 +14,8 @@ struct LecturasView: View {
         let year = DayKey.calendar().component(.year, from: today)
         let done = l.finished(in: year)
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .lecturas)
                 TileRow {
                     Tile(title: "Este año", value: l.goal > 0 ? "\(done.count) de \(l.goal)" : "\(done.count)",

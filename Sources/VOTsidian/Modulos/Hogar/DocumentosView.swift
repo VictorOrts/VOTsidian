@@ -9,7 +9,8 @@ struct DocumentosView: View {
         let docs = store.documents.sorted { $0.date < $1.date }
         let today = DayKey.today()
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 16) {
                 MissingNoteBanner(module: .documentos)
                 Card(title: "Caducidades", icon: "clock.badge.exclamationmark",
                      info: "Anota solo la referencia del documento, no el documento. Al activar los avisos se crean eventos 30 días antes de cada caducidad.") {

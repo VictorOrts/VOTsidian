@@ -140,7 +140,8 @@ struct InicioView: View {
         let _ = BodyCounter.hit("InicioView")
         let _ = store.today   // se rehace al cambiar de día
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(greeting).font(.system(size: 30, weight: .bold, design: .rounded))
@@ -332,6 +333,16 @@ struct InicioView: View {
                         .buttonStyle(.borderedProminent).controlSize(.small)
                         .help("Registra \(last.dose)" + (main.isInjection ? ", \(m.suggestedSite)" : "") + ". Se puede deshacer.")
                 }
+                // Las anteriores a la última, para ver el ritmo y las zonas (y no dejar un hueco junto a la tarjeta de Peso).
+                let before = m.doses.dropLast().suffix(3).reversed()
+                if !before.isEmpty {
+                    Divider()
+                    Text("Anteriores").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    ForEach(Array(before)) { dose in
+                        Text([DayKey.dmy(dose.date), dose.dose, dose.site].filter { !$0.isEmpty }.joined(separator: " · "))
+                            .font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
             } else if daily.isEmpty {
                 EmptyNote(m.meds.isEmpty ? "Sin medicamentos. Añádelos en \(m.name)." : "Nada que tomar hoy.")
             }
@@ -354,6 +365,8 @@ struct InicioView: View {
             let upcoming = upcomingTasks
             if upcoming.isEmpty {
                 EmptyNote("Nada pendiente en los próximos 7 días.", icon: "checkmark.circle")
+                // Vacía, la tarjeta sirve para apuntar lo siguiente en vez de ocupar media fila sin nada.
+                CaptureField(placeholder: "Añadir una tarea…", compact: true)
             } else {
                 ForEach(upcoming.prefix(7)) { TaskRow(task: $0) }
             }
@@ -517,7 +530,7 @@ struct InicioView: View {
                 let s = BudgetStatus(b)
                 HStack(spacing: 22) {
                     macro("hoy puedes", Money.format(s.leftToday), s.leftToday > 0 ? Brand.accent : Brand.bad)
-                    macro("sobrará el \(s.days)", Money.format(s.endLeft), s.endLeft < 0 ? Brand.bad : Brand.info)
+                    macro(s.endTitle.lowercased(), s.endValue, s.endLeft < 0 ? Brand.bad : Brand.info)
                     macro("gastado", Money.format(b.spent), Brand.amber)
                 }
                 let day = DayKey.calendar().component(.day, from: DayKey.today())

@@ -15,7 +15,8 @@ struct MascotaView: View {
         let n = store.mascota
         let tasks = store.tasks(in: VaultPath.mascota).filter { !$0.done }
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .mascota)
                 TileRow {
                     Tile(title: "Edad", value: n.ageText ?? "–", note: n.birth.map { "nació el \(dayLabel($0))" })

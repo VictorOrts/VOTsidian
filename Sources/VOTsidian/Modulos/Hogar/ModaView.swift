@@ -30,7 +30,8 @@ struct ModaView: View {
         let wardrobe = tables.first { MD.fold($0.title) == "armario" }
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .moda)
                 TileRow {
                     Tile(title: "Por comprar", value: "\(open.count)", note: "de \(rows.count) en la lista")

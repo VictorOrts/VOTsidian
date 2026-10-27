@@ -14,7 +14,8 @@ struct TramitesView: View {
         let done = d.procedures.filter { $0.pending == nil }
         let renewals = d.insurances.compactMap { i in i.nextRenewal(from: today).map { (i, $0) } }.sorted { $0.1 < $1.1 }
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            // Perezoso: lo de abajo no se construye hasta que se ve.
+            LazyVStack(alignment: .leading, spacing: 18) {
                 MissingNoteBanner(module: .tramites)
                 TileRow {
                     Tile(title: "Próximo plazo", value: pending.first?.procedure.name ?? "–",
