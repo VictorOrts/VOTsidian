@@ -20,7 +20,7 @@ struct FinanzasView: View {
                 TileRow {
                     Tile(title: "Gastado", value: Money.format(b.spent), note: "de \(Money.format(b.plannedExpenses)) previstos")
                     Tile(title: "Puedes gastar hoy", value: Money.format(s.leftToday), tint: s.leftToday > 0 ? Brand.accent : Brand.bad)
-                    Tile(title: "Sobrará el \(s.days)", value: Money.format(s.endLeft), tint: s.endLeft < 0 ? Brand.bad : nil)
+                    Tile(title: s.endTitle, value: s.endValue, tint: s.endLeft < 0 ? Brand.bad : nil)
                 }
             } else {
                 EmptyNote("Aún no hay presupuesto de este mes.", icon: "calendar.badge.plus")

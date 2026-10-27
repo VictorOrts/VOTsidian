@@ -592,7 +592,7 @@ private func tpl(_ key: String) throws -> String { try #require(Starter.text(for
     let store = Store(root: try syntheticVault())
     let today = DayKey.today()
     let alerts = store.tramiteAlerts(today: today)
-    #expect(alerts.contains { $0.text.hasPrefix("Basuras: el plazo acabó") && $0.level == .urgent })
+    #expect(alerts.contains { $0.text.hasPrefix("Basuras: plazo vencido, ") && $0.text.contains("tarde") && $0.level == .urgent })
     #expect(alerts.contains { $0.text.hasPrefix("Renta: plazo en 10 días") && $0.level == .info })
     #expect(alerts.contains { $0.text.hasPrefix("El seguro de Hogar se renueva en 20 días (320 €)") || $0.text.hasPrefix("El seguro de Hogar se renueva en 20 días") })
     #expect(store.alerts(today: today).contains { $0.screen == .tramites })

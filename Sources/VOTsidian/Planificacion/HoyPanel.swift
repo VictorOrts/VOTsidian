@@ -34,6 +34,7 @@ struct HoyPanel: View {
                         Divider()
                         dayList(inGrid ? agenda[DayKey.string(day)] ?? [] : store.agenda(from: day, to: day)[DayKey.string(day)] ?? [])
                         CaptureField(placeholder: day == DayKey.today() ? "Añadir a hoy…" : "Añadir a este día…", defaultDay: day, compact: true)
+                        upcoming(grid: grid, agenda: agenda)
                     }
                 }
                 .padding(14)
@@ -116,6 +117,29 @@ struct HoyPanel: View {
         ForEach(items) { it in
             if let t = it.task { taskLine(t, sub: [it.timeText, t.noteName == "Inbox" ? nil : t.noteName].compactMap { $0 }.joined(separator: " · "), late: false) }
             else { itemLine(it) }
+        }
+    }
+
+    /// Lo de los tres días siguientes al elegido, para no dejar media columna vacía y ver lo que viene sin cambiar de día.
+    @ViewBuilder private func upcoming(grid: (first: Date, start: Date, rows: Int), agenda: [String: [AgendaItem]]) -> some View {
+        let from = DayKey.adding(days: 1, to: day), to = DayKey.adding(days: 3, to: day)
+        // Casi siempre caen dentro de la rejilla del mes, que ya se consultó; si no, una consulta de solo esos días.
+        let source = from >= grid.start && to <= DayKey.adding(days: grid.rows * 7 - 1, to: grid.start) ? agenda : store.agenda(from: from, to: to)
+        let days = (1...3).map { DayKey.adding(days: $0, to: day) }
+            .map { d in (d, (source[DayKey.string(d)] ?? []).filter { $0.kind != .diary && $0.kind != .done }) }
+            .filter { !$0.1.isEmpty }
+        if !days.isEmpty {
+            Divider()
+            Text("Próximos días").font(.headline)
+            ForEach(days, id: \.0) { d, items in
+                Button { day = d } label: {
+                    Text(DayKey.days(from: DayKey.today(), to: d) == 1 ? "Mañana, " + longDate(d) : capitalizedFirst(longDate(d))).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                }.buttonStyle(.plain).help("Ver este día")
+                ForEach(items.prefix(4)) { it in
+                    if let t = it.task { taskLine(t, sub: it.timeText ?? "", late: false) } else { itemLine(it) }
+                }
+                if items.count > 4 { Text("y \(items.count - 4) más").font(.caption).foregroundStyle(.secondary) }
+            }
         }
     }
 

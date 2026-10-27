@@ -7,14 +7,20 @@ private let hourHeight: CGFloat = 52
 
 private func yOffset(_ minutes: Int) -> CGFloat { CGFloat(minutes) / 60 * hourHeight }
 
-/// Las horas a la izquierda de la agenda. Cada una lleva su `id` («h9») para llevar el scroll a ella.
+/// Las horas a la izquierda de la agenda. Cada una lleva su `id` («h9») para llevar el scroll a ella: en una franja de 12 pt
+/// encima de la raya, porque el texto sube 6 pt sobre ella y, con el `id` en el texto, la primera hora salía cortada.
 struct HourLabels: View {
     var body: some View {
         VStack(spacing: 0) {
             ForEach(0..<24, id: \.self) { h in
                 Text(String(format: "%02d:00", h)).font(.caption2).monospacedDigit().foregroundStyle(.secondary)
-                    .frame(width: 42, height: hourHeight, alignment: .topTrailing).offset(y: -6).id("h\(h)")
+                    .frame(width: 42, height: hourHeight, alignment: .topTrailing).offset(y: -6)
             }
+        }
+        // Los destinos del scroll, 12 pt por encima de cada raya (con `padding`, que sí cuenta al colocar; `offset` no).
+        .overlay(alignment: .top) {
+            VStack(spacing: 0) { ForEach(0..<24, id: \.self) { h in Color.clear.frame(height: hourHeight).id("h\(h)") } }
+                .padding(.top, -12)
         }
     }
 }
@@ -229,9 +235,11 @@ struct MiDiaView: View {
                 capacityBar(plan)
                 HStack {
                     if day == DayKey.today() { Button { store.showEmpezar = true } label: { Label("Empezar el día", systemImage: "sunrise") } }
-                    Button { distribute(plan) } label: { Label("Repartir", systemImage: "wand.and.stars") }
-                        .disabled(plan.unscheduled.isEmpty)
-                        .help("Coloca las tareas sin hora en los huecos libres, de \(dayStart):00 a \(dayEnd):00 (se deshace de una vez con ⌥⌘Z).")
+                    // Sin tareas sin hora no hay nada que repartir: el botón se esconde en vez de salir apagado sin explicación.
+                    if !plan.unscheduled.isEmpty {
+                        Button { distribute(plan) } label: { Label("Repartir", systemImage: "wand.and.stars") }
+                            .help("Coloca las tareas sin hora en los huecos libres, de \(dayStart):00 a \(dayEnd):00 (se deshace de una vez con ⌥⌘Z).")
+                    }
                 }.controlSize(.small)
                 if !feedback.isEmpty { Label(feedback, systemImage: "checkmark.circle.fill").font(.callout).foregroundStyle(Brand.accent) }
                 Divider()
@@ -264,7 +272,7 @@ struct MiDiaView: View {
             return true
         } isTargeted: { targeted = $0 }
         Text("Arrastra una tarea a una hora. Para quitarle la hora, tráela aquí.").font(.caption).foregroundStyle(.secondary)
-        CaptureField(placeholder: "Añadir a este día (ej: llamar a Ana a las 18:00 durante 30 min)", defaultDay: day)
+        CaptureField(placeholder: "Ej.: llamar a Ana a las 18:00 durante 30 min", defaultDay: day)
     }
 
     private func capacityBar(_ plan: DayPlan) -> some View {
