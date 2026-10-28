@@ -36,7 +36,7 @@ private let fragments: [String] = [
     "[[A]]", "![[B#C]]", "![[x.png]]", "[[", "]]", "[[a|b]]", "[[#]]", "[[A]] [[A]] [[A]]", "![[]]", "#etiqueta #otra/sub #123",
     "ñandú ✅ 🎉", "\u{200B}\u{202E}rtl", "e\u{0301}e\u{0301}", String(repeating: "a", count: 5000), String(repeating: "| x ", count: 400) + "|", "     ", "\t\t|\t|", "",
     "| ٢٠٢٦-١٠-٠١ | ٨٠ |", "| ２０２６-１０-０１ | ８０ |", "| २९/१०/२०२६ | 80 |", "- [ ] árabe 📅 ٢٠٢٦-١٠-٠١", "- [ ] mixta 📅 2026-١٠-01 ✅ ２０２６-１０-０２",
-    "1.234,56", "-", "∞", "٣", "1/0", "99999999999999999999", "-0", "NaN", "0x10", "1,2,3", "12:60", "25:99",
+    "1.234,56", "-", "∞", "٣", "1/0", "99999999999999999999", "0,0000000000000000000001", "-0", "NaN", "0x10", "1,2,3", "12:60", "25:99",
 ]
 
 private func randomNote(_ r: inout Rng) -> String {
@@ -380,7 +380,9 @@ private func snapshot(_ root: URL) throws -> [String: Data] {
         VaultPath.plan: "---\nkcal_objetivo: 1800 kcal\nproteina_g: 175\ncarbohidratos_g: 130\ngrasas_g: 50\n---\n\n# Plan nutricional\n",
     ]
     for value in ["nan", "inf", "-1e999", String(repeating: "9", count: 24), "-" + String(repeating: "9", count: 24),
-                  String(repeating: "9", count: 300), String(repeating: "9", count: 400)] {
+                  String(repeating: "9", count: 300), String(repeating: "9", count: 400),
+                  // Diminutos: dividir por ellos da cocientes que no caben en un `Int` (fondo de emergencia, % de ahorro).
+                  "0," + String(repeating: "0", count: 20) + "1", "-0," + String(repeating: "0", count: 20) + "1"] {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("absurdos-\(UUID().uuidString)/V")
         for (rel, text) in fixtures {
             // Cada número de una celda (no las fechas) pasa a ser el valor absurdo.

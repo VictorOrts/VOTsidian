@@ -6,8 +6,9 @@ import Testing
 // MARK: - Humo: cada pantalla se construye y se pinta sin fallar
 
 /// Pinta todas las pantallas con los datos de `store`: si alguna vista no aguanta los datos, falla.
+/// Muy alto: las pantallas largas van en `LazyVStack`, y con 800 pt las tarjetas de abajo no se construían (ni se probaban).
 @MainActor func renderAllScreens(_ store: Store) throws {
-    func render<V: View>(_ name: String, _ view: V, size: CGSize = CGSize(width: 1000, height: 800)) throws {
+    func render<V: View>(_ name: String, _ view: V, size: CGSize = CGSize(width: 1000, height: 6000)) throws {
         let r = ImageRenderer(content: view.environment(store).frame(width: size.width, height: size.height))
         r.scale = 1
         #expect(r.cgImage != nil, "\(name) no se pudo pintar")

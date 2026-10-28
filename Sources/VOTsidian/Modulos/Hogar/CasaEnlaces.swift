@@ -84,7 +84,8 @@ enum Money {
     }
 
     /// Proporción como porcentaje entero («28 %»).
-    static func percent(_ r: Double) -> String { "\(Int((r * 100).rounded())) %" }
+    /// Con `percentText`: unos ingresos casi a cero dan una tasa que no cabe en un `Int` (cerraba la app).
+    static func percent(_ r: Double) -> String { percentText(r) }
 }
 
 extension Parse {

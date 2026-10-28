@@ -58,13 +58,16 @@ struct CasaView: View {
                 if !all.isEmpty {
                     Card(title: "Coste estimado por elemento", icon: "chart.bar") {
                         Chart(all) { i in
-                            BarMark(x: .value("€", i.cost), y: .value("Qué", i.name))
+                            BarMark(x: .value("€", i.cost), y: .value("Qué", i.name), height: 14)
                                 .foregroundStyle(by: .value("Tipo", i.kind))
                                 .cornerRadius(4)
                                 .annotation(position: .trailing) { Text(Money.format(i.cost)).font(.caption).foregroundStyle(.secondary) }
+                                // El nombre, encima de su barra: el eje por defecto lo tachaba con la rejilla y la barra de arriba lo tapaba.
+                                .annotation(position: .top, alignment: .leading) { Text(i.name).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                         }
                         .chartForegroundStyleScale(["Reforma": Brand.accent, "Compra": Brand.amber])
                         .chartXAxis(.hidden)
+                        .chartYAxis(.hidden)
                         .frame(height: CGFloat(max(100, all.count * 42)))
                     }
                 }

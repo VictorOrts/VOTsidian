@@ -30,6 +30,9 @@ func relativeDays(_ n: Int) -> String {
     case 0: "hoy"
     case 1: "mañana"
     case -1: "ayer"
+    // A partir de un año, en años: «en 1234 días» no se entiende de un vistazo (al lado suele ir la fecha exacta).
+    case let x where x >= 365: "en \(plural(x / 365, "año", "años"))"
+    case let x where x <= -365: "hace \(plural(-x / 365, "año", "años"))"
     case let x where x > 0: "en \(x) días"
     default: "hace \(-n) días"
     }

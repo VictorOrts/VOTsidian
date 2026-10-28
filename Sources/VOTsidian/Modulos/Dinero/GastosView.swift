@@ -332,7 +332,8 @@ struct GastosView: View {
         let planned = b.lines.filter { $0.kind == .ahorro }.reduce(0) { $0 + $1.planned }
         let perMonth = monthly ?? (planned > 0 ? planned : 300)
         let extra = addLeftover && s.isCurrent ? max(0, s.endLeft) : 0
-        let months = perMonth > 0 ? Int(((goal - now - extra) / perMonth).rounded(.up)) : 0
+        // Con un ahorro previsto casi a cero los meses no caben en un `Int` (cerraba la app): más de 1200, «más de 100 años».
+        let months = perMonth > 0 ? min(MD.int(((goal - now - extra) / perMonth).rounded(.up)) ?? 1201, 1201) : 0
         let reach = DayKey.calendar().date(byAdding: .month, value: max(months, 0), to: Budget.firstDay(b.month) ?? DayKey.today()) ?? DayKey.today()
         return Card(title: "Fondo de emergencia", icon: "shield.lefthalf.filled",
                     info: "La meta son 3 meses de tus gastos previstos (sin el ahorro; los cargos de cada varios meses cuentan su parte de cada mes). Lo que tienes se guarda en la propiedad fondo_emergencia_eur de la nota Finanzas.") {
@@ -350,7 +351,7 @@ struct GastosView: View {
             Slider(value: Binding(get: { perMonth }, set: { monthly = $0 }), in: 25...max(1000, (planned * 2).rounded(.up)), step: 25).tint(Brand.accent)
             if planned == 0, monthly == nil { Text("Sin ahorro previsto este mes: la simulación usa 300 €.").font(.caption).foregroundStyle(.secondary) }
             if s.isCurrent, s.endLeft > 0 { Toggle("Sumar lo que sobre este mes (~\(Money.format(s.endLeft)))", isOn: $addLeftover).toggleStyle(.checkbox).font(.callout) }
-            Text(goal <= 0 ? "Pon lo previsto de las partidas para calcular la meta." : now + extra >= goal ? "Ya tienes los 3 meses cubiertos." : "Llegarías en \(DayKey.esLong(reach, .dateTime.month(.wide).year())) · \(months) \(months == 1 ? "mes" : "meses") ahorrando \(Money.format(perMonth)).")
+            Text(goal <= 0 ? "Pon lo previsto de las partidas para calcular la meta." : now + extra >= goal ? "Ya tienes los 3 meses cubiertos." : months > 1200 ? "A este ritmo tardarías más de 100 años." : "Llegarías en \(DayKey.esLong(reach, .dateTime.month(.wide).year())) · \(months) \(months == 1 ? "mes" : "meses") ahorrando \(Money.format(perMonth)).")
                 .font(.callout).fixedSize(horizontal: false, vertical: true).padding(10).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Brand.sky.opacity(0.12), in: RoundedRectangle(cornerRadius: Brand.radius))
         }
@@ -510,7 +511,7 @@ struct GastosView: View {
 
     private func trend(_ r: Double, _ avg: Double?) -> String {
         guard let avg, avg > 0, r > 0 else { return "" }
-        let d = Int(((r - avg) / avg * 100).rounded())
+        guard let d = MD.int(((r - avg) / avg * 100).rounded()) else { return "" }
         return abs(d) < 3 ? "=" : (d > 0 ? "+\(d) %" : "−\(-d) %")
     }
 

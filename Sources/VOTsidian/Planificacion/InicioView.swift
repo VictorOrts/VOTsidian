@@ -279,7 +279,9 @@ struct InicioView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 4) {
+                        // En una línea: con la pantalla estrecha (panel Hoy abierto) se partía en «101,0» y «kg».
                         Text(fmt(l.kg, unit: " kg")).font(.system(size: 38, weight: .bold, design: .rounded)).monospacedDigit()
+                            .lineLimit(1).minimumScaleFactor(0.6)
                         // Corto, para que no se parta en la tarjeta estrecha: lo de «respecto al anterior», en la ayuda.
                         Text(DayKey.dmy(l.date) + (w.previous.map { " · \(fmtDelta(l.kg - $0.kg))" } ?? ""))
                             .font(.callout).foregroundStyle(.secondary).lineLimit(1)

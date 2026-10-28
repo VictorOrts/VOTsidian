@@ -263,12 +263,12 @@ struct CalendarioView: View {
                     .foregroundStyle(isToday ? Brand.accent : inMonth ? Color.primary : Color.secondary.opacity(0.5))
                 // Si no caben todos, el último hueco es para el «+N más».
                 let fit = shown.count > titles ? max(1, titles - 1) : titles
-                // Si sobra alto (cada título cabe dos veces), en dos líneas en vez de cortarlo.
-                let twoLines = shown.count * 2 <= titles
+                // Si sobra alto, cada título en las líneas que le tocan (hasta 4) en vez de cortarlo: la celda es estrecha.
+                let lines = shown.count > fit ? 1 : max(1, min(4, titles / max(1, shown.count)))
                 ForEach(shown.prefix(fit)) { item in
                     HStack(spacing: 4) {
                         Circle().fill(item.kind.color).frame(width: 6, height: 6)
-                        Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(twoLines ? 2 : 1).foregroundStyle(inMonth ? .primary : .secondary)
+                        Text((item.timeText.map { $0 + " " } ?? "") + item.title).font(.caption2).lineLimit(lines).foregroundStyle(inMonth ? .primary : .secondary)
                     }
                 }
                 if shown.count > fit { Text("+\(shown.count - fit) más").font(.caption2).foregroundStyle(.secondary) }

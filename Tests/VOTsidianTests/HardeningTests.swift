@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import VOTsidian
 
@@ -93,4 +94,30 @@ import Testing
     #expect(percentText(store.plan.protein * 4 / store.plan.kcal) == "–")
     #expect(percentText(0.426) == "43 %")
     try renderAllScreens(store)
+}
+
+/// Un importe diminuto («0,000…01») pasa `Money.parse`; dividir por él daba un número enorme que llegaba a `Int(_:)`
+/// (meses del fondo de emergencia, % frente a la media de la partida) y cerraba la app.
+@Test @MainActor func tinyAmountsDoNotCrash() throws {
+    let store = Store(root: try syntheticVault())
+    let tiny = "0," + String(repeating: "0", count: 20) + "1"
+    let now = Date(), before = try #require(DayKey.calendar().date(byAdding: .month, value: -1, to: now))
+    let b = try #require(store.budget(Budget.monthKey(now)))
+    let saving = try #require(b.lines.first { $0.kind == .ahorro })
+    store.edit(b.path) { Edit.setSectionCell($0, section: "Partidas", line: saving.line, expectFirst: saving.name, column: "Previsto", value: tiny) }
+    #expect((store.budget(Budget.monthKey(now))?.lines.first { $0.kind == .ahorro }?.planned ?? 1) < 1e-15)
+    let p = try #require(store.budget(Budget.monthKey(before)))
+    for l in p.lines where l.kind == .fijo {
+        store.edit(p.path) { Edit.setSectionCell($0, section: "Partidas", line: l.line, expectFirst: l.name, column: "Previsto", value: tiny) }
+    }
+    // Ingresos casi a cero: la tasa de ahorro del resumen del año.
+    let income = try #require(store.budget(Budget.monthKey(now))?.incomes.first)
+    for column in ["Previsto", "Real"] {
+        store.edit(b.path) { Edit.setSectionCell($0, section: "Ingresos", line: income.line, expectFirst: income.name, column: column, value: tiny) }
+    }
+    #expect(Money.percent(-1e40) == "–")
+    try renderAllScreens(store)
+    let year = DayKey.calendar().component(.year, from: now)
+    let r = ImageRenderer(content: GastosYearView(year: year, open: { _ in }).environment(store).frame(width: 1000, height: 800))
+    #expect(r.cgImage != nil)
 }

@@ -133,10 +133,12 @@ struct PlanificarView: View {
                 if !list.isEmpty { Text("\(list.count)").font(.caption).foregroundStyle(.secondary) }
             }
             ForEach(plan.other[key] ?? []) { it in
-                HStack(spacing: 6) {
+                // Dos líneas: la columna de un día es estrecha y en una sola quedaba «Toca pinc…». El título entero, al pasar el ratón.
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: it.kind.icon).font(.caption2).foregroundStyle(it.kind.color)
-                    Text(MDParser.inline(it.title)).font(.caption).lineLimit(1).foregroundStyle(.secondary)
+                    Text(MDParser.inline(it.title)).font(.caption).lineLimit(2).foregroundStyle(.secondary)
                 }
+                .help(it.title)
             }
             ForEach(list) { t in taskCard(t, overdue: past) }
             Spacer(minLength: 0)

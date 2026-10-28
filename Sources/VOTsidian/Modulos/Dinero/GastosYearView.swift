@@ -30,7 +30,8 @@ struct GastosYearView: View {
                 Tile(title: "Gastos", value: Money.format(y.spent), note: y.averageSpent.map { "media de los meses acabados: \(Money.format($0))" } ?? "sin contar el ahorro")
                 Tile(title: "Queda", value: Money.format(y.left), note: queda(y), tint: y.left < 0 ? Brand.bad : Brand.accent)
                 if let c = y.spentChange(from: store.budgetYear(year - 1)) {
-                    let pct = Int(((c.now / c.before - 1) * 100).rounded())
+                    // `MD.int`: con un año anterior casi a cero el cociente no cabe en un `Int` y cerraba la app.
+                    let pct = MD.int(((c.now / c.before - 1) * 100).rounded()) ?? 0
                     Tile(title: "Gastos frente a \(String(year - 1))", value: pct == 0 ? "=" : (pct > 0 ? "+\(pct) %" : "−\(-pct) %"),
                          note: "\(Self.span(c.months)): \(Money.format(c.before)) → \(Money.format(c.now))",
                          tint: pct > 2 ? Brand.warn : pct < -2 ? Brand.accent : nil)

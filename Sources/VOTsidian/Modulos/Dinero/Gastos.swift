@@ -260,7 +260,7 @@ extension Budget {
             let r = b.real(l)
             if !l.isDiscretionary, l.kind != .ahorro, r > l.planned, r >= avg * 1.1, r - avg >= 5 {
                 out.append(BudgetInsight(id: "sube-\(l.name)", level: .warn,
-                    text: "\(l.name): \(Money.format(r)), un \(Int(((r - avg) / avg * 100).rounded())) % más que tu media de \(past.count == 1 ? "el mes anterior" : "los últimos \(past.count) meses") (\(Money.format(avg))). Si cambió la tarifa, sube lo previsto.",
+                    text: "\(l.name): \(Money.format(r)), \(MD.int(((r - avg) / avg * 100).rounded()).map { "un \($0) %" } ?? "muchísimo") más que tu media de \(past.count == 1 ? "el mes anterior" : "los últimos \(past.count) meses") (\(Money.format(avg))). Si cambió la tarifa, sube lo previsto.",
                     category: l.name))
             }
             if l.isDiscretionary, l.planned > 0 {
