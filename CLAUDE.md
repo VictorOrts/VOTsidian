@@ -71,7 +71,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - `MD.section(lines, containing:)` coge el **primer** encabezado que contenga la clave: el título de la nota (`# Suscripciones`) no
   puede contener el nombre de la sección de la tabla (por eso `## Servicios`, `## Lo que debo`, `## Destinos`).
 - Números de notas: `MD.number` (cifras ASCII, nunca infinito) y `MD.int` (nunca `Int(Double)`: un número enorme cierra la app).
-  Importes con `Money.parse`, nunca `Double(texto)` a pelo: acepta «nan», «inf» y «1e999». Insertar líneas
+  Importes con `Money.parse`, nunca `Double(texto)` a pelo: acepta «nan», «inf» y «1e999». Un importe diminuto («0,000…01») sí
+  pasa: todo cociente que vaya a `Int` (porcentajes, meses que faltan) con `MD.int` o `percentText`. Insertar líneas
   con `insertClamped`. Plegar texto conservando posiciones con `NaturalDate.aligned`. Fechas con `[0-9]`, no `\d`.
 - Las notas con `tipo: compra` o `tipo: viajes` no aportan tareas (`Store.notTaskTypes`).
 - Marcadores de tarea propios, además de los de Obsidian Tasks: `⏰ 17:30` (hora, tras la fecha), `⏱ 1h30m` (duración,
@@ -125,7 +126,8 @@ SWIFT_BACKTRACE=enable=yes,color=no,interactive=no,symbolicate=full swift test -
 - Listas largas: recortar con `ShowAllButton` (tablas de notas 40 filas, Peso 60…). Gráficas: `thinned(_:to:)` (120–400 puntos).
 - `MDParser.inline` salta el analizador de Markdown si el texto no tiene ningún carácter con formato; no quitar ese atajo.
 - Las pantallas largas van en `ScrollView { LazyVStack }`: las tarjetas de abajo no se construyen hasta que se ven (Gastos
-  138 → 435 pintados en 20 s, Viajes 110 → 458, Peso 147 → 297).
+  138 → 435 pintados en 20 s, Viajes 110 → 458, Peso 147 → 297). Por eso `renderAllScreens` pinta a 6000 pt de alto: con 800, el
+  humo y el fuzz no llegaban a esas tarjetas.
 - `ViewThatFits` construye y mide cada alternativa: nunca alrededor de algo pesado (rejillas, gráficas, paneles). Para elegir
   columnas o pila, `ColumnsOrStack` (`Components.swift`, un `Layout` que construye una vez; Gastos); fuera de un `ScrollView`, un
   `GeometryReader` que decide con el ancho (Calendario: 104 → 243 pintados en 20 s).
